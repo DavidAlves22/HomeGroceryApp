@@ -1,0 +1,33 @@
+# HomeGrocery App — CLAUDE.md
+
+PWA (Expo web + React Native) de compras de supermercado. **Online-only**: o servidor (`HomeGroceryApi`) é a fonte da verdade; o app não tem banco local nem fila offline. Hospedado na Vercel.
+
+## Comandos
+
+```
+npm run web          # desenvolvimento no navegador (API em EXPO_PUBLIC_API_URL, padrão http://localhost:5272)
+npm test             # Jest (rodar antes de dar algo por pronto)
+npm run typecheck && npm run lint
+npm run build:web    # gera dist/ (corrige o problema do node_modules na Vercel)
+npx vercel dist --prod --yes   # publicar
+```
+
+## Camadas (`src/`) e regra de dependência
+
+- **domain/** — value objects (`Dinheiro` em centavos inteiros, `Competencia` AAAA-MM) e regras puras. Sem React/Expo.
+- **application/** — casos de uso (uma classe por operação), portas (`ports/`), DTOs, `ErroDeApi`. Sem framework.
+- **infrastructure/** — `ClienteHttp` (token, renovação única em 401, timeout, erros amigáveis), gateways HTTP, armazenamento da sessão.
+- **presentation/** — telas, componentes, hooks, tema. **Não importa `infrastructure/`** (ESLint barra): recebe casos de uso pelo container.
+- **di/container.ts** — único lugar que conhece as implementações concretas.
+
+## Regras do produto que afetam o código
+
+- Ao abrir e ao voltar ao primeiro plano: health check (`GET /saude`). Sem resposta → `ConexaoScreen` bloqueante; só segue quando o servidor responder. Servidor "acordando" (hospedagem gratuita) tem mensagem própria.
+- Sessão: JWT de acesso (30 min) + token de renovação com rotação. `RestaurarSessao` só apaga a sessão se o servidor a recusar (401); falha de rede preserva.
+- Valores monetários sempre em centavos (`Dinheiro`); nunca `number` com casas decimais.
+- Service worker guarda só o app shell; **dados nunca vão para o cache**.
+- Sem scripts de terceiros (o token fica em localStorage na web).
+
+## Convenções
+
+Nomes em português; comentários explicam o porquê; Prettier (`.prettierrc.json`); testes em `__tests__/` espelhando `src/`; cobertura em domain/application/http.

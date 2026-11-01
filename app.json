@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "HomeGrocery",
+    "slug": "homegrocery",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./public/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./public/icon.png"
+    },
+    "plugins": ["expo-secure-store"]
+  }
+}

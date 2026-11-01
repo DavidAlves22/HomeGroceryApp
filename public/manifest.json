@@ -1,0 +1,9 @@
+{
+  "name": "HomeGrocery",
+  "short_name": "HomeGrocery",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f8f4f1",
+  "theme_color": "#c2540a",
+  "icons": [{ "src": "/icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }]
+}
