@@ -67,6 +67,34 @@ describe('CriarLista', () => {
     expect(gateway.criar).toHaveBeenCalledWith({ competencia: '2026-12', origem: 'Padrao' });
   });
 
+  it('copiar exige a lista de origem e ao menos um produto', async () => {
+    const gateway = gatewayDeListas();
+    await expect(
+      new CriarLista(gateway).executar({ competencia: '2026-12', origem: 'Copiar' }),
+    ).rejects.toThrow('Escolha a lista que será copiada');
+    await expect(
+      new CriarLista(gateway).executar({
+        competencia: '2026-12',
+        origem: 'Copiar',
+        listaDeOrigemId: 'l9',
+        itensDeOrigemIds: [],
+      }),
+    ).rejects.toThrow('Selecione ao menos um produto');
+    expect(gateway.criar).not.toHaveBeenCalled();
+  });
+
+  it('copiar envia a origem e os itens escolhidos', async () => {
+    const gateway = gatewayDeListas();
+    const dados = {
+      competencia: '2026-12',
+      origem: 'Copiar' as const,
+      listaDeOrigemId: 'l9',
+      itensDeOrigemIds: ['a', 'b'],
+    };
+    await new CriarLista(gateway).executar(dados);
+    expect(gateway.criar).toHaveBeenCalledWith(dados);
+  });
+
   it('recusa competência inválida e seleção vazia da lista padrão', async () => {
     const gateway = gatewayDeListas();
     await expect(

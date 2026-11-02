@@ -10,6 +10,7 @@ import { InicioScreen } from '../screens/InicioScreen';
 import { DetalheDaListaScreen, ListaScreen } from '../screens/ListaScreen';
 import { ListaPadraoScreen } from '../screens/ListaPadraoScreen';
 import { MaisScreen } from '../screens/MaisScreen';
+import { ProdutosScreen } from '../screens/ProdutosScreen';
 import { NovaListaScreen } from '../screens/NovaListaScreen';
 import { usePaleta } from '../theme';
 import type { AbasParamList, RootStackParamList } from './tipos';
@@ -77,6 +78,7 @@ export function NavegacaoApp() {
         <Pilha.Screen name="ListaPadrao" component={ListaPadraoScreen} />
         <Pilha.Screen name="DetalheDaLista" component={DetalheDaListaScreen} />
         <Pilha.Screen name="Categorias" component={CategoriasScreen} />
+        <Pilha.Screen name="Produtos" component={ProdutosScreen} />
       </Pilha.Navigator>
     </NavigationContainer>
   );

@@ -11,4 +11,5 @@ node e2e/servir.js dist                        # serve a PWA em 8090
 npm i --no-save puppeteer-core
 node e2e/fluxo.js                              # capturas de tela em e2e/capturas/
 ```
+
 Variáveis: `BASE_URL` (padrão http://localhost:8090) e `CHROME_PATH`.

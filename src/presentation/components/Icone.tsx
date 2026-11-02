@@ -30,10 +30,12 @@ interface Props {
   tamanho?: number;
   cor: string;
   espessura?: number;
+  /** Preenche o desenho com a cor (ex.: estrela de favorito marcada). */
+  preenchido?: boolean;
 }
 
 /** Ícones desenhados em SVG (sem biblioteca de ícones), no mesmo traço fino do protótipo. */
-export function Icone({ nome, tamanho = 22, cor, espessura = 2 }: Props) {
+export function Icone({ nome, tamanho = 22, cor, espessura = 2, preenchido = false }: Props) {
   return (
     <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24" fill="none">
       {nome === 'historico' && (
@@ -51,6 +53,7 @@ export function Icone({ nome, tamanho = 22, cor, espessura = 2 }: Props) {
         <Path
           key={d}
           d={d}
+          fill={preenchido ? cor : 'none'}
           stroke={cor}
           strokeWidth={espessura}
           strokeLinecap="round"

@@ -4,14 +4,17 @@ import { mensagemParaUsuario } from '../../application/errors';
 import { ListaPrincipalJaExiste } from '../../application/useCases/listas';
 import {
   rotuloDaUnidade,
+  type ItemDaLista,
   type ItemDoModelo,
+  type ListaResumo,
   type OrigemDaLista,
 } from '../../domain/entities/tipos';
 import { formatarQuantidade } from '../../domain/services/organizacao';
 import { Competencia } from '../../domain/valueObjects/Competencia';
+import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
 import { Botao, Cartao, MensagemDeErro, TextoSuave } from '../components/base';
 import { Icone } from '../components/Icone';
-import { BotaoDeIcone, Cabecalho, Carregando, Pagina } from '../components/ui';
+import { BotaoDeIcone, Cabecalho, Carregando, Pagina, Pilula } from '../components/ui';
 import { useContainer } from '../hooks/AppProviders';
 import { useNavegacao } from '../navigation/tipos';
 import { espaco, fonte, raio, usePaleta } from '../theme';
@@ -23,15 +26,45 @@ const OPCOES: { origem: OrigemDaLista; titulo: string; texto: string }[] = [
     texto: 'Carrega seus produtos recorrentes para você escolher o que entra neste mês.',
   },
   {
+    origem: 'Copiar',
+    titulo: 'Copiar de outro mês',
+    texto:
+      'Parte de uma compra anterior. Tudo volta como pendente e os preços antigos ficam só de referência.',
+  },
+  {
     origem: 'Zero',
     titulo: 'Criar do zero',
     texto: 'Começa vazia e você adiciona os produtos que precisar.',
   },
 ];
 
+type Etapa = 'inicio' | 'origem' | 'itens';
+
+/** Linha da lista de seleção (serve para itens da lista padrão e de uma lista copiada). */
+interface Selecionavel {
+  id: string;
+  nome: string;
+  detalhe: string;
+}
+
+const daLista = (i: ItemDaLista): Selecionavel => ({
+  id: i.id,
+  nome: i.nome,
+  detalhe: `${i.categoriaNome} · ${formatarQuantidade(i.quantidade)} ${rotuloDaUnidade(i.unidade)}${
+    i.precoUnitario !== null ? ` · pago ${Dinheiro.deReais(i.precoUnitario).formatar()}` : ''
+  }`,
+});
+
+const doModelo = (i: ItemDoModelo): Selecionavel => ({
+  id: i.id,
+  nome: i.nome,
+  detalhe: `${i.categoriaNome} · ${formatarQuantidade(i.quantidade)} ${rotuloDaUnidade(i.unidade)}`,
+});
+
 /**
- * Criação da lista do mês em duas etapas: 1) mês e origem; 2) (só para a lista padrão) quais produtos entram.
- * Os produtos escolhidos são COPIADOS: a nova lista passa a ser independente da lista padrão.
+ * Criação da lista do mês. Três caminhos: lista padrão, cópia de qualquer mês anterior ou do zero.
+ * Nos dois primeiros o usuário escolhe quais produtos entram. Os produtos são COPIADOS: a nova lista
+ * nasce independente da origem, tudo pendente, e preços antigos servem só de referência.
  */
 export function NovaListaScreen() {
   const p = usePaleta();
@@ -40,24 +73,21 @@ export function NovaListaScreen() {
 
   const [competencia, setCompetencia] = useState(Competencia.daData(new Date()));
   const [origem, setOrigem] = useState<OrigemDaLista>('Padrao');
-  const [etapa, setEtapa] = useState<1 | 2>(1);
-  const [modelo, setModelo] = useState<ItemDoModelo[]>([]);
+  const [etapa, setEtapa] = useState<Etapa>('inicio');
+  const [listasAnteriores, setListasAnteriores] = useState<ListaResumo[]>([]);
+  const [listaDeOrigem, setListaDeOrigem] = useState<ListaResumo | null>(null);
+  const [opcoes, setOpcoes] = useState<Selecionavel[]>([]);
   const [escolhidos, setEscolhidos] = useState<Set<string>>(new Set());
   const [carregando, setCarregando] = useState(false);
   const [criando, setCriando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [pedirConfirmacao, setPedirConfirmacao] = useState(false);
 
-  async function continuar() {
+  async function comCarregamento(acao: () => Promise<void>) {
     setErro(null);
-    if (origem === 'Zero') return criar(false);
-
     setCarregando(true);
     try {
-      const itens = await container.listarItensDoModelo.executar();
-      setModelo(itens);
-      setEscolhidos(new Set(itens.map((i) => i.id)));
-      setEtapa(2);
+      await acao();
     } catch (e) {
       setErro(mensagemParaUsuario(e));
     } finally {
@@ -65,18 +95,46 @@ export function NovaListaScreen() {
     }
   }
 
+  function mostrarSelecao(itens: Selecionavel[]) {
+    setOpcoes(itens);
+    setEscolhidos(new Set(itens.map((i) => i.id)));
+    setEtapa('itens');
+  }
+
+  function aoContinuar() {
+    if (origem === 'Zero') return void criar(false);
+
+    void comCarregamento(async () => {
+      if (origem === 'Padrao') {
+        const itens = await container.listarItensDoModelo.executar();
+        mostrarSelecao(itens.map(doModelo));
+      } else {
+        setListasAnteriores(await container.listarListas.executar());
+        setEtapa('origem');
+      }
+    });
+  }
+
+  function escolherListaDeOrigem(lista: ListaResumo) {
+    void comCarregamento(async () => {
+      const completa = await container.obterLista.executar(lista.id);
+      setListaDeOrigem(lista);
+      mostrarSelecao(completa.itens.map(daLista));
+    });
+  }
+
   async function criar(permitirDuplicada: boolean) {
     setErro(null);
     setPedirConfirmacao(false);
     setCriando(true);
     try {
+      const selecionados = opcoes.filter((i) => escolhidos.has(i.id)).map((i) => i.id);
       const lista = await container.criarLista.executar({
         competencia: competencia.chave,
         origem,
-        itensDoModeloIds:
-          origem === 'Padrao'
-            ? modelo.filter((i) => escolhidos.has(i.id)).map((i) => i.id)
-            : undefined,
+        itensDoModeloIds: origem === 'Padrao' ? selecionados : undefined,
+        listaDeOrigemId: origem === 'Copiar' ? listaDeOrigem?.id : undefined,
+        itensDeOrigemIds: origem === 'Copiar' ? selecionados : undefined,
         permitirDuplicada,
       });
       navegacao.replace('DetalheDaLista', { listaId: lista.resumo.id });
@@ -110,23 +168,84 @@ export function NovaListaScreen() {
     </Cartao>
   );
 
-  if (etapa === 2) {
-    const selecionados = modelo.filter((i) => escolhidos.has(i.id)).length;
+  if (etapa === 'origem') {
+    return (
+      <Pagina>
+        <Cabecalho
+          titulo="Copiar de qual mês?"
+          aoVoltar={() => {
+            setEtapa('inicio');
+            setErro(null);
+          }}
+        />
+        <ScrollView contentContainerStyle={estilos.conteudo}>
+          <TextoSuave>
+            Escolha a lista que será a base de {competencia.nome}. A lista original não é alterada.
+          </TextoSuave>
+          {carregando && <Carregando />}
+          {!carregando && listasAnteriores.length === 0 && (
+            <Cartao estilo={{ gap: espaco.sm }}>
+              <Text style={{ color: p.texto, fontWeight: '700' }}>
+                Ainda não há listas para copiar
+              </Text>
+              <TextoSuave>Crie a primeira lista do zero ou a partir da lista padrão.</TextoSuave>
+            </Cartao>
+          )}
+          {listasAnteriores.map((lista) => (
+            <Pressable
+              key={lista.id}
+              accessibilityRole="button"
+              accessibilityLabel={`Copiar ${lista.competenciaNome}`}
+              onPress={() => escolherListaDeOrigem(lista)}
+            >
+              <Cartao estilo={{ gap: espaco.xs }}>
+                <View style={estilos.entre}>
+                  <Text
+                    style={{ color: p.texto, fontSize: fonte.titulo, fontWeight: '800', flex: 1 }}
+                  >
+                    {lista.competenciaNome}
+                  </Text>
+                  <Pilula
+                    texto={lista.status === 'Finalizada' ? 'Finalizada' : 'Em andamento'}
+                    tom={lista.status === 'Finalizada' ? 'neutro' : 'destaque'}
+                  />
+                </View>
+                {!lista.principal && (
+                  <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>{lista.nome}</Text>
+                )}
+                <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                  {lista.totalDeItens} {lista.totalDeItens === 1 ? 'produto' : 'produtos'} · gasto{' '}
+                  {Dinheiro.deReais(lista.totalRealizado).formatar()}
+                </Text>
+              </Cartao>
+            </Pressable>
+          ))}
+          <MensagemDeErro mensagem={erro} />
+        </ScrollView>
+      </Pagina>
+    );
+  }
+
+  if (etapa === 'itens') {
+    const selecionados = opcoes.filter((i) => escolhidos.has(i.id)).length;
+    const vazioDoModelo = origem === 'Padrao' && opcoes.length === 0;
     return (
       <Pagina>
         <Cabecalho
           titulo="Escolha os produtos"
           aoVoltar={() => {
-            setEtapa(1);
+            setEtapa(origem === 'Copiar' ? 'origem' : 'inicio');
             setPedirConfirmacao(false);
+            setErro(null);
           }}
         />
         <ScrollView contentContainerStyle={estilos.conteudo}>
           <TextoSuave>
-            Desmarque o que não precisa em {competencia.nome}. Alterar aqui não muda a sua lista
-            padrão.
+            {origem === 'Copiar'
+              ? `Itens de ${listaDeOrigem?.competenciaNome}. Tudo começa pendente; os preços pagos lá ficam só de referência.`
+              : `Desmarque o que não precisa em ${competencia.nome}. Alterar aqui não muda a sua lista padrão.`}
           </TextoSuave>
-          {modelo.length === 0 ? (
+          {vazioDoModelo ? (
             <Cartao estilo={{ gap: espaco.md }}>
               <Text style={{ color: p.texto, fontWeight: '700' }}>Sua lista padrão está vazia</Text>
               <TextoSuave>
@@ -144,7 +263,7 @@ export function NovaListaScreen() {
                 <Botao
                   titulo="Marcar todos"
                   variante="texto"
-                  aoPressionar={() => setEscolhidos(new Set(modelo.map((i) => i.id)))}
+                  aoPressionar={() => setEscolhidos(new Set(opcoes.map((i) => i.id)))}
                 />
                 <Botao
                   titulo="Desmarcar todos"
@@ -153,7 +272,7 @@ export function NovaListaScreen() {
                 />
               </View>
               <Cartao estilo={{ paddingVertical: 4 }}>
-                {modelo.map((item, indice) => {
+                {opcoes.map((item, indice) => {
                   const marcado = escolhidos.has(item.id);
                   return (
                     <Pressable
@@ -189,8 +308,7 @@ export function NovaListaScreen() {
                           {item.nome}
                         </Text>
                         <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                          {item.categoriaNome} · {formatarQuantidade(item.quantidade)}{' '}
-                          {rotuloDaUnidade(item.unidade)}
+                          {item.detalhe}
                         </Text>
                       </View>
                     </Pressable>
@@ -203,12 +321,12 @@ export function NovaListaScreen() {
           <MensagemDeErro mensagem={erro} />
           <Botao
             titulo={
-              modelo.length === 0
+              vazioDoModelo
                 ? 'Criar lista vazia'
                 : `Criar lista com ${selecionados} ${selecionados === 1 ? 'produto' : 'produtos'}`
             }
             carregando={criando}
-            desabilitado={modelo.length > 0 && selecionados === 0}
+            desabilitado={!vazioDoModelo && selecionados === 0}
             aoPressionar={() => void criar(false)}
           />
         </ScrollView>
@@ -279,7 +397,7 @@ export function NovaListaScreen() {
           <Botao
             titulo={origem === 'Zero' ? 'Criar lista vazia' : 'Continuar'}
             carregando={criando}
-            aoPressionar={() => void continuar()}
+            aoPressionar={aoContinuar}
           />
         )}
       </ScrollView>
@@ -291,6 +409,12 @@ const estilos = StyleSheet.create({
   conteudo: { padding: espaco.lg, gap: espaco.md, paddingBottom: 40 },
   seletorDeMes: { flexDirection: 'row', alignItems: 'center', paddingVertical: espaco.sm },
   opcao: { borderRadius: raio.lg, padding: espaco.lg, gap: 4 },
+  entre: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: espaco.sm,
+  },
   linhaAcoes: { flexDirection: 'row', justifyContent: 'space-between' },
   linhaDoItem: {
     flexDirection: 'row',

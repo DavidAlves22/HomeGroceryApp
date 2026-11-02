@@ -49,6 +49,7 @@ export type StatusDaLista = 'EmAndamento' | 'Finalizada';
  */
 export interface ItemDaLista {
   id: string;
+  produtoId: string | null;
   nome: string;
   categoriaId: string | null;
   categoriaNome: string;
@@ -60,6 +61,8 @@ export interface ItemDaLista {
   precoEstimado: number | null;
   /** Preço unitário efetivamente pago: só ele entra no total gasto. */
   precoUnitario: number | null;
+  /** Preço pago em outro mês (ao copiar uma lista). Só consulta: nunca entra no total. */
+  precoReferencia: number | null;
   totalEstimado: number;
   totalRealizado: number;
   comprado: boolean;
@@ -102,7 +105,7 @@ export interface DadosDoItem {
   precoUnitario?: number | null;
 }
 
-export type OrigemDaLista = 'Padrao' | 'Zero';
+export type OrigemDaLista = 'Padrao' | 'Zero' | 'Copiar';
 
 export interface DadosDeNovaLista {
   competencia: string;
@@ -110,5 +113,8 @@ export interface DadosDeNovaLista {
   origem: OrigemDaLista;
   /** Só para origem "Padrao": ids dos itens do modelo escolhidos (ausente = todos). */
   itensDoModeloIds?: string[];
+  /** Só para origem "Copiar": a lista que será copiada e (opcional) quais itens dela. */
+  listaDeOrigemId?: string;
+  itensDeOrigemIds?: string[];
   permitirDuplicada?: boolean;
 }

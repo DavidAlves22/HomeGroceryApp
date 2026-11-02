@@ -47,8 +47,15 @@ export function MaisScreen() {
           <Linha
             icone="estrela"
             titulo="Lista padrão"
-            detalhe="Seus produtos recorrentes"
+            detalhe="Seus produtos de todo mês"
             aoPressionar={() => navegacao.navigate('ListaPadrao')}
+          />
+          <View style={{ height: 1, backgroundColor: p.linha }} />
+          <Linha
+            icone="estrela"
+            titulo="Produtos e favoritos"
+            detalhe="Marque os que você sempre compra"
+            aoPressionar={() => navegacao.navigate('Produtos')}
           />
           <View style={{ height: 1, backgroundColor: p.linha }} />
           <Linha

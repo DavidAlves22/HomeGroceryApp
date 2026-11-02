@@ -99,6 +99,8 @@ interface FolhaDeItemProps {
   comPrecos?: boolean;
   rotuloDoBotao: string;
   buscarSugestoes: (termo: string) => Promise<Produto[]>;
+  /** Favoritos e recorrentes, mostrados enquanto o nome está vazio (só ao adicionar). */
+  sugestoesIniciais?: Produto[];
   aoSalvar: (dados: DadosDoItem) => Promise<void>;
   aoExcluir?: () => Promise<void>;
   aoFechar: () => void;
@@ -117,6 +119,7 @@ export function FolhaDeItem({
   comPrecos = false,
   rotuloDoBotao,
   buscarSugestoes,
+  sugestoesIniciais = [],
   aoSalvar,
   aoExcluir,
   aoFechar,
@@ -227,6 +230,21 @@ export function FolhaDeItem({
         onChangeText={aoDigitarNome}
         autoCapitalize="sentences"
       />
+      {!inicial?.nome && nome.trim() === '' && sugestoesIniciais.length > 0 && (
+        <>
+          <RotuloDaFolha>Favoritos e recorrentes</RotuloDaFolha>
+          <View style={estilos.linha}>
+            {sugestoesIniciais.map((s) => (
+              <Chip
+                key={s.id}
+                rotulo={s.favorito ? `★ ${s.nome}` : s.nome}
+                ativo={false}
+                aoPressionar={() => usarSugestao(s)}
+              />
+            ))}
+          </View>
+        </>
+      )}
       {sugestoes.length > 0 && (
         <View style={estilos.linha}>
           {sugestoes.map((s) => (

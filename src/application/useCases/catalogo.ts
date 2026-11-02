@@ -1,4 +1,4 @@
-import type { DadosDoItem } from '../../domain/entities/tipos';
+import type { DadosDoItem, Produto } from '../../domain/entities/tipos';
 import { ErroDeApi } from '../errors';
 import type { CatalogoGateway } from '../ports/catalogo';
 
@@ -102,5 +102,41 @@ export class ReordenarItensDoModelo {
   constructor(private readonly gateway: CatalogoGateway) {}
   executar(ids: string[]) {
     return this.gateway.reordenarItensDoModelo(ids);
+  }
+}
+
+export class ListarProdutos {
+  constructor(private readonly gateway: CatalogoGateway) {}
+  executar() {
+    return this.gateway.listarProdutos();
+  }
+}
+
+/** Favoritos e recorrentes: sugeridos ao adicionar produtos, mesmo fora da lista padrão. */
+export class ObterSugestoesDeProdutos {
+  constructor(private readonly gateway: CatalogoGateway) {}
+  executar() {
+    return this.gateway.sugestoesDeProdutos();
+  }
+}
+
+export class AlternarFavoritoDoProduto {
+  constructor(private readonly gateway: CatalogoGateway) {}
+  executar(id: string, favorito: boolean) {
+    return this.gateway.alternarFavorito(id, favorito);
+  }
+}
+
+export class RenomearProduto {
+  constructor(private readonly gateway: CatalogoGateway) {}
+  async executar(produto: Produto, nome: string) {
+    return this.gateway.renomearProduto(produto, validarNomeDeCategoria(nome));
+  }
+}
+
+export class ExcluirProduto {
+  constructor(private readonly gateway: CatalogoGateway) {}
+  executar(id: string) {
+    return this.gateway.excluirProduto(id);
   }
 }

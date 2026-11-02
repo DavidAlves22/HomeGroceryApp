@@ -2,12 +2,14 @@ import { Competencia } from '../valueObjects/Competencia';
 import type { ItemDaLista, ListaResumo } from '../entities/tipos';
 
 export type FiltroDeStatus = 'todos' | 'pendentes' | 'comprados';
-export type Ordenacao = 'categoria' | 'nome' | 'status';
+export type Ordenacao = 'categoria' | 'nome' | 'status' | 'manual';
 
 export interface OpcoesDeVisualizacao {
   busca: string;
   filtro: FiltroDeStatus;
   ordenacao: Ordenacao;
+  /** Mostra só os produtos desta categoria (pelo nome). Ausente = todas. */
+  categoria?: string | null;
 }
 
 export interface GrupoDeItens {
@@ -58,6 +60,7 @@ export function organizarItens(
   const busca = normalizar(opcoes.busca);
   const visiveis = itens.filter((i) => {
     if (busca && !normalizar(i.nome).includes(busca)) return false;
+    if (opcoes.categoria && i.categoriaNome !== opcoes.categoria) return false;
     if (opcoes.filtro === 'pendentes') return !i.comprado;
     if (opcoes.filtro === 'comprados') return i.comprado;
     return true;
@@ -75,6 +78,18 @@ export function organizarItens(
     itens: lista,
     comprados: lista.filter((i) => i.comprado).length,
   });
+
+  if (opcoes.ordenacao === 'manual') {
+    // Ordem escolhida pelo usuário (ex.: corredores do mercado): sem agrupar nem separar comprados.
+    return visiveis.length === 0
+      ? []
+      : [
+          montar(
+            'Na sua ordem',
+            [...visiveis].sort((a, b) => a.ordem - b.ordem),
+          ),
+        ];
+  }
 
   if (opcoes.ordenacao === 'nome') {
     return visiveis.length === 0 ? [] : [montar('Todos os produtos', [...visiveis].sort(porNome))];

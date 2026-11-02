@@ -2,33 +2,47 @@
 const puppeteer = require('puppeteer-core');
 const path = require('path');
 
-const PASTA = path.join(__dirname, "capturas");
-require("fs").mkdirSync(PASTA, { recursive: true });
-const BASE = process.env.BASE_URL || "http://localhost:8090";
+const PASTA = path.join(__dirname, 'capturas');
+require('fs').mkdirSync(PASTA, { recursive: true });
+const BASE = process.env.BASE_URL || 'http://localhost:8090';
 const email = `e2e_${Date.now()}@teste.com`;
 let passo = 0;
 
 (async () => {
   const browser = await puppeteer.launch({
-    executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
+    executablePath:
+      process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
     userDataDir: require('os').tmpdir() + '/e2e-perfil-' + Date.now(),
     headless: 'new',
     args: ['--no-sandbox'],
   });
   const page = await browser.newPage();
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2 });
-  if (process.env.DARK) await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
+  if (process.env.DARK)
+    await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'dark' }]);
   const errosDeConsole = [];
   page.on('pageerror', (e) => errosDeConsole.push('pageerror: ' + e.message));
   page.on('console', (m) => m.type() === 'error' && errosDeConsole.push('console: ' + m.text()));
-  page.on('requestfailed', (r) => errosDeConsole.push('requestfailed: ' + r.url() + ' ' + (r.failure()?.errorText ?? '')));
+  page.on('requestfailed', (r) =>
+    errosDeConsole.push('requestfailed: ' + r.url() + ' ' + (r.failure()?.errorText ?? '')),
+  );
 
-  const foto = async (nome) => page.screenshot({ path: path.join(PASTA, `${process.env.DARK ? 'dark-' : ''}${String(++passo).padStart(2, '0')}-${nome}.png`) });
+  const foto = async (nome) =>
+    page.screenshot({
+      path: path.join(
+        PASTA,
+        `${process.env.DARK ? 'dark-' : ''}${String(++passo).padStart(2, '0')}-${nome}.png`,
+      ),
+    });
   // O formatador pt-BR usa espaço não separável depois de "R$": normaliza para comparar com texto simples.
   const texto = () => page.evaluate(() => document.body.innerText.replace(/ /g, ' '));
   const esperarTexto = async (t, ms = 15000) => {
     try {
-      await page.waitForFunction((x) => document.body.innerText.replace(/ /g, ' ').toLowerCase().includes(x.toLowerCase()), { timeout: ms }, t);
+      await page.waitForFunction(
+        (x) => document.body.innerText.replace(/ /g, ' ').toLowerCase().includes(x.toLowerCase()),
+        { timeout: ms },
+        t,
+      );
     } catch {
       await foto('FALHA-esperando-' + t.replace(/\W+/g, '_').slice(0, 30));
       throw new Error(`Não apareceu o texto "${t}". Tela atual:\n${(await texto()).slice(0, 800)}`);
@@ -59,8 +73,14 @@ let passo = 0;
 
   const adicionarProduto = async (nome, categoria, unidade, quantidade) => {
     await digitar('Nome do produto', nome);
-    await clicar(categoria, (await page.$$(`xpath/.//*[normalize-space(text())="${categoria}"]`)).length - 1);
-    await clicar(unidade, (await page.$$(`xpath/.//*[normalize-space(text())="${unidade}"]`)).length - 1);
+    await clicar(
+      categoria,
+      (await page.$$(`xpath/.//*[normalize-space(text())="${categoria}"]`)).length - 1,
+    );
+    await clicar(
+      unidade,
+      (await page.$$(`xpath/.//*[normalize-space(text())="${unidade}"]`)).length - 1,
+    );
     await digitar('Quantidade', quantidade);
   };
 
@@ -77,7 +97,11 @@ let passo = 0;
     await digitar('Senha', 'senha1234');
     await clicar('Criar conta');
     await esperarTexto('Sem lista para');
-    verificar((await texto()).includes('Olá, MARIA') || (await texto()).toUpperCase().includes('OLÁ, MARIA'), 'saudação com o primeiro nome');
+    verificar(
+      (await texto()).includes('Olá, MARIA') ||
+        (await texto()).toUpperCase().includes('OLÁ, MARIA'),
+      'saudação com o primeiro nome',
+    );
     await foto('inicio-vazio');
 
     console.log('3) Lista padrão: adicionar produtos');
@@ -87,25 +111,41 @@ let passo = 0;
     await clicar('Adicionar produto');
     await adicionarProduto('Arroz', 'Mercearia', 'pacote', '2');
     await foto('folha-item');
-    await clicar('Adicionar', (await page.$$('xpath/.//*[normalize-space(text())="Adicionar"]')).length - 1);
+    await clicar(
+      'Adicionar',
+      (await page.$$('xpath/.//*[normalize-space(text())="Adicionar"]')).length - 1,
+    );
     await esperarTexto('Arroz');
     await clicarRotulo('Adicionar produto à lista padrão');
     await adicionarProduto('Leite', 'Laticínios', 'litro', '6');
-    await clicar('Adicionar', (await page.$$('xpath/.//*[normalize-space(text())="Adicionar"]')).length - 1);
+    await clicar(
+      'Adicionar',
+      (await page.$$('xpath/.//*[normalize-space(text())="Adicionar"]')).length - 1,
+    );
     await esperarTexto('Leite');
     await clicarRotulo('Adicionar produto à lista padrão');
     await adicionarProduto('Banana', 'Hortifruti', 'kg', '1,5');
-    await clicar('Adicionar', (await page.$$('xpath/.//*[normalize-space(text())="Adicionar"]')).length - 1);
+    await clicar(
+      'Adicionar',
+      (await page.$$('xpath/.//*[normalize-space(text())="Adicionar"]')).length - 1,
+    );
     await esperarTexto('Banana');
     const t3 = await texto();
-    verificar(t3.includes('Arroz') && t3.includes('Leite') && t3.includes('Banana'), 'três produtos na lista padrão');
+    verificar(
+      t3.includes('Arroz') && t3.includes('Leite') && t3.includes('Banana'),
+      'três produtos na lista padrão',
+    );
     verificar(t3.includes('1,5 kg'), 'quantidade fracionada exibida com vírgula');
     await foto('padrao-com-itens');
 
     console.log('4) Reordenar: subir Banana');
     await clicarRotulo('Subir Banana');
     await pausa(600);
-    const ordem = await page.evaluate(() => document.body.innerText.split('\n').filter((l) => ['Arroz', 'Leite', 'Banana'].includes(l.trim())));
+    const ordem = await page.evaluate(() =>
+      document.body.innerText
+        .split('\n')
+        .filter((l) => ['Arroz', 'Leite', 'Banana'].includes(l.trim())),
+    );
     verificar(ordem.join(',') === 'Arroz,Banana,Leite', `ordem alterada (${ordem.join(',')})`);
 
     console.log('5) Nova lista a partir da lista padrão');
@@ -120,7 +160,10 @@ let passo = 0;
     await clicar('Criar lista com 2 produtos');
     await esperarTexto('0%');
     const t5 = await texto();
-    verificar(t5.includes('Arroz') && t5.includes('Banana') && !t5.includes('Leite'), 'lista criada só com os produtos escolhidos');
+    verificar(
+      t5.includes('Arroz') && t5.includes('Banana') && !t5.includes('Leite'),
+      'lista criada só com os produtos escolhidos',
+    );
     await foto('lista-mes');
 
     console.log('6) Marcar comprado com um toque');
@@ -137,7 +180,10 @@ let passo = 0;
     await clicar('Salvar');
     await esperarTexto('R$ 51,00');
     verificar((await texto()).includes('R$ 51,00'), 'gasto = 2 pacotes x R$ 25,50 = R$ 51,00');
-    verificar((await texto()).includes('R$ 48,00'), 'estimado = 2 x R$ 24,00 = R$ 48,00 (separado do gasto)');
+    verificar(
+      (await texto()).includes('R$ 48,00'),
+      'estimado = 2 x R$ 24,00 = R$ 48,00 (separado do gasto)',
+    );
     await foto('lista-com-precos');
 
     console.log('7) Alterar a lista padrão não muda a lista do mês');
@@ -166,7 +212,10 @@ let passo = 0;
     await esperarTexto('Compra finalizada');
     await foto('lista-finalizada');
     verificar((await texto()).includes('Reabrir lista'), 'lista finalizada oferece reabrir');
-    verificar((await page.$$('[aria-label^="Editar "]')).length === 0, 'sem botões de edição em lista finalizada');
+    verificar(
+      (await page.$$('[aria-label^="Editar "]')).length === 0,
+      'sem botões de edição em lista finalizada',
+    );
     await clicar('Histórico');
     await esperarTexto('Finalizada');
     await foto('historico');
@@ -179,12 +228,17 @@ let passo = 0;
     verificar((await texto()).includes('Higiene pessoal'), 'categorias iniciais exibidas');
 
     console.log('11) Análises com histórico de 3 meses (semeado pela API)');
-    const sessao = JSON.parse(await page.evaluate(() => localStorage.getItem('homegrocery.sessao')));
+    const sessao = JSON.parse(
+      await page.evaluate(() => localStorage.getItem('homegrocery.sessao')),
+    );
     const API = process.env.API_URL || 'http://localhost:5272';
     const api = async (metodo, caminho, corpo) => {
       const r = await fetch(API + caminho, {
         method: metodo,
-        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessao.tokenDeAcesso },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + sessao.tokenDeAcesso,
+        },
         body: corpo ? JSON.stringify(corpo) : undefined,
       });
       if (!r.ok) throw new Error(`${metodo} ${caminho} -> ${r.status} ${await r.text()}`);
@@ -208,7 +262,11 @@ let passo = 0;
       for (const [nome, categoria, unidade, quantidade, preco] of itens) {
         const base = { nome, categoriaId: cat(categoria), unidade, quantidade };
         const item = await api('POST', `/listas/${lista}/itens`, base);
-        await api('PUT', `/listas/${lista}/itens/${item.id}`, { ...base, versao: item.versao, precoUnitario: preco });
+        await api('PUT', `/listas/${lista}/itens/${item.id}`, {
+          ...base,
+          versao: item.versao,
+          precoUnitario: preco,
+        });
         await api('PUT', `/listas/${lista}/itens/${item.id}/comprado`, { comprado: true });
       }
       await api('POST', `/listas/${lista}/finalizar`);
@@ -224,11 +282,84 @@ let passo = 0;
     verificar(tA.includes('Maiores aumentos de preço'), 'maiores aumentos exibidos');
     verificar(/\+\d+,\d%/.test(tA), 'variação percentual com sinal exibida');
     await page.evaluate(() => {
-      const rolavel = [...document.querySelectorAll('div')].find((d) => d.scrollHeight > d.clientHeight + 50 && getComputedStyle(d).overflowY !== 'visible');
+      const rolavel = [...document.querySelectorAll('div')].find(
+        (d) => d.scrollHeight > d.clientHeight + 50 && getComputedStyle(d).overflowY !== 'visible',
+      );
       if (rolavel) rolavel.scrollTop = rolavel.scrollHeight;
     });
     await pausa(400);
     await foto('analises-fim');
+
+    console.log('12) Copiar a lista de outubro para dezembro');
+    await clicar('Início');
+    await clicar('Nova lista');
+    await esperarTexto('Mês da compra');
+    await clicarRotulo('Próximo mês'); // novembro -> dezembro
+    await clicar('Copiar de outro mês');
+    await clicar('Continuar');
+    await esperarTexto('Copiar de qual mês?');
+    await foto('copiar-escolher-mes');
+    await clicarRotulo('Copiar Outubro de 2026');
+    await esperarTexto('Itens de Outubro de 2026');
+    verificar(
+      (await texto()).includes('pago R$ 19,00'),
+      'itens copiáveis mostram o preço pago como referência',
+    );
+    await foto('copiar-selecao');
+    await clicar('Criar lista com 4 produtos');
+    await esperarTexto('Dezembro de 2026');
+    await esperarTexto('0%');
+    const tC = await texto();
+    verificar(tC.includes('Café') && tC.includes('Carne moída'), 'produtos de outubro copiados');
+    verificar(tC.includes('antes R$ 19,00'), 'preço antigo aparece só como referência ("antes")');
+    verificar(
+      tC.includes('GASTO\nR$ 0,00') || /GASTO\s+R\$ 0,00/.test(tC),
+      'preço antigo NÃO vira gasto no novo mês',
+    );
+    await foto('lista-copiada');
+
+    console.log('13) Ordem manual e filtro por categoria');
+    await clicar('Minha ordem');
+    await clicarRotulo('Subir Feijão');
+    await pausa(500);
+    const ordemManual = await page.evaluate(() =>
+      document.body.innerText
+        .split('\n')
+        .filter((l) => ['Café', 'Arroz 5 kg', 'Feijão', 'Carne moída'].includes(l.trim())),
+    );
+    verificar(
+      ordemManual.join(',') === 'Café,Feijão,Arroz 5 kg,Carne moída',
+      `ordem manual alterada (${ordemManual.join(',')})`,
+    );
+    await foto('ordem-manual');
+    await clicar('Por categoria');
+    await clicar('Açougue');
+    const tF = await texto();
+    verificar(
+      tF.includes('Carne moída') && !tF.includes('Feijão'),
+      'filtro por categoria mostra só Açougue',
+    );
+    await foto('filtro-categoria');
+    await clicar('Todas as categorias');
+
+    console.log('14) Favoritos aparecem como sugestão ao adicionar produto');
+    await clicarRotulo('Voltar'); // sai do detalhe da lista copiada para as abas
+    await clicar('Mais');
+    await clicar('Produtos e favoritos');
+    await page.waitForSelector('[aria-label="Favoritar Café"]', { timeout: 10000 });
+    await clicarRotulo('Favoritar Café');
+    await esperarTexto('Adicionado aos favoritos');
+    await foto('produtos-favoritos');
+    await clicarRotulo('Voltar');
+    await clicar('Histórico');
+    await clicar('Dezembro de 2026'); // lista de dezembro, em andamento (editável)
+    await clicarRotulo('Adicionar produto');
+    await esperarTexto('Favoritos e recorrentes');
+    verificar(
+      (await texto()).includes('★ Café'),
+      'favorito sugerido no formulário de novo produto',
+    );
+    await foto('sugestao-favorito');
 
     console.log('\nFluxo completo OK.');
   } catch (e) {
@@ -236,7 +367,8 @@ let passo = 0;
     await foto('ERRO').catch(() => {});
     process.exitCode = 1;
   } finally {
-    if (errosDeConsole.length) console.log('\nErros do navegador:\n' + [...new Set(errosDeConsole)].slice(0, 10).join('\n'));
+    if (errosDeConsole.length)
+      console.log('\nErros do navegador:\n' + [...new Set(errosDeConsole)].slice(0, 10).join('\n'));
     await browser.close();
   }
 })();

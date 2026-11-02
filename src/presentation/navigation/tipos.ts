@@ -8,6 +8,7 @@ export type RootStackParamList = {
   ListaPadrao: undefined;
   DetalheDaLista: { listaId: string };
   Categorias: undefined;
+  Produtos: undefined;
 };
 
 export type AbasParamList = {

@@ -14,6 +14,8 @@ import { Competencia } from '../../src/domain/valueObjects/Competencia';
 let proximo = 0;
 const item = (nome: string, categoriaNome: string, comprado = false): ItemDaLista => ({
   id: `i${++proximo}`,
+  produtoId: null,
+  precoReferencia: null,
   nome,
   categoriaId: null,
   categoriaNome,
@@ -73,6 +75,30 @@ describe('organizarItens', () => {
     const grupos = organizarItens(itens, { ...padrao, ordenacao: 'status' }, ORDEM);
     expect(grupos.map((g) => g.titulo)).toEqual(['Pendentes', 'Comprados']);
     expect(grupos[1].itens.map((i) => i.nome)).toEqual(['Café', 'Frango']);
+  });
+
+  it('ordem manual: um grupo só, na ordem escolhida, sem separar comprados', () => {
+    const grupos = organizarItens(itens, { ...padrao, ordenacao: 'manual' }, ORDEM);
+    expect(grupos).toHaveLength(1);
+    expect(grupos[0].itens.map((i) => i.nome)).toEqual(['Café', 'Arroz', 'Banana', 'Frango']);
+  });
+
+  it('ordem manual respeita a ordem mesmo depois de reordenar', () => {
+    const reordenados = [...itens].map((i, indice) => ({ ...i, ordem: 10 - indice }));
+    const grupos = organizarItens(reordenados, { ...padrao, ordenacao: 'manual' }, ORDEM);
+    expect(grupos[0].itens.map((i) => i.nome)).toEqual(['Frango', 'Banana', 'Arroz', 'Café']);
+  });
+
+  it('filtra por categoria e combina com busca e status', () => {
+    const soMercearia = organizarItens(itens, { ...padrao, categoria: 'Mercearia' }, ORDEM);
+    expect(soMercearia.flatMap((g) => g.itens.map((i) => i.nome))).toEqual(['Arroz', 'Café']);
+
+    const combinado = organizarItens(
+      itens,
+      { ...padrao, categoria: 'Mercearia', filtro: 'pendentes' },
+      ORDEM,
+    );
+    expect(combinado.flatMap((g) => g.itens.map((i) => i.nome))).toEqual(['Arroz']);
   });
 
   it('categoria desconhecida vai para o fim e lista vazia não gera grupos', () => {

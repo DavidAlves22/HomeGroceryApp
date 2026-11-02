@@ -45,3 +45,9 @@ Nomes em português; comentários explicam o porquê; Prettier (`.prettierrc.jso
 - Só preço **pago** de item **comprado** vira gasto; estimado é referência. Item comprado sem preço pago é sinalizado ("o gasto real pode ser maior").
 - Aba Análises (`AnalisesScreen`): barras do gasto mensal (toque escolhe o mês das categorias), tabela de variação, categorias, mais comprados, evolução de preço por produto e maiores aumentos. Gráficos em `components/graficos.tsx` (SVG/Views, um só tom, tabela de valores abaixo para acessibilidade; variação sempre com seta e sinal, nunca só cor).
 - Formatador pt-BR coloca espaço não separável depois de "R$": em testes de navegador normalize ` `.
+
+## Fase 3 (experiência avançada) — o que existe
+- **Copiar de outro mês** (`NovaListaScreen`, origem `Copiar`): escolhe QUALQUER lista do grupo e quais produtos levar. Tudo volta pendente; o preço pago antes aparece só como "antes R$ x" (referência) e nunca soma no gasto do novo mês. `CriarLista` valida origem e seleção antes de chamar a API.
+- **Ordem manual**: ordenação "Minha ordem" com botões subir/descer (otimista, com rollback), só com a lista inteira na tela (sem busca/filtro). Cópias preservam a ordem.
+- **Filtro por categoria** na lista (chips rolando na horizontal), combinável com busca e status (`organizarItens`).
+- **Favoritos e recorrentes**: tela Produtos (Mais) marca favoritos, renomeia e exclui; o formulário de novo produto sugere favoritos/recorrentes (comprados em 2+ listas) quando o nome está vazio.

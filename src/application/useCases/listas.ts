@@ -48,6 +48,12 @@ export class CriarLista {
         throw new ListaPrincipalJaExiste(Competencia.deChave(dados.competencia).nome);
       }
     }
+    if (dados.origem === 'Copiar' && !dados.listaDeOrigemId) {
+      throw new ErroDeApi('Escolha a lista que será copiada.', 400);
+    }
+    if (dados.origem === 'Copiar' && dados.itensDeOrigemIds?.length === 0) {
+      throw new ErroDeApi('Selecione ao menos um produto para copiar.', 400);
+    }
     if (dados.origem === 'Padrao' && dados.itensDoModeloIds?.length === 0) {
       throw new ErroDeApi('Selecione ao menos um produto, ou crie a lista do zero.', 400);
     }
@@ -94,5 +100,12 @@ export class ReabrirLista {
   constructor(private readonly gateway: ListasGateway) {}
   executar(listaId: string) {
     return this.gateway.reabrir(listaId);
+  }
+}
+
+export class ReordenarItensDaLista {
+  constructor(private readonly gateway: ListasGateway) {}
+  executar(listaId: string, ids: string[]) {
+    return this.gateway.reordenarItens(listaId, ids);
   }
 }

@@ -12,6 +12,8 @@ let contador = 0;
 function item(parcial: Partial<ItemDaLista> & { nome: string }): ItemDaLista {
   return {
     id: `i${++contador}`,
+    produtoId: null,
+    precoReferencia: null,
     categoriaId: null,
     categoriaNome: 'Mercearia',
     unidade: 'Unidade',

@@ -41,6 +41,33 @@ export class CatalogoApiGateway implements CatalogoGateway {
     return this.http.get<Produto[]>(`/produtos?q=${encodeURIComponent(termo)}`);
   }
 
+  listarProdutos() {
+    return this.http.get<Produto[]>('/produtos');
+  }
+
+  sugestoesDeProdutos() {
+    return this.http.get<Produto[]>('/produtos/sugestoes');
+  }
+
+  alternarFavorito(id: string, favorito: boolean) {
+    return this.http.put<Produto>(`/produtos/${id}/favorito`, { corpo: { favorito } });
+  }
+
+  renomearProduto(produto: Produto, nome: string) {
+    return this.http.put<Produto>(`/produtos/${produto.id}`, {
+      corpo: {
+        nome,
+        categoriaId: produto.categoriaId,
+        unidadePadrao: produto.unidadePadrao,
+        descricao: produto.descricao,
+      },
+    });
+  }
+
+  async excluirProduto(id: string) {
+    await this.http.delete<void>(`/produtos/${id}`);
+  }
+
   listarItensDoModelo(termo?: string) {
     return this.http.get<ItemDoModelo[]>(
       termo ? `/modelo/itens?q=${encodeURIComponent(termo)}` : '/modelo/itens',
@@ -91,6 +118,10 @@ export class ListasApiGateway implements ListasGateway {
 
   async removerItem(listaId: string, itemId: string) {
     await this.http.delete<void>(`/listas/${listaId}/itens/${itemId}`);
+  }
+
+  async reordenarItens(listaId: string, ids: string[]) {
+    await this.http.put<void>(`/listas/${listaId}/itens/ordem`, { corpo: { ids } });
   }
 
   marcarComprado(listaId: string, itemId: string, comprado: boolean) {

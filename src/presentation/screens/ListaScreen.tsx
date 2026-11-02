@@ -42,6 +42,7 @@ const ORDENACOES: { valor: Ordenacao; rotulo: string }[] = [
   { valor: 'categoria', rotulo: 'Por categoria' },
   { valor: 'nome', rotulo: 'Por nome' },
   { valor: 'status', rotulo: 'Por status' },
+  { valor: 'manual', rotulo: 'Minha ordem' },
 ];
 
 interface ListaViewProps {
@@ -66,7 +67,14 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
     'categorias',
   );
 
+  // Favoritos e recorrentes: sugeridos no formulário de novo produto, mesmo fora da lista padrão.
+  const { dados: sugestoes } = useCarregar(
+    () => container.obterSugestoesDeProdutos.executar(),
+    'sugestoes',
+  );
+
   const [busca, setBusca] = useState('');
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<FiltroDeStatus>('todos');
   const [ordenacao, setOrdenacao] = useState<Ordenacao>('categoria');
   const [folha, setFolha] = useState<Folha>(null);
@@ -109,14 +117,49 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
   const gastoDaCategoria = new Map(totais.porCategoria.map((c) => [c.categoria, c.realizado]));
   const grupos = organizarItens(
     lista.itens,
-    { busca, filtro, ordenacao },
+    { busca, filtro, ordenacao, categoria: categoriaFiltro },
     (categorias ?? []).map((c) => c.nome),
   );
+
+  // Categorias que existem nesta lista, na ordem das categorias do grupo (para o filtro).
+  const ordemDasCategorias = (categorias ?? []).map((c) => c.nome);
+  const categoriasDaLista = [...new Set(lista.itens.map((i) => i.categoriaNome))].sort(
+    (a, b) =>
+      (ordemDasCategorias.indexOf(a) === -1 ? 999 : ordemDasCategorias.indexOf(a)) -
+      (ordemDasCategorias.indexOf(b) === -1 ? 999 : ordemDasCategorias.indexOf(b)),
+  );
+  // Reordenar só faz sentido com a lista inteira na tela (sem busca nem filtros).
+  const podeMover =
+    ordenacao === 'manual' &&
+    !somenteLeitura &&
+    busca === '' &&
+    filtro === 'todos' &&
+    !categoriaFiltro;
 
   const atualizarItens = (alterar: (itens: ItemDaLista[]) => ItemDaLista[]) =>
     definirDados((atual) => (atual ? { ...atual, itens: alterar(atual.itens) } : atual));
   const trocarItem = (novo: ItemDaLista) =>
     atualizarItens((itens) => itens.map((i) => (i.id === novo.id ? novo : i)));
+
+  async function mover(indice: number, direcao: -1 | 1) {
+    const anterior = lista!.itens;
+    const ordenados = [...anterior].sort((a, b) => a.ordem - b.ordem);
+    [ordenados[indice], ordenados[indice + direcao]] = [
+      ordenados[indice + direcao],
+      ordenados[indice],
+    ];
+    // Otimista: a tela já mostra a nova ordem; se o servidor recusar, volta como estava.
+    atualizarItens(() => ordenados.map((item, ordem) => ({ ...item, ordem })));
+    try {
+      await container.reordenarItensDaLista.executar(
+        lista!.resumo.id,
+        ordenados.map((i) => i.id),
+      );
+    } catch (e) {
+      atualizarItens(() => anterior);
+      toast(mensagemParaUsuario(e));
+    }
+  }
 
   async function marcar(item: ItemDaLista) {
     const listaId = lista!.resumo.id;
@@ -252,6 +295,27 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
             />
           ))}
         </View>
+        {categoriasDaLista.length > 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={estilos.chipsEmLinha}
+          >
+            <Chip
+              rotulo="Todas as categorias"
+              ativo={categoriaFiltro === null}
+              aoPressionar={() => setCategoriaFiltro(null)}
+            />
+            {categoriasDaLista.map((nome) => (
+              <Chip
+                key={nome}
+                rotulo={nome}
+                ativo={categoriaFiltro === nome}
+                aoPressionar={() => setCategoriaFiltro(categoriaFiltro === nome ? null : nome)}
+              />
+            ))}
+          </ScrollView>
+        )}
         <View style={estilos.chips}>
           {ORDENACOES.map((o) => (
             <Chip
@@ -294,7 +358,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
                     : ''}
                 </Text>
               </View>
-              {grupo.itens.map((item) => (
+              {grupo.itens.map((item, indice) => (
                 <LinhaDeItem
                   key={item.id}
                   item={item}
@@ -304,6 +368,15 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
                   }
                   aoMarcar={(i) => void marcar(i)}
                   aoEditar={(i) => setFolha({ tipo: 'editar', item: i })}
+                  aoMover={
+                    podeMover
+                      ? {
+                          subir: indice > 0 ? () => void mover(indice, -1) : null,
+                          descer:
+                            indice < grupo.itens.length - 1 ? () => void mover(indice, 1) : null,
+                        }
+                      : undefined
+                  }
                 />
               ))}
             </View>
@@ -353,6 +426,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
         comPrecos
         rotuloDoBotao={folha?.tipo === 'editar' ? 'Salvar' : 'Adicionar'}
         buscarSugestoes={(termo) => container.buscarProdutos.executar(termo)}
+        sugestoesIniciais={sugestoes ?? []}
         aoSalvar={salvar}
         aoExcluir={folha?.tipo === 'editar' ? () => excluir(folha.item) : undefined}
         aoFechar={() => setFolha(null)}
@@ -383,5 +457,6 @@ export function DetalheDaListaScreen() {
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.lg, paddingBottom: 120, gap: espaco.md },
   entre: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  chipsEmLinha: { flexDirection: 'row', gap: espaco.sm, paddingRight: espaco.lg },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
 });
