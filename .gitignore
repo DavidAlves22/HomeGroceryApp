@@ -17,3 +17,9 @@ keystore.properties
 .env*.local
 .env
 .vercel
+
+# capturas do teste E2E
+e2e/capturas/
+
+# capturas do teste E2E
+e2e/capturas/

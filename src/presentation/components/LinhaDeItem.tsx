@@ -1,0 +1,102 @@
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { rotuloDaUnidade, type ItemDaLista } from '../../domain/entities/tipos';
+import { formatarQuantidade } from '../../domain/services/organizacao';
+import { espaco, fonte, raio, usePaleta } from '../theme';
+import { Icone } from './Icone';
+import { BotaoDeIcone } from './ui';
+
+interface Props {
+  item: ItemDaLista;
+  /** Quem marcou foi outra pessoa (não o usuário atual): mostramos para a família saber. */
+  marcadoPorOutro: boolean;
+  somenteLeitura: boolean;
+  aoMarcar: (item: ItemDaLista) => void;
+  aoEditar: (item: ItemDaLista) => void;
+}
+
+/**
+ * Linha de produto da lista do mês. Marcar como comprado é UM toque na área grande da esquerda
+ * (48 px, pensada para uma mão só); comprados ficam riscados e esmaecidos.
+ */
+export function LinhaDeItem({ item, marcadoPorOutro, somenteLeitura, aoMarcar, aoEditar }: Props) {
+  const p = usePaleta();
+  const feito = item.comprado;
+
+  return (
+    <View
+      style={[
+        estilos.linha,
+        { backgroundColor: feito ? 'transparent' : p.superficie, borderColor: p.linha },
+      ]}
+    >
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityLabel={`${item.nome}, ${formatarQuantidade(item.quantidade)} ${rotuloDaUnidade(item.unidade)}`}
+        accessibilityState={{ checked: feito, disabled: somenteLeitura }}
+        disabled={somenteLeitura}
+        onPress={() => aoMarcar(item)}
+        style={estilos.areaDoCheck}
+      >
+        <View
+          style={[
+            estilos.caixa,
+            {
+              borderColor: feito ? p.destaque : p.textoSuave,
+              backgroundColor: feito ? p.destaque : 'transparent',
+            },
+          ]}
+        >
+          {feito && <Icone nome="check" tamanho={16} cor={p.textoSobreDestaque} espessura={3} />}
+        </View>
+      </Pressable>
+
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text
+          numberOfLines={2}
+          style={{
+            color: feito ? p.textoSuave : p.texto,
+            fontSize: fonte.corpo,
+            fontWeight: '600',
+            textDecorationLine: feito ? 'line-through' : 'none',
+          }}
+        >
+          {item.nome}
+        </Text>
+        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+          {formatarQuantidade(item.quantidade)} {rotuloDaUnidade(item.unidade)}
+          {feito && marcadoPorOutro ? ' · marcado por outra pessoa' : ''}
+        </Text>
+      </View>
+
+      {!somenteLeitura && (
+        <BotaoDeIcone
+          icone="mais"
+          rotulo={`Editar ${item.nome}`}
+          aoPressionar={() => aoEditar(item)}
+        />
+      )}
+    </View>
+  );
+}
+
+const estilos = StyleSheet.create({
+  linha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espaco.sm,
+    borderWidth: 1,
+    borderRadius: raio.md,
+    paddingRight: espaco.sm,
+    minHeight: 56,
+  },
+  areaDoCheck: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
+  caixa: {
+    width: 26,
+    height: 26,
+    borderRadius: 9,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

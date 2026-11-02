@@ -31,3 +31,11 @@ npx vercel dist --prod --yes   # publicar
 ## Convenções
 
 Nomes em português; comentários explicam o porquê; Prettier (`.prettierrc.json`); testes em `__tests__/` espelhando `src/`; cobertura em domain/application/http.
+
+## Fase 1 (MVP) — o que existe
+- Telas: Início, Lista (do momento), Histórico, Mais (+ Nova lista, Lista padrão, Categorias, Detalhe de lista). Navegação em `presentation/navigation`.
+- `domain/services/organizacao.ts`: busca (sem acento), filtro, ordenação, progresso e "qual é a lista atual". Regra pura, testada sem celular.
+- Marcar comprado é **otimista** (a tela responde ao toque e desfaz se o servidor recusar). Edição usa a `versao` do item: conflito vira aviso e recarrega.
+- Lista finalizada abre em somente leitura; "Reabrir" libera edição. Exclusões pedem segundo toque.
+- Casos de uso que validam são `async` (sempre devolvem Promise rejeitada, nunca lançam de forma síncrona).
+- Teste de navegador: `e2e/` (ver `e2e/README.md`). Rodar após mudanças de tela ou de contrato com a API.

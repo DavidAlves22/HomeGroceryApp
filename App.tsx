@@ -12,7 +12,8 @@ import {
 } from './src/presentation/hooks/AppProviders';
 import { AutenticacaoScreen } from './src/presentation/screens/AutenticacaoScreen';
 import { ConexaoScreen } from './src/presentation/screens/ConexaoScreen';
-import { InicioScreen } from './src/presentation/screens/InicioScreen';
+import { ToastProvider } from './src/presentation/hooks/Toast';
+import { NavegacaoApp } from './src/presentation/navigation/RootNavigator';
 import { usePaleta } from './src/presentation/theme';
 
 /**
@@ -61,7 +62,7 @@ function Raiz() {
     );
   }
 
-  return sessao ? <InicioScreen /> : <AutenticacaoScreen />;
+  return sessao ? <NavegacaoApp /> : <AutenticacaoScreen />;
 }
 
 export default function App() {
@@ -74,7 +75,9 @@ export default function App() {
       <StatusBar style="auto" />
       <ContainerProvider container={container}>
         <SessaoProvider key={sessaoExpirou}>
-          <Raiz />
+          <ToastProvider>
+            <Raiz />
+          </ToastProvider>
         </SessaoProvider>
       </ContainerProvider>
     </SafeAreaProvider>

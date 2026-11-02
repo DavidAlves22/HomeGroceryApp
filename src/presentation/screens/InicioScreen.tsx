@@ -1,46 +1,165 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Botao, Cartao, TextoSuave, Titulo } from '../components/base';
+import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Competencia } from '../../domain/valueObjects/Competencia';
+import { Botao, Cartao, TextoSuave } from '../components/base';
+import { BarraDeProgresso, Carregando, EstadoVazio, Pagina, Pilula } from '../components/ui';
 import { useContainer, useSessao } from '../hooks/AppProviders';
-import { espaco, usePaleta } from '../theme';
+import { useCarregar } from '../hooks/dados';
+import { useNavegacao } from '../navigation/tipos';
+import { espaco, fonte, usePaleta } from '../theme';
 
-/**
- * Casca da Fase 0: prova que login, sessão e grupo funcionam de ponta a ponta.
- * As abas e o conteúdo real (lista do mês, histórico etc.) entram na Fase 1.
- */
+/** Resumo do mês atual com atalhos para o que se faz mais: continuar a compra, nova lista, lista padrão. */
 export function InicioScreen() {
   const p = usePaleta();
-  const { sairDaConta } = useContainer();
-  const { sessao, definirSessao } = useSessao();
+  const container = useContainer();
+  const { sessao } = useSessao();
+  const navegacao = useNavegacao();
+  const {
+    dados: lista,
+    carregando,
+    erro,
+    recarregar,
+  } = useCarregar(() => container.obterListaAtual.executar(), 'atual');
+  const mesAtual = Competencia.daData(new Date());
+
+  if (carregando && !lista)
+    return (
+      <Pagina>
+        <Carregando />
+      </Pagina>
+    );
+
+  const primeiroNome = sessao?.usuario.nome.split(' ')[0] ?? '';
+  const resumo = lista?.resumo;
+  const comprados = lista?.itens.filter((i) => i.comprado).length ?? 0;
+  const total = lista?.itens.length ?? 0;
 
   return (
-    <View style={[estilos.tela, { backgroundColor: p.fundo }]}>
-      <Titulo>Olá, {sessao?.usuario.nome}</Titulo>
-      <Cartao>
-        <TextoSuave>
-          Sua conta está pronta e conectada ao servidor. Em breve você verá aqui a lista do mês.
-        </TextoSuave>
-      </Cartao>
-      <Botao
-        variante="secundario"
-        titulo="Sair"
-        aoPressionar={async () => {
-          await sairDaConta.executar();
-          definirSessao(null);
-        }}
-      />
-    </View>
+    <Pagina>
+      <ScrollView
+        contentContainerStyle={estilos.conteudo}
+        refreshControl={
+          <RefreshControl
+            refreshing={false}
+            onRefresh={() => void recarregar()}
+            tintColor={p.destaque}
+          />
+        }
+      >
+        <View>
+          <Text
+            style={{
+              color: p.textoSuave,
+              fontSize: 11,
+              fontWeight: '700',
+              letterSpacing: 1,
+              textTransform: 'uppercase',
+            }}
+          >
+            Olá, {primeiroNome}
+          </Text>
+          <Text style={{ color: p.texto, fontSize: 26, fontWeight: '800', letterSpacing: -0.5 }}>
+            {mesAtual.nome}
+          </Text>
+        </View>
+
+        {erro && !lista ? (
+          <EstadoVazio
+            titulo="Não foi possível carregar"
+            texto={erro}
+            acao={{ rotulo: 'Tentar novamente', aoPressionar: () => void recarregar() }}
+          />
+        ) : resumo ? (
+          <Cartao estilo={{ gap: espaco.sm }}>
+            <View style={estilos.entre}>
+              <Pilula
+                texto={resumo.status === 'Finalizada' ? 'Finalizada' : 'Em andamento'}
+                tom={resumo.status === 'Finalizada' ? 'neutro' : 'destaque'}
+              />
+              <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                {resumo.competenciaNome}
+              </Text>
+            </View>
+            <Text
+              style={{
+                color: p.texto,
+                fontSize: 44,
+                fontWeight: '800',
+                letterSpacing: -1,
+                fontVariant: ['tabular-nums'],
+              }}
+            >
+              {total === 0 ? 0 : Math.round((100 * comprados) / total)}%
+            </Text>
+            <BarraDeProgresso
+              percentual={total === 0 ? 0 : Math.round((100 * comprados) / total)}
+            />
+            <View style={estilos.estatisticas}>
+              <View style={[estilos.estatistica, { backgroundColor: p.fundo }]}>
+                <Text style={estilos.rotulo}>Comprados</Text>
+                <Text style={[estilos.valor, { color: p.texto }]}>{comprados}</Text>
+              </View>
+              <View style={[estilos.estatistica, { backgroundColor: p.fundo }]}>
+                <Text style={estilos.rotulo}>Pendentes</Text>
+                <Text style={[estilos.valor, { color: p.texto }]}>{total - comprados}</Text>
+              </View>
+            </View>
+            <Botao
+              titulo={resumo.status === 'Finalizada' ? 'Ver lista' : 'Continuar compra'}
+              aoPressionar={() => navegacao.navigate('Lista')}
+            />
+          </Cartao>
+        ) : (
+          <Cartao estilo={{ gap: espaco.md }}>
+            <Text style={{ color: p.texto, fontSize: fonte.titulo, fontWeight: '700' }}>
+              Sem lista para {mesAtual.nome}
+            </Text>
+            <TextoSuave>
+              Crie a lista do mês a partir da sua lista padrão ou comece uma do zero.
+            </TextoSuave>
+            <Botao
+              titulo="Criar lista do mês"
+              aoPressionar={() => navegacao.navigate('NovaLista')}
+            />
+          </Cartao>
+        )}
+
+        <View style={estilos.atalhos}>
+          <Botao
+            titulo="Nova lista"
+            variante="secundario"
+            estilo={{ flex: 1 }}
+            aoPressionar={() => navegacao.navigate('NovaLista')}
+          />
+          <Botao
+            titulo="Lista padrão"
+            variante="secundario"
+            estilo={{ flex: 1 }}
+            aoPressionar={() => navegacao.navigate('ListaPadrao')}
+          />
+        </View>
+        <Botao
+          titulo="Ver histórico de compras"
+          variante="texto"
+          aoPressionar={() => navegacao.navigate('Historico')}
+        />
+      </ScrollView>
+    </Pagina>
   );
 }
 
 const estilos = StyleSheet.create({
-  tela: {
-    flex: 1,
-    gap: espaco.lg,
-    padding: espaco.xl,
-    justifyContent: 'center',
-    maxWidth: 480,
-    width: '100%',
-    alignSelf: 'center',
+  conteudo: { padding: espaco.lg, gap: espaco.lg, paddingBottom: 40 },
+  entre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  estatisticas: { flexDirection: 'row', gap: espaco.sm, marginVertical: espaco.sm },
+  estatistica: { flex: 1, borderRadius: 14, padding: espaco.md },
+  rotulo: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    opacity: 0.6,
   },
+  valor: { fontSize: 22, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  atalhos: { flexDirection: 'row', gap: espaco.sm },
 });

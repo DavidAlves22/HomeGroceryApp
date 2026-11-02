@@ -49,7 +49,7 @@ module.exports = [
     },
   },
   {
-    files: ['scripts/**/*.js'],
+    files: ['scripts/**/*.js', 'e2e/**/*.js'],
     languageOptions: {
       globals: {
         __dirname: 'readonly',
