@@ -19,6 +19,7 @@ import {
   categoriasSemLocal,
   descreverTamanho,
   dividirSecao,
+  duplicarSecao,
   girarSecao,
   juntarSecao,
   mapaDoMercado,
@@ -200,6 +201,17 @@ export function MapaDoMercadoScreen() {
     }
   }
 
+  function duplicar() {
+    if (!secao) return;
+    const id = novoIdLocal();
+    const novo = duplicarSecao(mapa!, secao.id, id);
+    aplicar(novo, 'Sem espaço livre para duplicar');
+    if (novo) {
+      setSelecionado({ tipo: 'secao', id });
+      toast('Seção duplicada com o mesmo tamanho. Dê um nome e arraste para o lugar.');
+    }
+  }
+
   function excluirSecao() {
     if (!secao) return;
     if (!confirmandoExclusao) {
@@ -357,6 +369,13 @@ export function MapaDoMercadoScreen() {
             aoPressionar={() =>
               secao && aplicar(girarSecao(mapa, secao.id), 'Sem espaço para girar aqui')
             }
+            estilo={{ minHeight: 44, paddingHorizontal: espaco.lg }}
+          />
+          <Botao
+            titulo="Duplicar"
+            variante="secundario"
+            desabilitado={!secao}
+            aoPressionar={duplicar}
             estilo={{ minHeight: 44, paddingHorizontal: espaco.lg }}
           />
         </View>

@@ -7,6 +7,7 @@ import {
   areaLivre,
   categoriasSemLocal,
   dividirSecao,
+  duplicarSecao,
   girarSecao,
   juntarSecao,
   moverAlvo,
@@ -148,6 +149,37 @@ describe('adicionarSecao', () => {
 
     const cheio = { ...mapa(), largura: 10, altura: 10 };
     expect(adicionarSecao({ ...cheio, secoes: [secao('x', 0, 1, 10, 6)] }, 'y')).toBeNull();
+  });
+});
+
+describe('duplicarSecao', () => {
+  it('copia o tamanho ao lado da original, sem nome nem categorias', () => {
+    const original = { ...secao('a', 5, 5, 6, 2), nome: 'Mercearia', categoriasLadoA: ['m'] };
+    const novo = duplicarSecao(mapa([original]), 'a', 'b')!;
+    expect(novo.secoes).toHaveLength(2);
+    expect(novo.secoes[1]).toMatchObject({
+      id: 'b',
+      nome: 'Nova seção',
+      categoriasLadoA: [],
+      area: { x: 11, y: 5, largura: 6, altura: 2 },
+    });
+  });
+
+  it('mantém a gôndola de dois lados', () => {
+    const dupla = { ...secao('a', 5, 5, 8, 2), dividida: true, nomeLadoB: 'Copos' };
+    const copia = duplicarSecao(mapa([dupla]), 'a', 'b')!.secoes[1];
+    expect(copia).toMatchObject({ dividida: true, nomeLadoB: 'Lado B' });
+  });
+
+  it('tenta outro lado quando a direita está ocupada', () => {
+    const base = mapa([secao('a', 5, 5, 6, 2), secao('c', 11, 5, 4, 2)]);
+    expect(duplicarSecao(base, 'a', 'b')!.secoes[2].area).toMatchObject({ x: 5, y: 7 });
+  });
+
+  it('devolve null se a seção não existe ou não há espaço', () => {
+    expect(duplicarSecao(mapa(), 'x', 'b')).toBeNull();
+    const cheio = { ...mapa(), largura: 10, altura: 10 };
+    expect(duplicarSecao({ ...cheio, secoes: [secao('a', 0, 0, 10, 8)] }, 'a', 'b')).toBeNull();
   });
 });
 

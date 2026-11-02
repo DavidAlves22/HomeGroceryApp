@@ -181,6 +181,41 @@ export function adicionarSecao(mapa: MapaEmEdicao, id: string) {
   return null;
 }
 
+/**
+ * Cria uma seção com o mesmo tamanho e formato (inclusive gôndola de dois lados) da original.
+ * Nome e categorias começam vazios: o que se repete nas seções é a medida, não o conteúdo.
+ * Procura lugar ao lado da original (direita, baixo, esquerda, cima) e depois no primeiro espaço livre.
+ */
+export function duplicarSecao(mapa: MapaEmEdicao, id: string, novoId: string) {
+  const origem = mapa.secoes.find((s) => s.id === id);
+  if (!origem) return null;
+  const { x, y, largura, altura } = origem.area;
+  const candidatas = [
+    { x: x + largura, y },
+    { x, y: y + altura },
+    { x: x - largura, y },
+    { x, y: y - altura },
+  ].map((c) => ({ ...c, largura, altura }));
+  let area = candidatas.find((c) => areaLivre(mapa, c));
+  for (let cy = 0; !area && cy <= mapa.altura - altura; cy++) {
+    for (let cx = 0; !area && cx <= mapa.largura - largura; cx++) {
+      const livre = { x: cx, y: cy, largura, altura };
+      if (areaLivre(mapa, livre)) area = livre;
+    }
+  }
+  if (!area) return null;
+  const copia: Secao = {
+    id: novoId,
+    nome: 'Nova seção',
+    nomeLadoB: origem.dividida ? 'Lado B' : null,
+    dividida: origem.dividida,
+    area,
+    categoriasLadoA: [],
+    categoriasLadoB: [],
+  };
+  return { ...mapa, secoes: [...mapa.secoes, copia] };
+}
+
 export function removerSecao(mapa: MapaEmEdicao, id: string): MapaEmEdicao {
   return { ...mapa, secoes: mapa.secoes.filter((s) => s.id !== id) };
 }
