@@ -52,6 +52,13 @@ export function MaisScreen() {
           />
           <View style={{ height: 1, backgroundColor: p.linha }} />
           <Linha
+            icone="mapa"
+            titulo="Mercados"
+            detalhe="Mapa de cada mercado, para a rota da compra"
+            aoPressionar={() => navegacao.navigate('Mercados')}
+          />
+          <View style={{ height: 1, backgroundColor: p.linha }} />
+          <Linha
             icone="estrela"
             titulo="Lista padrão"
             detalhe="Seus produtos de todo mês"

@@ -48,6 +48,26 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
   return <SessaoContexto.Provider value={valor}>{children}</SessaoContexto.Provider>;
 }
 
+interface MercadoAtualValor {
+  /** Mercado escolhido para a compra de hoje (a lista usa para dizer onde cada item foi comprado). */
+  mercadoId: string | null;
+  definirMercado: (id: string | null) => void;
+}
+
+const MercadoAtualContexto = createContext<MercadoAtualValor | null>(null);
+
+export function useMercadoAtual(): MercadoAtualValor {
+  const valor = useContext(MercadoAtualContexto);
+  if (!valor) throw new Error('useMercadoAtual fora do MercadoAtualProvider.');
+  return valor;
+}
+
+export function MercadoAtualProvider({ children }: { children: React.ReactNode }) {
+  const [mercadoId, definirMercado] = useState<string | null>(null);
+  const valor = useMemo(() => ({ mercadoId, definirMercado }), [mercadoId]);
+  return <MercadoAtualContexto.Provider value={valor}>{children}</MercadoAtualContexto.Provider>;
+}
+
 export type EstadoDoServidor = 'verificando' | 'acordando' | 'online' | 'offline';
 
 const INTERVALO_DE_NOVA_TENTATIVA_MS = 5000;

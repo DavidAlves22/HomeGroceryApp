@@ -38,6 +38,16 @@ import {
 } from '../application/useCases/autenticacao';
 import { ObterAnaliseDeGastos, ObterAnaliseDePrecos } from '../application/useCases/analises';
 import {
+  CriarMercado,
+  ExcluirMercado,
+  ListarMercados,
+  MarcarItemSemNoMercado,
+  ObterMercado,
+  PlanejarRota,
+  SalvarMapaDoMercado,
+} from '../application/useCases/mercados';
+import { MercadosApiGateway, RotasApiGateway } from '../infrastructure/gateways/mercadosGateways';
+import {
   CriarConvite,
   EntrarEmGrupo,
   ObterGrupo,
@@ -72,6 +82,8 @@ export function criarContainer(aoExpirarSessao: () => void) {
   const listas = new ListasApiGateway(http);
   const analises = new AnalisesApiGateway(http);
   const grupo = new GrupoApiGateway(http);
+  const mercados = new MercadosApiGateway(http);
+  const rotas = new RotasApiGateway(http);
 
   return {
     // Conta e sessão
@@ -111,6 +123,15 @@ export function criarContainer(aoExpirarSessao: () => void) {
     marcarItemComprado: new MarcarItemComprado(listas),
     finalizarLista: new FinalizarLista(listas),
     reabrirLista: new ReabrirLista(listas),
+
+    // Mercados, mapas e rota
+    listarMercados: new ListarMercados(mercados),
+    obterMercado: new ObterMercado(mercados),
+    criarMercado: new CriarMercado(mercados),
+    salvarMapaDoMercado: new SalvarMapaDoMercado(mercados),
+    excluirMercado: new ExcluirMercado(mercados),
+    planejarRota: new PlanejarRota(rotas),
+    marcarItemSemNoMercado: new MarcarItemSemNoMercado(rotas),
 
     // Grupo familiar e tempo real
     obterGrupo: new ObterGrupo(grupo),

@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { criarContainer } from './src/di/container';
 import {
   ContainerProvider,
+  MercadoAtualProvider,
   SessaoProvider,
   useContainer,
   useSaudeDoServidor,
@@ -66,7 +67,9 @@ function Raiz() {
   // key = grupo: ao entrar/sair de uma família tudo é refeito (telas, dados e conexão em tempo real).
   return sessao ? (
     <TempoRealProvider key={sessao.grupoId}>
-      <NavegacaoApp />
+      <MercadoAtualProvider>
+        <NavegacaoApp />
+      </MercadoAtualProvider>
     </TempoRealProvider>
   ) : (
     <AutenticacaoScreen />

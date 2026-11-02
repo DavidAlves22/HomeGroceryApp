@@ -14,6 +14,9 @@ const ID_DE_LISTA = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{1
 function eventosDa(chave: string): EventoDeAlteracao['tipo'][] {
   if (chave === 'grupo') return ['membros'];
   if (['categorias', 'modelo', 'produtos', 'sugestoes'].includes(chave)) return ['catalogo'];
+  // Mercados e seus mapas; a rota depende tanto da lista (o que falta) quanto do mapa do mercado.
+  if (chave === 'mercados' || chave.startsWith('mercado:')) return ['lojas'];
+  if (chave.startsWith('rota:')) return ['lista', 'lojas'];
   return ['lista'];
 }
 

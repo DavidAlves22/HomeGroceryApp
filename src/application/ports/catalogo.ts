@@ -41,7 +41,13 @@ export interface ListasGateway {
   ): Promise<ItemDaLista>;
   removerItem(listaId: string, itemId: string): Promise<void>;
   reordenarItens(listaId: string, ids: string[]): Promise<void>;
-  marcarComprado(listaId: string, itemId: string, comprado: boolean): Promise<ItemDaLista>;
+  /** `mercadoId`: onde foi comprado (a compra do mês pode ser dividida entre mercados). */
+  marcarComprado(
+    listaId: string,
+    itemId: string,
+    comprado: boolean,
+    mercadoId?: string | null,
+  ): Promise<ItemDaLista>;
   finalizar(listaId: string): Promise<ListaResumo>;
   reabrir(listaId: string): Promise<ListaResumo>;
 }

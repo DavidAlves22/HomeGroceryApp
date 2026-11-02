@@ -22,6 +22,8 @@ const CAMINHOS = {
   categoria: ['M3 12V3h9l9 9-9 9z'],
   sair: ['M9 4H5v16h4', 'M16 8l4 4-4 4', 'M20 12H9'],
   fechar: ['M6 6l12 12M18 6L6 18'],
+  mapa: ['M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z', 'M9 4v14M15 6v14'],
+  rota: ['M8.5 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5'],
 } as const;
 
 export type NomeDoIcone = keyof typeof CAMINHOS;

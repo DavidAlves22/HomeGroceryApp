@@ -59,3 +59,13 @@ Nomes em português; comentários explicam o porquê; Prettier (`.prettierrc.jso
 - Online-only continua: sem conexão em tempo real o app funciona normalmente pela API; o health check de abertura segue obrigatório.
 - E2E de duas pessoas: `e2e/familia.js` (dois contextos de navegador). Suba a API com `Seguranca__TentativasDeAutenticacaoPorMinuto=100000` para o limite de login não atrapalhar.
 - Pegadinha de teste: abas e telas anteriores ficam montadas no DOM; ao clicar em textos repetidos (ex.: "Mais") use o último elemento.
+
+## Fase 5 (mercados, mapa e rota) — o que existe
+- **N mercados por grupo** (Mais → Mercados). Cada um tem mapa em grade (ver API: `Loja`/`Secao`); no app o nome é "mercado" e a API diz "loja" (`/lojas`). `MercadoAtualProvider` guarda o mercado de hoje (o primeiro da lista se nada foi escolhido).
+- **Editor do mapa** (`MapaDoMercadoScreen`): arrasta seção, entrada e caixas; a bolinha do canto redimensiona; adicionar, girar, excluir, dividir em dois lados. Toques por `PanResponder` na View que envolve o desenho (`MapaSvg` só desenha, com `pointerEvents="none"`); o arrasto sempre parte do mapa do início do gesto (`base`) e mantém a última posição válida quando o destino está ocupado. Toda a regra de edição é pura e testada em `domain/services/mapa.ts` (sem sobreposição, limites, espessura 2 na gôndola dupla). Salvar envia o mapa inteiro com a `versao` aberta (409 = outra pessoa salvou antes); as ids das seções são provisórias (`local-N`) até salvar.
+- **Gôndola de dois lados**: lado A (cima/esquerda) e B (baixo/direita) com nome e categorias próprios; a rota para no corredor do lado do item. **Categoria em vários lugares** do mesmo mercado: a rota vai ao mais próximo.
+- **Compra dividida**: marcar um item guarda o mercado de hoje (`compradoNaLojaId`); a barra `DivisaoDaCompra` mostra comprado por mercado e o que falta. "Não tem aqui" mantém o item pendente (`semNasLojas`) e o tira da rota daquele mercado.
+- **Rota** (`RotaScreen`, `POST /listas/{id}/rota`): só itens pendentes que o mercado tem; posição = parada do último item marcado (sem GPS) ou a entrada. O algoritmo vive na API; o app só desenha (`MapaSvg` com trilha, paradas numeradas e posição).
+- Tempo real: evento `lojas` recarrega mercados/mapas (`useCarregar` com chaves `mercados`, `mercado:{id}`, `rota:{lista}:{mercado}`). Salvar o próprio mapa atualiza o estado à mão (o aviso do próprio usuário é ignorado).
+- E2E: `e2e/mercados.js` (prepara conta e mercados pela API; testa rota, compra dividida entre 2 mercados, "Não tem aqui" e arrastar a seção com o mouse). Rode também com `DARK=1`.
+- `SVG`: a fonte do texto precisa ser definida (não herda); `MapaSvg` usa a fonte do sistema no navegador.

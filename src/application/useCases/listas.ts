@@ -84,8 +84,8 @@ export class RemoverItemDaLista {
 
 export class MarcarItemComprado {
   constructor(private readonly gateway: ListasGateway) {}
-  executar(listaId: string, itemId: string, comprado: boolean) {
-    return this.gateway.marcarComprado(listaId, itemId, comprado);
+  executar(listaId: string, itemId: string, comprado: boolean, mercadoId?: string | null) {
+    return this.gateway.marcarComprado(listaId, itemId, comprado, mercadoId);
   }
 }
 

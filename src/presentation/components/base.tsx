@@ -137,7 +137,7 @@ const estilos = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: espaco.xl,
   },
-  botaoTexto: { fontSize: fonte.corpo, fontWeight: '700' },
+  botaoTexto: { fontSize: fonte.corpo, fontWeight: '700', textAlign: 'center' },
   rotulo: { fontSize: fonte.pequena, fontWeight: '700' },
   campo: {
     minHeight: 48,

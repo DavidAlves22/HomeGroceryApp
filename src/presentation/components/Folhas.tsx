@@ -23,7 +23,7 @@ import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Botao, Campo, MensagemDeErro } from './base';
 import { Chip } from './ui';
 
-function Moldura({
+export function Moldura({
   visivel,
   aoFechar,
   children,
@@ -53,12 +53,12 @@ function Moldura({
   );
 }
 
-function TituloDaFolha({ children }: { children: React.ReactNode }) {
+export function TituloDaFolha({ children }: { children: React.ReactNode }) {
   const p = usePaleta();
   return <Text style={[estilos.titulo, { color: p.texto }]}>{children}</Text>;
 }
 
-function RotuloDaFolha({ children }: { children: React.ReactNode }) {
+export function RotuloDaFolha({ children }: { children: React.ReactNode }) {
   const p = usePaleta();
   return <Text style={[estilos.rotulo, { color: p.textoSuave }]}>{children}</Text>;
 }

@@ -32,6 +32,8 @@ const item = (nome: string, categoriaNome: string, comprado = false): ItemDaList
   adicionadoPorUsuarioId: 'u1',
   ordem: proximo,
   versao: 1,
+  compradoNaLojaId: null,
+  semNasLojas: [],
 });
 
 const itens = [

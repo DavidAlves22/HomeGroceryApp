@@ -29,6 +29,8 @@ function item(parcial: Partial<ItemDaLista> & { nome: string }): ItemDaLista {
     adicionadoPorUsuarioId: 'u1',
     ordem: contador,
     versao: 1,
+    compradoNaLojaId: null,
+    semNasLojas: [],
     ...parcial,
   };
 }

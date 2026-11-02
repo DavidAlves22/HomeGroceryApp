@@ -27,7 +27,9 @@ import {
   Pagina,
   Pilula,
 } from '../components/ui';
-import { useContainer, useSessao } from '../hooks/AppProviders';
+import { mercadoEmUso } from '../../domain/services/compraDividida';
+import { DivisaoDaCompra } from '../components/DivisaoDaCompra';
+import { useContainer, useMercadoAtual, useSessao } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { useToast } from '../hooks/Toast';
 import { useNavegacao, type RootStackParamList } from '../navigation/tipos';
@@ -72,6 +74,13 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
   // Membros do grupo: para mostrar quem marcou cada item ("Ana marcou").
   const { dados: grupo } = useCarregar(() => container.obterGrupo.executar(), 'grupo');
   const nomes = nomesDosMembros(grupo);
+
+  // Mercados: a compra do mês pode ser dividida entre vários. Cada item marcado guarda onde foi comprado.
+  const { dados: mercados } = useCarregar(() => container.listarMercados.executar(), 'mercados');
+  const { mercadoId } = useMercadoAtual();
+  const mercadoDeHoje = mercadoEmUso(mercados, mercadoId);
+  const nomeDoMercado = (id: string | null) =>
+    id ? (mercados?.find((m) => m.id === id)?.nome ?? 'outro mercado') : undefined;
 
   // Favoritos e recorrentes: sugeridos no formulário de novo produto, mesmo fora da lista padrão.
   const { dados: sugestoes } = useCarregar(
@@ -170,9 +179,12 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
   async function marcar(item: ItemDaLista) {
     const listaId = lista!.resumo.id;
     // Atualização otimista: a tela responde ao toque na hora e desfaz se o servidor recusar.
-    trocarItem({ ...item, comprado: !item.comprado });
+    const lojaId = !item.comprado ? (mercadoDeHoje?.id ?? null) : null;
+    trocarItem({ ...item, comprado: !item.comprado, compradoNaLojaId: lojaId });
     try {
-      trocarItem(await container.marcarItemComprado.executar(listaId, item.id, !item.comprado));
+      trocarItem(
+        await container.marcarItemComprado.executar(listaId, item.id, !item.comprado, lojaId),
+      );
     } catch (e) {
       trocarItem(item);
       toast(mensagemParaUsuario(e));
@@ -292,7 +304,20 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
             realizado={totais.realizado}
             compradosSemPreco={totais.compradosSemPreco}
           />
+          {mercados && mercados.length > 0 && (
+            <>
+              <View style={{ height: espaco.md }} />
+              <DivisaoDaCompra itens={lista.itens} mercados={mercados} />
+            </>
+          )}
         </Cartao>
+
+        {!somenteLeitura && (
+          <Botao
+            titulo={mercadoDeHoje ? `Rota em ${mercadoDeHoje.nome}` : 'Mapear meu mercado'}
+            aoPressionar={() => navegacao.navigate(mercadoDeHoje ? 'Rota' : 'Mercados')}
+          />
+        )}
 
         <CampoDeBusca valor={busca} aoMudar={setBusca} placeholder="Buscar produto" />
         <View style={estilos.chips}>
@@ -377,6 +402,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
                     !!item.compradoPorUsuarioId && item.compradoPorUsuarioId !== sessao?.usuario.id
                   }
                   nomeDeQuemMarcou={nomes.get(item.compradoPorUsuarioId ?? '')}
+                  nomeDoMercado={item.comprado ? nomeDoMercado(item.compradoNaLojaId) : undefined}
                   aoMarcar={(i) => void marcar(i)}
                   aoEditar={(i) => setFolha({ tipo: 'editar', item: i })}
                   aoMover={

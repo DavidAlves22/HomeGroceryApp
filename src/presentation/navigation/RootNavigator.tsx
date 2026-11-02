@@ -10,6 +10,9 @@ import { InicioScreen } from '../screens/InicioScreen';
 import { DetalheDaListaScreen, ListaScreen } from '../screens/ListaScreen';
 import { ListaPadraoScreen } from '../screens/ListaPadraoScreen';
 import { MaisScreen } from '../screens/MaisScreen';
+import { MapaDoMercadoScreen } from '../screens/MapaDoMercadoScreen';
+import { MercadosScreen } from '../screens/MercadosScreen';
+import { RotaScreen } from '../screens/RotaScreen';
 import { GrupoScreen } from '../screens/GrupoScreen';
 import { ProdutosScreen } from '../screens/ProdutosScreen';
 import { NovaListaScreen } from '../screens/NovaListaScreen';
@@ -81,6 +84,9 @@ export function NavegacaoApp() {
         <Pilha.Screen name="Categorias" component={CategoriasScreen} />
         <Pilha.Screen name="Produtos" component={ProdutosScreen} />
         <Pilha.Screen name="Grupo" component={GrupoScreen} />
+        <Pilha.Screen name="Mercados" component={MercadosScreen} />
+        <Pilha.Screen name="MapaDoMercado" component={MapaDoMercadoScreen} />
+        <Pilha.Screen name="Rota" component={RotaScreen} />
       </Pilha.Navigator>
     </NavigationContainer>
   );

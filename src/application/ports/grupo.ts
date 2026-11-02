@@ -17,7 +17,7 @@ export type EstadoDeConexao = 'desconectado' | 'conectando' | 'conectado' | 'rec
  * `reconectado` não vem do servidor: o app o gera ao voltar a conexão, para recarregar tudo que pode ter mudado no intervalo.
  */
 export interface EventoDeAlteracao {
-  tipo: 'lista' | 'catalogo' | 'membros' | 'grupoAlterado' | 'reconectado';
+  tipo: 'lista' | 'catalogo' | 'lojas' | 'membros' | 'grupoAlterado' | 'reconectado';
   listaId?: string | null;
   itemId?: string | null;
   porUsuarioId?: string | null;

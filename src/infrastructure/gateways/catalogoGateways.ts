@@ -124,9 +124,9 @@ export class ListasApiGateway implements ListasGateway {
     await this.http.put<void>(`/listas/${listaId}/itens/ordem`, { corpo: { ids } });
   }
 
-  marcarComprado(listaId: string, itemId: string, comprado: boolean) {
+  marcarComprado(listaId: string, itemId: string, comprado: boolean, mercadoId?: string | null) {
     return this.http.put<ItemDaLista>(`/listas/${listaId}/itens/${itemId}/comprado`, {
-      corpo: { comprado },
+      corpo: { comprado, lojaId: comprado ? (mercadoId ?? null) : null },
     });
   }
 
