@@ -39,3 +39,9 @@ Nomes em português; comentários explicam o porquê; Prettier (`.prettierrc.jso
 - Lista finalizada abre em somente leitura; "Reabrir" libera edição. Exclusões pedem segundo toque.
 - Casos de uso que validam são `async` (sempre devolvem Promise rejeitada, nunca lançam de forma síncrona).
 - Teste de navegador: `e2e/` (ver `e2e/README.md`). Rodar após mudanças de tela ou de contrato com a API.
+
+## Fase 2 (financeiro) — o que existe
+- `domain/services/financeiro.ts`: `calcularTotais` recalcula estimado/gasto/restante no aparelho (a tela atualiza na hora ao marcar um item). Espelha `CalculoDeTotais` da API; os testes usam os mesmos números dos testes da API (ex.: R$ 101,00). `Dinheiro.vezes` usa milésimos inteiros para dar o mesmo centavo do servidor.
+- Só preço **pago** de item **comprado** vira gasto; estimado é referência. Item comprado sem preço pago é sinalizado ("o gasto real pode ser maior").
+- Aba Análises (`AnalisesScreen`): barras do gasto mensal (toque escolhe o mês das categorias), tabela de variação, categorias, mais comprados, evolução de preço por produto e maiores aumentos. Gráficos em `components/graficos.tsx` (SVG/Views, um só tom, tabela de valores abaixo para acessibilidade; variação sempre com seta e sinal, nunca só cor).
+- Formatador pt-BR coloca espaço não separável depois de "R$": em testes de navegador normalize ` `.

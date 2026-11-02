@@ -9,6 +9,14 @@ export function validarDadosDoItem(dados: DadosDoItem): DadosDoItem {
   if (nome.length > 120) throw new ErroDeApi('O nome pode ter no máximo 120 caracteres.', 400);
   if (!dados.categoriaId) throw new ErroDeApi('Escolha uma categoria.', 400);
   if (!(dados.quantidade > 0)) throw new ErroDeApi('Informe uma quantidade maior que zero.', 400);
+  if (dados.quantidadeComprada != null && !(dados.quantidadeComprada > 0)) {
+    throw new ErroDeApi('A quantidade comprada precisa ser maior que zero.', 400);
+  }
+  for (const preco of [dados.precoEstimado, dados.precoUnitario]) {
+    if (preco != null && (preco < 0 || preco > 999999.99)) {
+      throw new ErroDeApi('O preço deve estar entre R$ 0,00 e R$ 999.999,99.', 400);
+    }
+  }
   return { ...dados, nome };
 }
 

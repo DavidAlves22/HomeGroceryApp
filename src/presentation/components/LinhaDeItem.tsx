@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { rotuloDaUnidade, type ItemDaLista } from '../../domain/entities/tipos';
+import { totalEstimadoDoItem, totalRealizadoDoItem } from '../../domain/services/financeiro';
 import { formatarQuantidade } from '../../domain/services/organizacao';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Icone } from './Icone';
@@ -13,6 +14,15 @@ interface Props {
   somenteLeitura: boolean;
   aoMarcar: (item: ItemDaLista) => void;
   aoEditar: (item: ItemDaLista) => void;
+}
+
+/** Valor mostrado ao lado da quantidade: o gasto, se comprado com preço; senão a estimativa. */
+function textoDeValor(item: ItemDaLista): string {
+  if (item.comprado && item.precoUnitario !== null) {
+    return ` · ${totalRealizadoDoItem(item).formatar()}`;
+  }
+  if (item.precoEstimado !== null) return ` · est. ${totalEstimadoDoItem(item).formatar()}`;
+  return item.comprado ? ` · sem preço pago` : '';
 }
 
 /**
@@ -65,6 +75,7 @@ export function LinhaDeItem({ item, marcadoPorOutro, somenteLeitura, aoMarcar, a
         </Text>
         <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
           {formatarQuantidade(item.quantidade)} {rotuloDaUnidade(item.unidade)}
+          {textoDeValor(item)}
           {feito && marcadoPorOutro ? ' · marcado por outra pessoa' : ''}
         </Text>
       </View>

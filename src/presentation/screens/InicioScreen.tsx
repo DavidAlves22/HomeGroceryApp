@@ -1,7 +1,9 @@
 import React from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { calcularTotais } from '../../domain/services/financeiro';
 import { Competencia } from '../../domain/valueObjects/Competencia';
 import { Botao, Cartao, TextoSuave } from '../components/base';
+import { ResumoFinanceiro } from '../components/ResumoFinanceiro';
 import { BarraDeProgresso, Carregando, EstadoVazio, Pagina, Pilula } from '../components/ui';
 import { useContainer, useSessao } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
@@ -33,6 +35,7 @@ export function InicioScreen() {
   const resumo = lista?.resumo;
   const comprados = lista?.itens.filter((i) => i.comprado).length ?? 0;
   const total = lista?.itens.length ?? 0;
+  const totais = lista ? calcularTotais(lista.itens) : null;
 
   return (
     <Pagina>
@@ -104,6 +107,13 @@ export function InicioScreen() {
                 <Text style={[estilos.valor, { color: p.texto }]}>{total - comprados}</Text>
               </View>
             </View>
+            {totais && (
+              <ResumoFinanceiro
+                estimado={totais.estimado}
+                realizado={totais.realizado}
+                compradosSemPreco={totais.compradosSemPreco}
+              />
+            )}
             <Botao
               titulo={resumo.status === 'Finalizada' ? 'Ver lista' : 'Continuar compra'}
               aoPressionar={() => navegacao.navigate('Lista')}

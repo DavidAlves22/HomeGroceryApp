@@ -35,9 +35,14 @@ export class Dinheiro {
     return new Dinheiro(this.centavos - outro.centavos);
   }
 
-  /** Multiplica por uma quantidade (pode ser fracionada, como 0,5 kg) arredondando ao centavo. */
+  /**
+   * Multiplica por uma quantidade (pode ser fracionada, como 0,5 kg) arredondando ao centavo.
+   * Usa milésimos inteiros (a API aceita até 3 casas) para não depender de ponto flutuante e
+   * dar exatamente o mesmo centavo que o servidor.
+   */
   vezes(quantidade: number): Dinheiro {
-    return new Dinheiro(Math.round(this.centavos * quantidade));
+    const milesimos = Math.round(quantidade * 1000);
+    return new Dinheiro(Math.round((this.centavos * milesimos) / 1000));
   }
 
   igual(outro: Dinheiro): boolean {

@@ -24,10 +24,11 @@ let passo = 0;
   page.on('requestfailed', (r) => errosDeConsole.push('requestfailed: ' + r.url() + ' ' + (r.failure()?.errorText ?? '')));
 
   const foto = async (nome) => page.screenshot({ path: path.join(PASTA, `${process.env.DARK ? 'dark-' : ''}${String(++passo).padStart(2, '0')}-${nome}.png`) });
-  const texto = () => page.evaluate(() => document.body.innerText);
+  // O formatador pt-BR usa espaço não separável depois de "R$": normaliza para comparar com texto simples.
+  const texto = () => page.evaluate(() => document.body.innerText.replace(/ /g, ' '));
   const esperarTexto = async (t, ms = 15000) => {
     try {
-      await page.waitForFunction((x) => document.body.innerText.toLowerCase().includes(x.toLowerCase()), { timeout: ms }, t);
+      await page.waitForFunction((x) => document.body.innerText.replace(/ /g, ' ').toLowerCase().includes(x.toLowerCase()), { timeout: ms }, t);
     } catch {
       await foto('FALHA-esperando-' + t.replace(/\W+/g, '_').slice(0, 30));
       throw new Error(`Não apareceu o texto "${t}". Tela atual:\n${(await texto()).slice(0, 800)}`);
@@ -128,6 +129,17 @@ let passo = 0;
     verificar((await texto()).includes('1 de 2 comprados'), 'progresso 1 de 2 (50%)');
     await foto('lista-marcado');
 
+    console.log('6b) Preços: estimado e pago pelo formulário do item');
+    await clicarRotulo('Editar Arroz');
+    await digitar('Preço estimado', '24,00');
+    await digitar('Preço pago', '25,50');
+    await foto('folha-precos');
+    await clicar('Salvar');
+    await esperarTexto('R$ 51,00');
+    verificar((await texto()).includes('R$ 51,00'), 'gasto = 2 pacotes x R$ 25,50 = R$ 51,00');
+    verificar((await texto()).includes('R$ 48,00'), 'estimado = 2 x R$ 24,00 = R$ 48,00 (separado do gasto)');
+    await foto('lista-com-precos');
+
     console.log('7) Alterar a lista padrão não muda a lista do mês');
     await clicarRotulo('Voltar').catch(() => {});
     await page.goto(BASE, { waitUntil: 'networkidle2' });
@@ -165,6 +177,58 @@ let passo = 0;
     await esperarTexto('Mercearia');
     await foto('categorias');
     verificar((await texto()).includes('Higiene pessoal'), 'categorias iniciais exibidas');
+
+    console.log('11) Análises com histórico de 3 meses (semeado pela API)');
+    const sessao = JSON.parse(await page.evaluate(() => localStorage.getItem('homegrocery.sessao')));
+    const API = process.env.API_URL || 'http://localhost:5272';
+    const api = async (metodo, caminho, corpo) => {
+      const r = await fetch(API + caminho, {
+        method: metodo,
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessao.tokenDeAcesso },
+        body: corpo ? JSON.stringify(corpo) : undefined,
+      });
+      if (!r.ok) throw new Error(`${metodo} ${caminho} -> ${r.status} ${await r.text()}`);
+      return r.status === 204 ? null : r.json();
+    };
+    const cats = await api('GET', '/categorias');
+    const cat = (nome) => cats.find((c) => c.nome === nome).id;
+    const meses = [
+      ['2026-08', 16, 24, 8.4, 30],
+      ['2026-09', 18, 25, 8.9, 34],
+      ['2026-10', 19, 27, 9.5, 41],
+    ];
+    for (const [competencia, cafe, arroz, feijao, carne] of meses) {
+      const lista = (await api('POST', '/listas', { competencia, origem: 'Zero' })).resumo.id;
+      const itens = [
+        ['Café', 'Mercearia', 'Pacote', 1, cafe],
+        ['Arroz 5 kg', 'Mercearia', 'Pacote', 2, arroz],
+        ['Feijão', 'Mercearia', 'Kg', 3, feijao],
+        ['Carne moída', 'Açougue', 'Kg', 1.5, carne],
+      ];
+      for (const [nome, categoria, unidade, quantidade, preco] of itens) {
+        const base = { nome, categoriaId: cat(categoria), unidade, quantidade };
+        const item = await api('POST', `/listas/${lista}/itens`, base);
+        await api('PUT', `/listas/${lista}/itens/${item.id}`, { ...base, versao: item.versao, precoUnitario: preco });
+        await api('PUT', `/listas/${lista}/itens/${item.id}/comprado`, { comprado: true });
+      }
+      await api('POST', `/listas/${lista}/finalizar`);
+    }
+    await page.goto(BASE, { waitUntil: 'networkidle2' });
+    await clicar('Análises');
+    await esperarTexto('Gasto por mês');
+    await pausa(800);
+    await foto('analises');
+    const tA = await texto();
+    verificar(tA.includes('Por categoria em'), 'gráfico por categoria exibido');
+    verificar(tA.includes('Evolução de preços'), 'evolução de preços exibida');
+    verificar(tA.includes('Maiores aumentos de preço'), 'maiores aumentos exibidos');
+    verificar(/\+\d+,\d%/.test(tA), 'variação percentual com sinal exibida');
+    await page.evaluate(() => {
+      const rolavel = [...document.querySelectorAll('div')].find((d) => d.scrollHeight > d.clientHeight + 50 && getComputedStyle(d).overflowY !== 'visible');
+      if (rolavel) rolavel.scrollTop = rolavel.scrollHeight;
+    });
+    await pausa(400);
+    await foto('analises-fim');
 
     console.log('\nFluxo completo OK.');
   } catch (e) {

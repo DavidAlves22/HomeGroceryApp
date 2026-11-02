@@ -30,7 +30,12 @@ import {
   SairDaConta,
   VerificarServidor,
 } from '../application/useCases/autenticacao';
-import { CatalogoApiGateway, ListasApiGateway } from '../infrastructure/gateways/catalogoGateways';
+import { ObterAnaliseDeGastos, ObterAnaliseDePrecos } from '../application/useCases/analises';
+import {
+  AnalisesApiGateway,
+  CatalogoApiGateway,
+  ListasApiGateway,
+} from '../infrastructure/gateways/catalogoGateways';
 import { AutenticacaoApiGateway, ServidorApiGateway } from '../infrastructure/gateways/gateways';
 import { ClienteHttp } from '../infrastructure/http/ClienteHttp';
 import { ArmazenamentoDeSessaoLocal } from '../infrastructure/sessao/ArmazenamentoDeSessaoLocal';
@@ -49,6 +54,7 @@ export function criarContainer(aoExpirarSessao: () => void) {
   const servidor = new ServidorApiGateway(http);
   const catalogo = new CatalogoApiGateway(http);
   const listas = new ListasApiGateway(http);
+  const analises = new AnalisesApiGateway(http);
 
   return {
     // Conta e sessão
@@ -82,6 +88,10 @@ export function criarContainer(aoExpirarSessao: () => void) {
     marcarItemComprado: new MarcarItemComprado(listas),
     finalizarLista: new FinalizarLista(listas),
     reabrirLista: new ReabrirLista(listas),
+
+    // Análises
+    obterAnaliseDeGastos: new ObterAnaliseDeGastos(analises),
+    obterAnaliseDePrecos: new ObterAnaliseDePrecos(analises),
   };
 }
 

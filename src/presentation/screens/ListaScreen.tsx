@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
 import type { DadosDoItem, ItemDaLista, Lista } from '../../domain/entities/tipos';
+import { calcularTotais } from '../../domain/services/financeiro';
 import {
   organizarItens,
   resumirItens,
@@ -12,6 +13,7 @@ import {
 import { Botao, Cartao, TextoSuave } from '../components/base';
 import { FolhaDeItem } from '../components/Folhas';
 import { LinhaDeItem } from '../components/LinhaDeItem';
+import { ResumoFinanceiro } from '../components/ResumoFinanceiro';
 import {
   BarraDeProgresso,
   BotaoFlutuante,
@@ -103,6 +105,8 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
 
   const somenteLeitura = lista.resumo.status === 'Finalizada';
   const resumo = resumirItens(lista.itens);
+  const totais = calcularTotais(lista.itens);
+  const gastoDaCategoria = new Map(totais.porCategoria.map((c) => [c.categoria, c.realizado]));
   const grupos = organizarItens(
     lista.itens,
     { busca, filtro, ordenacao },
@@ -229,6 +233,12 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
           <Text style={{ color: p.textoSuave, fontSize: fonte.pequena, marginTop: espaco.sm }}>
             {resumo.pendentes} {resumo.pendentes === 1 ? 'pendente' : 'pendentes'}
           </Text>
+          <View style={{ height: espaco.md }} />
+          <ResumoFinanceiro
+            estimado={totais.estimado}
+            realizado={totais.realizado}
+            compradosSemPreco={totais.compradosSemPreco}
+          />
         </Cartao>
 
         <CampoDeBusca valor={busca} aoMudar={setBusca} placeholder="Buscar produto" />
@@ -278,6 +288,10 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
                   }}
                 >
                   {grupo.comprados}/{grupo.itens.length}
+                  {ordenacao === 'categoria' &&
+                  (gastoDaCategoria.get(grupo.titulo)?.centavos ?? 0) > 0
+                    ? ` · ${gastoDaCategoria.get(grupo.titulo)?.formatar()}`
+                    : ''}
                 </Text>
               </View>
               {grupo.itens.map((item) => (
@@ -330,9 +344,13 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
                 categoriaId: folha.item.categoriaId ?? undefined,
                 unidade: folha.item.unidade,
                 quantidade: folha.item.quantidade,
+                quantidadeComprada: folha.item.quantidadeComprada,
+                precoEstimado: folha.item.precoEstimado,
+                precoUnitario: folha.item.precoUnitario,
               }
             : undefined
         }
+        comPrecos
         rotuloDoBotao={folha?.tipo === 'editar' ? 'Salvar' : 'Adicionar'}
         buscarSugestoes={(termo) => container.buscarProdutos.executar(termo)}
         aoSalvar={salvar}

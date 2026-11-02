@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { Icone, type NomeDoIcone } from '../components/Icone';
+import { AnalisesScreen } from '../screens/AnalisesScreen';
 import { CategoriasScreen } from '../screens/CategoriasScreen';
 import { HistoricoScreen } from '../screens/HistoricoScreen';
 import { InicioScreen } from '../screens/InicioScreen';
@@ -20,6 +21,7 @@ const ICONES: Record<keyof AbasParamList, NomeDoIcone> = {
   Inicio: 'inicio',
   Lista: 'lista',
   Historico: 'historico',
+  Analises: 'grafico',
   Mais: 'mais',
 };
 
@@ -45,6 +47,7 @@ function NavegacaoPorAbas() {
       <Abas.Screen name="Inicio" component={InicioScreen} options={{ title: 'Início' }} />
       <Abas.Screen name="Lista" component={ListaScreen} options={{ title: 'Lista' }} />
       <Abas.Screen name="Historico" component={HistoricoScreen} options={{ title: 'Histórico' }} />
+      <Abas.Screen name="Analises" component={AnalisesScreen} options={{ title: 'Análises' }} />
       <Abas.Screen name="Mais" component={MaisScreen} options={{ title: 'Mais' }} />
     </Abas.Navigator>
   );

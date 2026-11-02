@@ -19,6 +19,11 @@ const item = (nome: string, categoriaNome: string, comprado = false): ItemDaList
   categoriaNome,
   unidade: 'Unidade',
   quantidade: 1,
+  quantidadeComprada: null,
+  precoEstimado: null,
+  precoUnitario: null,
+  totalEstimado: 0,
+  totalRealizado: 0,
   comprado,
   compradoEm: null,
   compradoPorUsuarioId: null,
@@ -109,6 +114,8 @@ const resumo = (sobrescritas: Partial<ListaResumo>): ListaResumo => ({
   totalDeItens: 0,
   comprados: 0,
   percentual: 0,
+  totalEstimado: 0,
+  totalRealizado: 0,
   ...sobrescritas,
 });
 

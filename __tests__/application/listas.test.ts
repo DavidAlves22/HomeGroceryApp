@@ -24,6 +24,8 @@ const resumo = (sobrescritas: Partial<ListaResumo> = {}): ListaResumo => ({
   totalDeItens: 0,
   comprados: 0,
   percentual: 0,
+  totalEstimado: 0,
+  totalRealizado: 0,
   ...sobrescritas,
 });
 

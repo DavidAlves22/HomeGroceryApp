@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
 import { Cartao } from '../components/base';
 import {
   BarraDeProgresso,
@@ -86,6 +87,22 @@ export function HistoricoScreen() {
                   />
                 </View>
                 <BarraDeProgresso percentual={lista.percentual} />
+                <View style={estilos.entre}>
+                  <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                    {lista.totalDeItens} {lista.totalDeItens === 1 ? 'produto' : 'produtos'} ·{' '}
+                    {lista.percentual}% comprado
+                  </Text>
+                  <Text
+                    style={{
+                      color: p.texto,
+                      fontSize: fonte.titulo,
+                      fontWeight: '800',
+                      fontVariant: ['tabular-nums'],
+                    }}
+                  >
+                    {Dinheiro.deReais(lista.totalRealizado).formatar()}
+                  </Text>
+                </View>
                 <Text
                   style={{
                     color: p.textoSuave,
@@ -93,11 +110,9 @@ export function HistoricoScreen() {
                     fontVariant: ['tabular-nums'],
                   }}
                 >
-                  {lista.totalDeItens} {lista.totalDeItens === 1 ? 'produto' : 'produtos'} ·{' '}
-                  {lista.percentual}% comprado
                   {lista.finalizadaEm
-                    ? ` · finalizada em ${new Date(lista.finalizadaEm).toLocaleDateString('pt-BR')}`
-                    : ''}
+                    ? `Finalizada em ${new Date(lista.finalizadaEm).toLocaleDateString('pt-BR')}`
+                    : 'Em andamento: o total muda conforme você compra'}
                 </Text>
               </Cartao>
             </Pressable>

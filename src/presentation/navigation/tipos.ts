@@ -14,6 +14,7 @@ export type AbasParamList = {
   Inicio: undefined;
   Lista: undefined;
   Historico: undefined;
+  Analises: undefined;
   Mais: undefined;
 };
 

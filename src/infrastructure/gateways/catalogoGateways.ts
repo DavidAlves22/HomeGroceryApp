@@ -1,4 +1,6 @@
+import type { AnalisesGateway } from '../../application/ports/analises';
 import type { CatalogoGateway, ListasGateway } from '../../application/ports/catalogo';
+import type { AnaliseDeGastos, AnaliseDePrecos } from '../../domain/entities/analises';
 import type {
   Categoria,
   DadosDeNovaLista,
@@ -103,5 +105,18 @@ export class ListasApiGateway implements ListasGateway {
 
   reabrir(listaId: string) {
     return this.http.post<ListaResumo>(`/listas/${listaId}/reabrir`);
+  }
+}
+
+export class AnalisesApiGateway implements AnalisesGateway {
+  constructor(private readonly http: ClienteHttp) {}
+
+  gastos(meses: number, competencia?: string) {
+    const consulta = `meses=${meses}${competencia ? `&competencia=${competencia}` : ''}`;
+    return this.http.get<AnaliseDeGastos>(`/analises/gastos?${consulta}`);
+  }
+
+  precos() {
+    return this.http.get<AnaliseDePrecos>('/analises/precos');
   }
 }

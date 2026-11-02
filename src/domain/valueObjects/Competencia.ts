@@ -15,6 +15,21 @@ const MESES = [
   'Dezembro',
 ];
 
+const ABREVIADOS = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
+
 /**
  * Mês de referência de uma lista de compras, no formato "AAAA-MM" (ex.: "2026-11").
  * É o mesmo formato que a API usa, então viaja sem conversão.
@@ -46,6 +61,11 @@ export class Competencia {
   /** "Novembro de 2026" */
   get nome(): string {
     return `${MESES[this.mes - 1]} de ${this.ano}`;
+  }
+
+  /** "nov/26": cabe no eixo de um gráfico. */
+  get abreviado(): string {
+    return `${ABREVIADOS[this.mes - 1]}/${String(this.ano).slice(2)}`;
   }
 
   proxima(): Competencia {

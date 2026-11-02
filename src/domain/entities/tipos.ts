@@ -54,6 +54,14 @@ export interface ItemDaLista {
   categoriaNome: string;
   unidade: Unidade;
   quantidade: number;
+  /** Quanto foi para o carrinho (vazio = igual ao planejado). */
+  quantidadeComprada: number | null;
+  /** Preço unitário esperado, só referência. */
+  precoEstimado: number | null;
+  /** Preço unitário efetivamente pago: só ele entra no total gasto. */
+  precoUnitario: number | null;
+  totalEstimado: number;
+  totalRealizado: number;
   comprado: boolean;
   compradoEm: string | null;
   compradoPorUsuarioId: string | null;
@@ -73,6 +81,8 @@ export interface ListaResumo {
   totalDeItens: number;
   comprados: number;
   percentual: number;
+  totalEstimado: number;
+  totalRealizado: number;
 }
 
 export interface Lista {
@@ -86,6 +96,10 @@ export interface DadosDoItem {
   categoriaId: string;
   unidade: Unidade;
   quantidade: number;
+  /** Só para itens de lista mensal. Valores em reais; null/ausente = sem valor. */
+  quantidadeComprada?: number | null;
+  precoEstimado?: number | null;
+  precoUnitario?: number | null;
 }
 
 export type OrigemDaLista = 'Padrao' | 'Zero';

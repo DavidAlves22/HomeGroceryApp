@@ -17,6 +17,7 @@ import {
   type Produto,
   type Unidade,
 } from '../../domain/entities/tipos';
+import { lerPreco, precoParaCampo } from '../../domain/services/financeiro';
 import { formatarQuantidade, lerQuantidade } from '../../domain/services/organizacao';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Botao, Campo, MensagemDeErro } from './base';
@@ -94,6 +95,8 @@ interface FolhaDeItemProps {
   titulo: string;
   categorias: Categoria[];
   inicial?: Partial<DadosDoItem>;
+  /** Mostra preço estimado, preço pago e quantidade comprada (só nas listas mensais). */
+  comPrecos?: boolean;
   rotuloDoBotao: string;
   buscarSugestoes: (termo: string) => Promise<Produto[]>;
   aoSalvar: (dados: DadosDoItem) => Promise<void>;
@@ -111,6 +114,7 @@ export function FolhaDeItem({
   titulo,
   categorias,
   inicial,
+  comPrecos = false,
   rotuloDoBotao,
   buscarSugestoes,
   aoSalvar,
@@ -121,6 +125,9 @@ export function FolhaDeItem({
   const [categoriaId, setCategoriaId] = useState('');
   const [unidade, setUnidade] = useState<Unidade>('Unidade');
   const [quantidade, setQuantidade] = useState('1');
+  const [precoEstimado, setPrecoEstimado] = useState('');
+  const [precoPago, setPrecoPago] = useState('');
+  const [quantidadeComprada, setQuantidadeComprada] = useState('');
   const [sugestoes, setSugestoes] = useState<Produto[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -137,6 +144,11 @@ export function FolhaDeItem({
     );
     setUnidade(inicial?.unidade ?? 'Unidade');
     setQuantidade(formatarQuantidade(inicial?.quantidade ?? 1));
+    setPrecoEstimado(precoParaCampo(inicial?.precoEstimado));
+    setPrecoPago(precoParaCampo(inicial?.precoUnitario));
+    setQuantidadeComprada(
+      inicial?.quantidadeComprada ? formatarQuantidade(inicial.quantidadeComprada) : '',
+    );
     setSugestoes([]);
     setErro(null);
     // Reinicia o formulário só quando a folha abre (não a cada render do pai).
@@ -185,7 +197,25 @@ export function FolhaDeItem({
   function salvar() {
     const qtd = lerQuantidade(quantidade);
     if (qtd === null) return setErro('Informe uma quantidade maior que zero.');
-    void executar(() => aoSalvar({ nome, categoriaId, unidade, quantidade: qtd }));
+    const dados: DadosDoItem = { nome, categoriaId, unidade, quantidade: qtd };
+
+    if (comPrecos) {
+      const estimado = lerPreco(precoEstimado);
+      const pago = lerPreco(precoPago);
+      const comprada = quantidadeComprada.trim() === '' ? null : lerQuantidade(quantidadeComprada);
+      if (estimado === undefined)
+        return setErro('Informe o preço estimado em reais, por exemplo 5,50.');
+      if (pago === undefined) return setErro('Informe o preço pago em reais, por exemplo 5,50.');
+      if (comprada === undefined || (quantidadeComprada.trim() !== '' && comprada === null)) {
+        return setErro('A quantidade comprada precisa ser maior que zero.');
+      }
+      Object.assign(dados, {
+        precoEstimado: estimado,
+        precoUnitario: pago,
+        quantidadeComprada: comprada,
+      });
+    }
+    void executar(() => aoSalvar(dados));
   }
 
   return (
@@ -210,6 +240,38 @@ export function FolhaDeItem({
         onChangeText={setQuantidade}
         keyboardType="decimal-pad"
       />
+      {comPrecos && (
+        <>
+          <RotuloDaFolha>Valores (por unidade, em reais)</RotuloDaFolha>
+          <View style={estilos.duas}>
+            <View style={{ flex: 1 }}>
+              <Campo
+                rotulo="Preço estimado"
+                value={precoEstimado}
+                onChangeText={setPrecoEstimado}
+                keyboardType="decimal-pad"
+                placeholder="0,00"
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Campo
+                rotulo="Preço pago"
+                value={precoPago}
+                onChangeText={setPrecoPago}
+                keyboardType="decimal-pad"
+                placeholder="0,00"
+              />
+            </View>
+          </View>
+          <Campo
+            rotulo="Quantidade comprada (se diferente da planejada)"
+            value={quantidadeComprada}
+            onChangeText={setQuantidadeComprada}
+            keyboardType="decimal-pad"
+            placeholder={quantidade}
+          />
+        </>
+      )}
       <RotuloDaFolha>Unidade</RotuloDaFolha>
       <View style={estilos.linha}>
         {UNIDADES.map((u) => (
@@ -326,6 +388,7 @@ const estilos = StyleSheet.create({
   titulo: { fontSize: fonte.titulo, fontWeight: '800' },
   rotulo: { fontSize: fonte.pequena, fontWeight: '700' },
   linha: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
+  duas: { flexDirection: 'row', gap: espaco.md },
   excluir: {
     minHeight: 48,
     borderRadius: raio.md,
