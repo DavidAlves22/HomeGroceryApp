@@ -36,6 +36,18 @@ export class ClienteHttp {
     private readonly aoExpirarSessao: () => void = () => {},
   ) {}
 
+  /**
+   * Token de acesso válido para quem precisa dele fora do HTTP comum (a conexão em tempo real).
+   * Se estiver perto de expirar, renova antes, para a conexão nunca nascer com token vencido.
+   */
+  async obterTokenDeAcesso(): Promise<string> {
+    let sessao = await this.armazenamento.ler();
+    if (sessao && new Date(sessao.expiraEm).getTime() - Date.now() < 60_000) {
+      sessao = (await this.renovarUmaVez()) ?? sessao;
+    }
+    return sessao?.tokenDeAcesso ?? '';
+  }
+
   get<T>(caminho: string, opcoes: OpcoesDeRequisicao = {}): Promise<T> {
     return this.requisitar<T>('GET', caminho, opcoes);
   }

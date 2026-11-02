@@ -6,6 +6,7 @@ const CAMINHOS = {
   lista: ['M8 6h13M8 12h13M8 18h13'],
   historico: ['M12 7v5l3 2'],
   grafico: ['M4 20V10M10 20V4M16 20v-7M22 20H2'],
+  pessoas: ['M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5'],
   alta: ['M12 19V5M5 12l7-7 7 7'],
   baixa: ['M12 5v14M19 12l-7 7-7-7'],
   mais: [],
@@ -41,6 +42,7 @@ export function Icone({ nome, tamanho = 22, cor, espessura = 2, preenchido = fal
       {nome === 'historico' && (
         <Circle cx="12" cy="12" r="9" stroke={cor} strokeWidth={espessura} />
       )}
+      {nome === 'pessoas' && <Circle cx="9" cy="8" r="3.5" stroke={cor} strokeWidth={espessura} />}
       {nome === 'busca' && <Circle cx="11" cy="11" r="7" stroke={cor} strokeWidth={espessura} />}
       {nome === 'mais' && (
         <>

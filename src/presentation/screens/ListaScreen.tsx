@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
 import type { DadosDoItem, ItemDaLista, Lista } from '../../domain/entities/tipos';
+import { nomesDosMembros } from '../../domain/entities/grupo';
 import { calcularTotais } from '../../domain/services/financeiro';
 import {
   organizarItens,
@@ -14,6 +15,7 @@ import { Botao, Cartao, TextoSuave } from '../components/base';
 import { FolhaDeItem } from '../components/Folhas';
 import { LinhaDeItem } from '../components/LinhaDeItem';
 import { ResumoFinanceiro } from '../components/ResumoFinanceiro';
+import { IndicadorDeSincronizacao } from '../components/Sincronizacao';
 import {
   BarraDeProgresso,
   BotaoFlutuante,
@@ -66,6 +68,10 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
     () => container.listarCategorias.executar(),
     'categorias',
   );
+
+  // Membros do grupo: para mostrar quem marcou cada item ("Ana marcou").
+  const { dados: grupo } = useCarregar(() => container.obterGrupo.executar(), 'grupo');
+  const nomes = nomesDosMembros(grupo);
 
   // Favoritos e recorrentes: sugeridos no formulário de novo produto, mesmo fora da lista padrão.
   const { dados: sugestoes } = useCarregar(
@@ -210,7 +216,11 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
 
   return (
     <Pagina>
-      <Cabecalho titulo={titulo} aoVoltar={comVoltar ? () => navegacao.goBack() : undefined} />
+      <Cabecalho
+        titulo={titulo}
+        aoVoltar={comVoltar ? () => navegacao.goBack() : undefined}
+        direita={<IndicadorDeSincronizacao />}
+      />
       <ScrollView
         contentContainerStyle={estilos.conteudo}
         keyboardShouldPersistTaps="handled"
@@ -366,6 +376,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
                   marcadoPorOutro={
                     !!item.compradoPorUsuarioId && item.compradoPorUsuarioId !== sessao?.usuario.id
                   }
+                  nomeDeQuemMarcou={nomes.get(item.compradoPorUsuarioId ?? '')}
                   aoMarcar={(i) => void marcar(i)}
                   aoEditar={(i) => setFolha({ tipo: 'editar', item: i })}
                   aoMover={

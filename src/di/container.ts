@@ -38,12 +38,22 @@ import {
 } from '../application/useCases/autenticacao';
 import { ObterAnaliseDeGastos, ObterAnaliseDePrecos } from '../application/useCases/analises';
 import {
+  CriarConvite,
+  EntrarEmGrupo,
+  ObterGrupo,
+  RemoverMembroDoGrupo,
+  RenomearGrupo,
+  SairDoGrupo,
+} from '../application/useCases/grupo';
+import {
   AnalisesApiGateway,
   CatalogoApiGateway,
   ListasApiGateway,
 } from '../infrastructure/gateways/catalogoGateways';
 import { AutenticacaoApiGateway, ServidorApiGateway } from '../infrastructure/gateways/gateways';
+import { GrupoApiGateway } from '../infrastructure/gateways/grupoGateway';
 import { ClienteHttp } from '../infrastructure/http/ClienteHttp';
+import { TempoRealSignalR } from '../infrastructure/tempoReal/TempoRealSignalR';
 import { ArmazenamentoDeSessaoLocal } from '../infrastructure/sessao/ArmazenamentoDeSessaoLocal';
 
 export const URL_DA_API = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:5272';
@@ -61,6 +71,7 @@ export function criarContainer(aoExpirarSessao: () => void) {
   const catalogo = new CatalogoApiGateway(http);
   const listas = new ListasApiGateway(http);
   const analises = new AnalisesApiGateway(http);
+  const grupo = new GrupoApiGateway(http);
 
   return {
     // Conta e sessão
@@ -100,6 +111,15 @@ export function criarContainer(aoExpirarSessao: () => void) {
     marcarItemComprado: new MarcarItemComprado(listas),
     finalizarLista: new FinalizarLista(listas),
     reabrirLista: new ReabrirLista(listas),
+
+    // Grupo familiar e tempo real
+    obterGrupo: new ObterGrupo(grupo),
+    renomearGrupo: new RenomearGrupo(grupo),
+    criarConvite: new CriarConvite(grupo),
+    entrarEmGrupo: new EntrarEmGrupo(grupo, armazenamento),
+    sairDoGrupo: new SairDoGrupo(grupo, armazenamento),
+    removerMembroDoGrupo: new RemoverMembroDoGrupo(grupo),
+    tempoReal: new TempoRealSignalR(URL_DA_API, () => http.obterTokenDeAcesso()),
 
     // Análises
     obterAnaliseDeGastos: new ObterAnaliseDeGastos(analises),

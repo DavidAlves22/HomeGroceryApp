@@ -12,6 +12,8 @@ interface Props {
   item: ItemDaLista;
   /** Quem marcou foi outra pessoa (não o usuário atual): mostramos para a família saber. */
   marcadoPorOutro: boolean;
+  /** Nome de quem marcou (da família), para mostrar "Ana marcou". Sem nome, diz "outra pessoa". */
+  nomeDeQuemMarcou?: string;
   somenteLeitura: boolean;
   aoMarcar: (item: ItemDaLista) => void;
   aoEditar: (item: ItemDaLista) => void;
@@ -39,6 +41,7 @@ function textoDeValor(item: ItemDaLista): string {
 export function LinhaDeItem({
   item,
   marcadoPorOutro,
+  nomeDeQuemMarcou,
   somenteLeitura,
   aoMarcar,
   aoEditar,
@@ -90,7 +93,7 @@ export function LinhaDeItem({
         <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
           {formatarQuantidade(item.quantidade)} {rotuloDaUnidade(item.unidade)}
           {textoDeValor(item)}
-          {feito && marcadoPorOutro ? ' · marcado por outra pessoa' : ''}
+          {feito && marcadoPorOutro ? ` · ${nomeDeQuemMarcou ?? 'outra pessoa'} marcou` : ''}
         </Text>
       </View>
 

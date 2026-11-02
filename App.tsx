@@ -13,6 +13,7 @@ import {
 import { AutenticacaoScreen } from './src/presentation/screens/AutenticacaoScreen';
 import { ConexaoScreen } from './src/presentation/screens/ConexaoScreen';
 import { ToastProvider } from './src/presentation/hooks/Toast';
+import { TempoRealProvider } from './src/presentation/hooks/TempoReal';
 import { NavegacaoApp } from './src/presentation/navigation/RootNavigator';
 import { usePaleta } from './src/presentation/theme';
 
@@ -62,7 +63,14 @@ function Raiz() {
     );
   }
 
-  return sessao ? <NavegacaoApp /> : <AutenticacaoScreen />;
+  // key = grupo: ao entrar/sair de uma família tudo é refeito (telas, dados e conexão em tempo real).
+  return sessao ? (
+    <TempoRealProvider key={sessao.grupoId}>
+      <NavegacaoApp />
+    </TempoRealProvider>
+  ) : (
+    <AutenticacaoScreen />
+  );
 }
 
 export default function App() {

@@ -45,6 +45,13 @@ export function MaisScreen() {
       <ScrollView contentContainerStyle={estilos.conteudo}>
         <Cartao estilo={{ paddingVertical: 4 }}>
           <Linha
+            icone="pessoas"
+            titulo="Grupo familiar"
+            detalhe="Compartilhe as listas em tempo real"
+            aoPressionar={() => navegacao.navigate('Grupo')}
+          />
+          <View style={{ height: 1, backgroundColor: p.linha }} />
+          <Linha
             icone="estrela"
             titulo="Lista padrão"
             detalhe="Seus produtos de todo mês"

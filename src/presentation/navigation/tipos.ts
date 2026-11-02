@@ -9,6 +9,7 @@ export type RootStackParamList = {
   DetalheDaLista: { listaId: string };
   Categorias: undefined;
   Produtos: undefined;
+  Grupo: undefined;
 };
 
 export type AbasParamList = {

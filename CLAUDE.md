@@ -51,3 +51,11 @@ Nomes em português; comentários explicam o porquê; Prettier (`.prettierrc.jso
 - **Ordem manual**: ordenação "Minha ordem" com botões subir/descer (otimista, com rollback), só com a lista inteira na tela (sem busca/filtro). Cópias preservam a ordem.
 - **Filtro por categoria** na lista (chips rolando na horizontal), combinável com busca e status (`organizarItens`).
 - **Favoritos e recorrentes**: tela Produtos (Mais) marca favoritos, renomeia e exclui; o formulário de novo produto sugere favoritos/recorrentes (comprados em 2+ listas) quando o nome está vazio.
+
+## Fase 4 (família e tempo real) — o que existe
+- **Grupo familiar** (Mais → Grupo familiar): membros e papéis, gerar código de convite (admin), entrar com código, sair, remover membro (admin, com confirmação), renomear. Entrar/sair devolve uma sessão NOVA, guardada por `EntrarEmGrupo`/`SairDoGrupo`; `definirSessao` troca o grupo e o `key={sessao.grupoId}` em `App.tsx` refaz telas, dados e conexão.
+- **Tempo real** (`TempoRealProvider` + `useAoReceberEvento`): conexão SignalR por grupo, reconexão automática; ao reconectar manda `reconectado` e tudo recarrega. `useCarregar` assina sozinho os eventos certos pela `chave` (lista/catálogo/membros), junta rajadas (250 ms) e ignora eventos do próprio usuário. Evento `grupoAlterado` (removido/entrou em outro aparelho) faz o app renovar a sessão.
+- Indicador "Ao vivo / Reconectando..." (`IndicadorDeSincronizacao`) escrito, não só colorido. Itens mostram "Ana marcou" (nomes vêm de `GET /grupo`).
+- Online-only continua: sem conexão em tempo real o app funciona normalmente pela API; o health check de abertura segue obrigatório.
+- E2E de duas pessoas: `e2e/familia.js` (dois contextos de navegador). Suba a API com `Seguranca__TentativasDeAutenticacaoPorMinuto=100000` para o limite de login não atrapalhar.
+- Pegadinha de teste: abas e telas anteriores ficam montadas no DOM; ao clicar em textos repetidos (ex.: "Mais") use o último elemento.
