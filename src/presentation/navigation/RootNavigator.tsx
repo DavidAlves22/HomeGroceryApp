@@ -1,7 +1,13 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import {
+  DarkTheme,
+  DefaultTheme,
+  NavigationContainer,
+  type LinkingOptions,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
+import { Platform } from 'react-native';
 import { Icone, type NomeDoIcone } from '../components/Icone';
 import { AnalisesScreen } from '../screens/AnalisesScreen';
 import { CategoriasScreen } from '../screens/CategoriasScreen';
@@ -21,6 +27,40 @@ import type { AbasParamList, RootStackParamList } from './tipos';
 
 const Pilha = createNativeStackNavigator<RootStackParamList>();
 const Abas = createBottomTabNavigator<AbasParamList>();
+
+/**
+ * No navegador (PWA) cada tela tem um endereço e entra no histórico, então o botão voltar do celular (e do
+ * navegador) retrocede para a tela anterior em vez de fechar o app. No app nativo o voltar já funciona sem isto.
+ */
+const LINKING: LinkingOptions<RootStackParamList> | undefined =
+  Platform.OS === 'web'
+    ? {
+        prefixes: [],
+        config: {
+          screens: {
+            Abas: {
+              path: '',
+              screens: {
+                Inicio: '',
+                Lista: 'lista',
+                Historico: 'historico',
+                Analises: 'analises',
+                Mais: 'mais',
+              },
+            },
+            NovaLista: 'nova-lista',
+            ListaPadrao: 'lista-padrao',
+            DetalheDaLista: 'lista/:listaId',
+            Categorias: 'categorias',
+            Produtos: 'produtos',
+            Grupo: 'grupo',
+            Mercados: 'mercados',
+            MapaDoMercado: 'mercados/:mercadoId/mapa',
+            Rota: 'rota',
+          },
+        },
+      }
+    : undefined;
 
 const ICONES: Record<keyof AbasParamList, NomeDoIcone> = {
   Inicio: 'inicio',
@@ -75,7 +115,7 @@ export function NavegacaoApp() {
   };
 
   return (
-    <NavigationContainer theme={tema}>
+    <NavigationContainer theme={tema} linking={LINKING} documentTitle={{ enabled: false }}>
       <Pilha.Navigator screenOptions={{ headerShown: false }}>
         <Pilha.Screen name="Abas" component={NavegacaoPorAbas} />
         <Pilha.Screen name="NovaLista" component={NovaListaScreen} />

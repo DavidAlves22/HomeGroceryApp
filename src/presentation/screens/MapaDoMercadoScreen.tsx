@@ -85,6 +85,16 @@ export function MapaDoMercadoScreen() {
   const [confirmandoSaida, setConfirmandoSaida] = useState(false);
 
   const sujo = !!mapa && JSON.stringify(mapa) !== original;
+  // O voltar do celular/navegador também passa por aqui: com alterações não salvas, pede confirmação como a seta.
+  useEffect(
+    () =>
+      navegacao.addListener('beforeRemove', (e) => {
+        if (!sujo || confirmandoSaida) return;
+        e.preventDefault();
+        setConfirmandoSaida(true);
+      }),
+    [navegacao, sujo, confirmandoSaida],
+  );
   const desatualizado = !!mercado && !!mapa && sujo && mercado.versao !== versaoBase;
 
   // Carrega o mapa no editor. Se outra pessoa salvar enquanto há edição minha, não sobrescreve: avisa.
