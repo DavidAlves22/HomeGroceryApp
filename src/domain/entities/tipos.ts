@@ -92,9 +92,16 @@ export interface ListaResumo {
   totalRealizado: number;
 }
 
+/** Quem pega esta categoria nesta ida ao mercado. Categoria fora da divisão é de todos. */
+export interface DivisaoDaCategoria {
+  categoriaId: string;
+  usuarioId: string;
+}
+
 export interface Lista {
   resumo: ListaResumo;
   itens: ItemDaLista[];
+  divisao: DivisaoDaCategoria[];
 }
 
 /** O que o usuário preenche ao criar ou editar um item (da lista padrão ou de uma lista mensal). */

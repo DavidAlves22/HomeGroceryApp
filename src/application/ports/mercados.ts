@@ -20,7 +20,13 @@ export interface MercadosGateway {
 }
 
 export interface RotasGateway {
-  planejar(listaId: string, mercadoId: string, posicao: Ponto | null): Promise<Rota>;
+  /** `usuarioId`: rota só dessa pessoa (o que outra pessoa vai pegar sai). Ausente = rota de todos. */
+  planejar(
+    listaId: string,
+    mercadoId: string,
+    posicao: Ponto | null,
+    usuarioId?: string | null,
+  ): Promise<Rota>;
   marcarSemNoMercado(
     listaId: string,
     itemId: string,

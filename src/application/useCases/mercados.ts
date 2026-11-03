@@ -49,8 +49,8 @@ export class ExcluirMercado {
 /** Rota dentro de um mercado, só com o que ainda falta. Sem posição, sai da entrada. */
 export class PlanejarRota {
   constructor(private readonly gateway: RotasGateway) {}
-  executar(listaId: string, mercadoId: string, posicao: Ponto | null) {
-    return this.gateway.planejar(listaId, mercadoId, posicao);
+  executar(listaId: string, mercadoId: string, posicao: Ponto | null, usuarioId?: string | null) {
+    return this.gateway.planejar(listaId, mercadoId, posicao, usuarioId);
   }
 }
 
@@ -72,7 +72,8 @@ export class DefinirLocalDoItem {
     mercadoId: string,
     locais: { secaoId: string; lado: LadoDaSecao }[],
   ) {
-    if (locais.length > 5) throw new ErroDeApi("Um produto pode ter até 5 locais por mercado.", 400);
+    if (locais.length > 5)
+      throw new ErroDeApi('Um produto pode ter até 5 locais por mercado.', 400);
     return this.gateway.definirLocalDoItem(listaId, itemId, mercadoId, locais);
   }
 }

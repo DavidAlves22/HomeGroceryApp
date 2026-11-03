@@ -1,5 +1,5 @@
 import { Competencia } from '../valueObjects/Competencia';
-import type { ItemDaLista, ListaResumo } from '../entities/tipos';
+import type { ItemDaLista, ItemDoModelo, ListaResumo } from '../entities/tipos';
 
 export type FiltroDeStatus = 'todos' | 'pendentes' | 'comprados';
 export type Ordenacao = 'categoria' | 'nome' | 'status' | 'manual';
@@ -8,8 +8,8 @@ export interface OpcoesDeVisualizacao {
   busca: string;
   filtro: FiltroDeStatus;
   ordenacao: Ordenacao;
-  /** Mostra só os produtos desta categoria (pelo nome). Ausente = todas. */
-  categoria?: string | null;
+  /** Mostra só os produtos destas categorias (pelo nome). Ausente ou vazio = todas. */
+  categorias?: string[];
 }
 
 export interface GrupoDeItens {
@@ -21,6 +21,12 @@ export interface GrupoDeItens {
 /** Minúsculas e sem acento, para "cafe" achar "Café". */
 export function normalizar(texto: string): string {
   return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+}
+
+/** O produto já está na lista padrão? Compara só o nome, sem acento nem maiúsculas. */
+export function existeNaListaPadrao(modelo: ItemDoModelo[], nome: string): boolean {
+  const alvo = normalizar(nome);
+  return modelo.some((i) => normalizar(i.nome) === alvo);
 }
 
 export function percentualConcluido(total: number, comprados: number): number {
@@ -60,7 +66,7 @@ export function organizarItens(
   const busca = normalizar(opcoes.busca);
   const visiveis = itens.filter((i) => {
     if (busca && !normalizar(i.nome).includes(busca)) return false;
-    if (opcoes.categoria && i.categoriaNome !== opcoes.categoria) return false;
+    if (opcoes.categorias?.length && !opcoes.categorias.includes(i.categoriaNome)) return false;
     if (opcoes.filtro === 'pendentes') return !i.comprado;
     if (opcoes.filtro === 'comprados') return i.comprado;
     return true;

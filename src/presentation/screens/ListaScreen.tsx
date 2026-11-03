@@ -2,17 +2,29 @@ import { useRoute, type RouteProp } from '@react-navigation/native';
 import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
-import type { DadosDoItem, ItemDaLista, Lista } from '../../domain/entities/tipos';
+import type {
+  DadosDoItem,
+  DivisaoDaCategoria,
+  ItemDaLista,
+  Lista,
+} from '../../domain/entities/tipos';
 import { nomesDosMembros } from '../../domain/entities/grupo';
+import {
+  categoriasDaListaComId,
+  divisaoValida,
+  resumoDaDivisao,
+} from '../../domain/services/divisao';
 import { calcularTotais } from '../../domain/services/financeiro';
 import {
+  existeNaListaPadrao,
   organizarItens,
   resumirItens,
   type FiltroDeStatus,
   type Ordenacao,
 } from '../../domain/services/organizacao';
 import { Botao, Cartao, TextoSuave } from '../components/base';
-import { FolhaDeItem } from '../components/Folhas';
+import { FolhaDeDivisao } from '../components/FolhaDeDivisao';
+import { FolhaDeItem, Moldura, TituloDaFolha } from '../components/Folhas';
 import { LinhaDeItem } from '../components/LinhaDeItem';
 import { ResumoFinanceiro } from '../components/ResumoFinanceiro';
 import { IndicadorDeSincronizacao } from '../components/Sincronizacao';
@@ -24,7 +36,9 @@ import {
   Carregando,
   Chip,
   EstadoVazio,
+  GatilhoDeSeletor,
   Pagina,
+  PainelDeOpcoes,
   Pilula,
 } from '../components/ui';
 import { mercadoEmUso } from '../../domain/services/compraDividida';
@@ -48,6 +62,12 @@ const ORDENACOES: { valor: Ordenacao; rotulo: string }[] = [
   { valor: 'status', rotulo: 'Por status' },
   { valor: 'manual', rotulo: 'Minha ordem' },
 ];
+
+/** Texto do gatilho do filtro: nada marcado = todas; uma = o nome dela; mais de uma = a contagem. */
+function rotuloDasCategorias(selecionadas: string[]) {
+  if (selecionadas.length === 0) return 'Todas as categorias';
+  return selecionadas.length === 1 ? selecionadas[0] : `${selecionadas.length} categorias`;
+}
 
 interface ListaViewProps {
   buscar: () => Promise<Lista | null>;
@@ -89,10 +109,15 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
   );
 
   const [busca, setBusca] = useState('');
-  const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
+  const [categoriasFiltro, setCategoriasFiltro] = useState<string[]>([]);
+  const [painel, setPainel] = useState<'categorias' | 'ordem' | null>(null);
   const [filtro, setFiltro] = useState<FiltroDeStatus>('todos');
   const [ordenacao, setOrdenacao] = useState<Ordenacao>('categoria');
   const [folha, setFolha] = useState<Folha>(null);
+  const [dividindo, setDividindo] = useState(false);
+  // Produto novo da lista que ainda não está na lista padrão: pergunta se deve entrar nela.
+  const [sugerirNoPadrao, setSugerirNoPadrao] = useState<DadosDoItem | null>(null);
+  const [incluindoNoPadrao, setIncluindoNoPadrao] = useState(false);
   const [confirmandoFim, setConfirmandoFim] = useState(false);
   const [atualizando, setAtualizando] = useState(false);
 
@@ -128,14 +153,10 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
 
   const somenteLeitura = lista.resumo.status === 'Finalizada';
   const resumo = resumirItens(lista.itens);
+  const categoriasComId = categoriasDaListaComId(lista.itens);
+  const divisaoDaCompra = divisaoValida(lista.divisao, grupo?.membros ?? []);
   const totais = calcularTotais(lista.itens);
   const gastoDaCategoria = new Map(totais.porCategoria.map((c) => [c.categoria, c.realizado]));
-  const grupos = organizarItens(
-    lista.itens,
-    { busca, filtro, ordenacao, categoria: categoriaFiltro },
-    (categorias ?? []).map((c) => c.nome),
-  );
-
   // Categorias que existem nesta lista, na ordem das categorias do grupo (para o filtro).
   const ordemDasCategorias = (categorias ?? []).map((c) => c.nome);
   const categoriasDaLista = [...new Set(lista.itens.map((i) => i.categoriaNome))].sort(
@@ -143,13 +164,21 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
       (ordemDasCategorias.indexOf(a) === -1 ? 999 : ordemDasCategorias.indexOf(a)) -
       (ordemDasCategorias.indexOf(b) === -1 ? 999 : ordemDasCategorias.indexOf(b)),
   );
+  // Categoria escolhida que já não existe na lista (último item removido) deixa de filtrar.
+  const categoriasSelecionadas = categoriasFiltro.filter((c) => categoriasDaLista.includes(c));
+  const grupos = organizarItens(
+    lista.itens,
+    { busca, filtro, ordenacao, categorias: categoriasSelecionadas },
+    (categorias ?? []).map((c) => c.nome),
+  );
+
   // Reordenar só faz sentido com a lista inteira na tela (sem busca nem filtros).
   const podeMover =
     ordenacao === 'manual' &&
     !somenteLeitura &&
     busca === '' &&
     filtro === 'todos' &&
-    !categoriaFiltro;
+    categoriasSelecionadas.length === 0;
 
   const atualizarItens = (alterar: (itens: ItemDaLista[]) => ItemDaLista[]) =>
     definirDados((atual) => (atual ? { ...atual, itens: alterar(atual.itens) } : atual));
@@ -201,8 +230,44 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
       const criado = await container.adicionarItemNaLista.executar(listaId, dados);
       atualizarItens((itens) => [...itens, criado]);
       toast('Produto adicionado');
+      await sugerirListaPadraoSeNovo(dados);
     }
     setFolha(null);
+  }
+
+  async function salvarDivisao(divisao: DivisaoDaCategoria[]) {
+    try {
+      const salva = await container.dividirCompra.executar(lista!.resumo.id, divisao);
+      definirDados((atual) => (atual ? { ...atual, divisao: salva } : atual));
+      toast(salva.length > 0 ? 'Compra dividida' : 'Divisão desfeita');
+      setDividindo(false);
+    } catch (e) {
+      toast(mensagemParaUsuario(e));
+    }
+  }
+
+  async function sugerirListaPadraoSeNovo(dados: DadosDoItem) {
+    try {
+      const modelo = await container.listarItensDoModelo.executar();
+      if (!existeNaListaPadrao(modelo, dados.nome)) setSugerirNoPadrao(dados);
+    } catch {
+      // A pergunta é um extra: se não deu para consultar a lista padrão, o produto já foi adicionado e segue.
+    }
+  }
+
+  async function incluirNoPadrao() {
+    if (!sugerirNoPadrao) return;
+    setIncluindoNoPadrao(true);
+    try {
+      const { nome, categoriaId, unidade, quantidade } = sugerirNoPadrao;
+      await container.adicionarItemAoModelo.executar({ nome, categoriaId, unidade, quantidade });
+      toast('Produto incluído na lista padrão');
+    } catch (e) {
+      toast(mensagemParaUsuario(e));
+    } finally {
+      setIncluindoNoPadrao(false);
+      setSugerirNoPadrao(null);
+    }
   }
 
   async function excluir(item: ItemDaLista) {
@@ -319,6 +384,28 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
           />
         )}
 
+        {!somenteLeitura && grupo?.compartilhado && (
+          <Cartao estilo={{ gap: espaco.sm }}>
+            {divisaoDaCompra.length > 0 ? (
+              resumoDaDivisao(divisaoDaCompra, categoriasComId, grupo.membros).map((r) => (
+                <Text key={r.usuarioId} style={{ color: p.texto, fontSize: fonte.corpo }}>
+                  <Text style={{ fontWeight: '700' }}>{r.nome}:</Text> {r.categorias.join(', ')}
+                </Text>
+              ))
+            ) : (
+              <TextoSuave>
+                Em compra em família, dê a cada um as categorias que vai pegar: a rota de cada
+                pessoa só passa por elas.
+              </TextoSuave>
+            )}
+            <Botao
+              titulo={divisaoDaCompra.length > 0 ? 'Mudar a divisão' : 'Dividir a compra'}
+              variante="secundario"
+              aoPressionar={() => setDividindo(true)}
+            />
+          </Cartao>
+        )}
+
         <CampoDeBusca valor={busca} aoMudar={setBusca} placeholder="Buscar produto" />
         <View style={estilos.chips}>
           {FILTROS.map((f) => (
@@ -330,37 +417,60 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
             />
           ))}
         </View>
-        {categoriasDaLista.length > 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={estilos.chipsEmLinha}
-          >
-            <Chip
-              rotulo="Todas as categorias"
-              ativo={categoriaFiltro === null}
-              aoPressionar={() => setCategoriaFiltro(null)}
+        <View style={estilos.seletores}>
+          {categoriasDaLista.length > 1 && (
+            <GatilhoDeSeletor
+              rotulo="Categorias"
+              valor={rotuloDasCategorias(categoriasSelecionadas)}
+              aberto={painel === 'categorias'}
+              aoPressionar={() => setPainel(painel === 'categorias' ? null : 'categorias')}
             />
-            {categoriasDaLista.map((nome) => (
-              <Chip
-                key={nome}
-                rotulo={nome}
-                ativo={categoriaFiltro === nome}
-                aoPressionar={() => setCategoriaFiltro(categoriaFiltro === nome ? null : nome)}
-              />
-            ))}
-          </ScrollView>
-        )}
-        <View style={estilos.chips}>
-          {ORDENACOES.map((o) => (
-            <Chip
-              key={o.valor}
-              rotulo={o.rotulo}
-              ativo={ordenacao === o.valor}
-              aoPressionar={() => setOrdenacao(o.valor)}
-            />
-          ))}
+          )}
+          <GatilhoDeSeletor
+            rotulo="Ordenar"
+            valor={ORDENACOES.find((o) => o.valor === ordenacao)?.rotulo ?? ''}
+            aberto={painel === 'ordem'}
+            aoPressionar={() => setPainel(painel === 'ordem' ? null : 'ordem')}
+          />
         </View>
+        {painel === 'categorias' && (
+          <PainelDeOpcoes
+            titulo="Filtrar por categorias"
+            opcoes={[
+              {
+                chave: 'todas',
+                rotulo: 'Todas as categorias',
+                marcada: categoriasSelecionadas.length === 0,
+                aoPressionar: () => setCategoriasFiltro([]),
+              },
+              ...categoriasDaLista.map((nome) => ({
+                chave: nome,
+                rotulo: nome,
+                marcada: categoriasSelecionadas.includes(nome),
+                aoPressionar: () =>
+                  setCategoriasFiltro(
+                    categoriasSelecionadas.includes(nome)
+                      ? categoriasSelecionadas.filter((c) => c !== nome)
+                      : [...categoriasSelecionadas, nome],
+                  ),
+              })),
+            ]}
+          />
+        )}
+        {painel === 'ordem' && (
+          <PainelDeOpcoes
+            titulo="Ordenar a lista"
+            opcoes={ORDENACOES.map((o) => ({
+              chave: o.valor,
+              rotulo: o.rotulo,
+              marcada: ordenacao === o.valor,
+              aoPressionar: () => {
+                setOrdenacao(o.valor);
+                setPainel(null);
+              },
+            }))}
+          />
+        )}
 
         {lista.itens.length === 0 ? (
           <EstadoVazio
@@ -468,6 +578,35 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
         aoExcluir={folha?.tipo === 'editar' ? () => excluir(folha.item) : undefined}
         aoFechar={() => setFolha(null)}
       />
+      {grupo && (
+        <FolhaDeDivisao
+          visivel={dividindo}
+          categorias={categoriasComId}
+          membros={grupo.membros}
+          inicial={divisaoDaCompra}
+          aoSalvar={salvarDivisao}
+          aoFechar={() => setDividindo(false)}
+        />
+      )}
+
+      <Moldura visivel={sugerirNoPadrao !== null} aoFechar={() => setSugerirNoPadrao(null)}>
+        <TituloDaFolha>Incluir na lista padrão?</TituloDaFolha>
+        <TextoSuave>
+          “{sugerirNoPadrao?.nome}” não está na sua lista padrão. Incluir para que apareça nas
+          próximas listas?
+        </TextoSuave>
+        <Botao
+          titulo="Sim, incluir"
+          carregando={incluindoNoPadrao}
+          aoPressionar={() => void incluirNoPadrao()}
+        />
+        <Botao
+          titulo="Não"
+          variante="secundario"
+          desabilitado={incluindoNoPadrao}
+          aoPressionar={() => setSugerirNoPadrao(null)}
+        />
+      </Moldura>
     </Pagina>
   );
 }
@@ -494,6 +633,6 @@ export function DetalheDaListaScreen() {
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.lg, paddingBottom: 120, gap: espaco.md },
   entre: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  chipsEmLinha: { flexDirection: 'row', gap: espaco.sm, paddingRight: espaco.lg },
+  seletores: { flexDirection: 'row', gap: espaco.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
 });

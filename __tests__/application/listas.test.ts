@@ -6,6 +6,7 @@ import {
   validarDadosDoItem,
 } from '../../src/application/useCases/catalogo';
 import {
+  CancelarLista,
   CriarLista,
   ListaPrincipalJaExiste,
   ObterListaAtual,
@@ -32,8 +33,8 @@ const resumo = (sobrescritas: Partial<ListaResumo> = {}): ListaResumo => ({
 function gatewayDeListas(existentes: ListaResumo[] = []) {
   return {
     listar: jest.fn().mockResolvedValue(existentes),
-    obter: jest.fn().mockResolvedValue({ resumo: existentes[0], itens: [] }),
-    criar: jest.fn().mockResolvedValue({ resumo: resumo(), itens: [] }),
+    obter: jest.fn().mockResolvedValue({ resumo: existentes[0], itens: [], divisao: [] }),
+    criar: jest.fn().mockResolvedValue({ resumo: resumo(), itens: [], divisao: [] }),
   } as unknown as ListasGateway & { criar: jest.Mock; obter: jest.Mock };
 }
 
@@ -156,5 +157,15 @@ describe('validação de itens e produtos', () => {
     expect(gateway.buscarProdutos).not.toHaveBeenCalled();
     await caso.executar(' ar ');
     expect(gateway.buscarProdutos).toHaveBeenCalledWith('ar');
+  });
+});
+
+describe('CancelarLista', () => {
+  it('pede ao servidor para apagar a lista informada', async () => {
+    const gateway = {
+      cancelar: jest.fn().mockResolvedValue(undefined),
+    } as unknown as ListasGateway;
+    await new CancelarLista(gateway).executar('l1');
+    expect(gateway.cancelar).toHaveBeenCalledWith('l1');
   });
 });

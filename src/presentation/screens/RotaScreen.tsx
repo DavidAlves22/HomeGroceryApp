@@ -1,16 +1,18 @@
 import React, { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
-import type { ParadaDaRota, Ponto } from '../../domain/entities/mercados';
+import type { Membro } from '../../domain/entities/grupo';
+import type { ItemDeOutraPessoa, ParadaDaRota, Ponto } from '../../domain/entities/mercados';
 import { rotuloDaUnidade, type ItemDaLista } from '../../domain/entities/tipos';
 import { mercadoEmUso } from '../../domain/services/compraDividida';
+import { divisaoValida, rotaInicial } from '../../domain/services/divisao';
 import { formatarQuantidade } from '../../domain/services/organizacao';
 import { Botao, Cartao, TextoSuave } from '../components/base';
 import { DivisaoDaCompra } from '../components/DivisaoDaCompra';
 import { FolhaDeLocalDoItem, type LocalEscolhido } from '../components/FolhaDeLocalDoItem';
 import { MapaSvg } from '../components/MapaSvg';
 import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina, Pilula } from '../components/ui';
-import { useContainer, useMercadoAtual } from '../hooks/AppProviders';
+import { useContainer, useMercadoAtual, useSessao } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { useToast } from '../hooks/Toast';
 import { useNavegacao } from '../navigation/tipos';
@@ -99,6 +101,17 @@ const metros = (m: number) => `${m} m`;
  * Rota dentro do mercado escolhido, só com o que ainda falta: o que já foi comprado em outro mercado
  * não entra. Sem GPS: sua posição é o lugar do último item marcado (ou a entrada).
  */
+/** Agrupa os itens que ficaram com outras pessoas pelo primeiro nome de quem vai pegar. */
+function nomesDeQuemPega(itens: ItemDeOutraPessoa[], membros: Membro[]) {
+  const porNome = new Map<string, string[]>();
+  for (const { item, usuarioId } of itens) {
+    const nome =
+      membros.find((m) => m.usuarioId === usuarioId)?.nome.split(' ')[0] ?? 'outra pessoa';
+    porNome.set(nome, [...(porNome.get(nome) ?? []), item.nome]);
+  }
+  return [...porNome.entries()].map(([nome, lista]) => ({ nome, itens: lista }));
+}
+
 export function RotaScreen() {
   const p = usePaleta();
   const container = useContainer();
@@ -117,6 +130,16 @@ export function RotaScreen() {
   );
   const atual = mercadoEmUso(mercados, mercadoId);
 
+  const { sessao } = useSessao();
+  const { dados: grupo } = useCarregar(() => container.obterGrupo.executar(), 'grupo');
+  const membros = grupo?.membros ?? [];
+  const divisao = divisaoValida(lista?.divisao ?? [], membros);
+  // 'todos' = rota sem filtro; escolher uma pessoa tira da rota o que outra vai pegar.
+  // Enquanto ninguém escolheu, abre na minha rota se a compra foi dividida.
+  const [escolhaDaRota, setEscolhaDaRota] = useState<string | null>(null);
+  const rotaDe = escolhaDaRota ?? rotaInicial(divisao, sessao?.usuario.id) ?? 'todos';
+  const usuarioDaRota = divisao.length > 0 && rotaDe !== 'todos' ? rotaDe : null;
+
   const posicao = useRef<Ponto | null>(null);
   const listaId = lista?.resumo.id;
   const {
@@ -125,8 +148,10 @@ export function RotaScreen() {
     recarregar: recarregarRota,
   } = useCarregar(
     async () =>
-      listaId && atual ? container.planejarRota.executar(listaId, atual.id, posicao.current) : null,
-    `rota:${listaId}:${atual?.id}`,
+      listaId && atual
+        ? container.planejarRota.executar(listaId, atual.id, posicao.current, usuarioDaRota)
+        : null,
+    `rota:${listaId}:${atual?.id}:${usuarioDaRota ?? 'todos'}`,
   );
   const { dados: mercado } = useCarregar(
     async () => (atual ? container.obterMercado.executar(atual.id) : null),
@@ -247,6 +272,37 @@ export function RotaScreen() {
     <Pagina>
       {cabecalho}
       <ScrollView contentContainerStyle={estilos.conteudo}>
+        {divisao.length > 0 && (
+          <Cartao estilo={{ gap: espaco.sm }}>
+            <Text
+              style={{ color: p.textoSuave, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 }}
+            >
+              ROTA DE
+            </Text>
+            <View style={estilos.escolhaDeRota}>
+              {membros.map((m) => (
+                <Chip
+                  key={m.usuarioId}
+                  rotulo={m.voce ? 'Eu' : m.nome.split(' ')[0]}
+                  ativo={rotaDe === m.usuarioId}
+                  aoPressionar={() => {
+                    posicao.current = null;
+                    setEscolhaDaRota(m.usuarioId);
+                  }}
+                />
+              ))}
+              <Chip
+                rotulo="Todos"
+                ativo={rotaDe === 'todos'}
+                aoPressionar={() => {
+                  posicao.current = null;
+                  setEscolhaDaRota('todos');
+                }}
+              />
+            </View>
+          </Cartao>
+        )}
+
         <Cartao estilo={{ gap: espaco.sm }}>
           <Text
             style={{ color: p.textoSuave, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 }}
@@ -414,6 +470,25 @@ export function RotaScreen() {
               </>
             )}
 
+            {rotaAtual.comOutrasPessoas.length > 0 && (
+              <Cartao estilo={{ gap: espaco.sm }}>
+                <Pilula
+                  texto={`Com outras pessoas · ${rotaAtual.comOutrasPessoas.length}`}
+                  tom="neutro"
+                />
+                {nomesDeQuemPega(rotaAtual.comOutrasPessoas, membros).map(({ nome, itens }) => (
+                  <View key={nome} style={estilos.parada}>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Text style={{ color: p.texto, fontWeight: '700' }}>Com {nome}</Text>
+                      <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                        {itens.join(', ')}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </Cartao>
+            )}
+
             {rotaAtual.foraDaRota.length > 0 && (
               <Cartao estilo={{ gap: espaco.sm }}>
                 <Pilula texto={`Fora desta rota · ${rotaAtual.foraDaRota.length}`} tom="alerta" />
@@ -497,6 +572,7 @@ const estilos = StyleSheet.create({
     gap: espaco.sm,
     paddingHorizontal: espaco.lg,
   },
+  escolhaDeRota: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
   entre: {
     flexDirection: 'row',
     alignItems: 'center',

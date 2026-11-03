@@ -5,6 +5,7 @@ import type {
   Categoria,
   DadosDeNovaLista,
   DadosDoItem,
+  DivisaoDaCategoria,
   ItemDaLista,
   ItemDoModelo,
   Lista,
@@ -136,6 +137,16 @@ export class ListasApiGateway implements ListasGateway {
 
   reabrir(listaId: string) {
     return this.http.post<ListaResumo>(`/listas/${listaId}/reabrir`);
+  }
+
+  dividir(listaId: string, divisao: DivisaoDaCategoria[]) {
+    return this.http.put<DivisaoDaCategoria[]>(`/listas/${listaId}/divisao`, {
+      corpo: { atribuicoes: divisao },
+    });
+  }
+
+  async cancelar(listaId: string) {
+    await this.http.delete<void>(`/listas/${listaId}`);
   }
 }
 

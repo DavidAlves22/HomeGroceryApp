@@ -34,7 +34,7 @@ export class MercadosApiGateway implements MercadosGateway {
     // vieram do servidor) deixa a API manter os locais que o usuário marcou para produtos.
     const secoes = mapa.secoes.map(({ id, ...resto }) => ({
       ...resto,
-      idAnterior: id.startsWith("local-") ? undefined : id,
+      idAnterior: id.startsWith('local-') ? undefined : id,
     }));
     return this.http.put<Mercado>(`/lojas/${id}/mapa`, { corpo: { ...mapa, secoes, versao } });
   }
@@ -47,9 +47,9 @@ export class MercadosApiGateway implements MercadosGateway {
 export class RotasApiGateway implements RotasGateway {
   constructor(private readonly http: ClienteHttp) {}
 
-  planejar(listaId: string, mercadoId: string, posicao: Ponto | null) {
+  planejar(listaId: string, mercadoId: string, posicao: Ponto | null, usuarioId?: string | null) {
     return this.http.post<Rota>(`/listas/${listaId}/rota`, {
-      corpo: { lojaId: mercadoId, posicao },
+      corpo: { lojaId: mercadoId, posicao, usuarioId: usuarioId ?? null },
     });
   }
 

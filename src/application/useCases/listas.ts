@@ -1,4 +1,9 @@
-import type { DadosDeNovaLista, DadosDoItem, ItemDaLista } from '../../domain/entities/tipos';
+import type {
+  DadosDeNovaLista,
+  DadosDoItem,
+  DivisaoDaCategoria,
+  ItemDaLista,
+} from '../../domain/entities/tipos';
 import { escolherListaAtual, existePrincipalNoMes } from '../../domain/services/organizacao';
 import { Competencia } from '../../domain/valueObjects/Competencia';
 import { ErroDeApi } from '../errors';
@@ -100,6 +105,22 @@ export class ReabrirLista {
   constructor(private readonly gateway: ListasGateway) {}
   executar(listaId: string) {
     return this.gateway.reabrir(listaId);
+  }
+}
+
+/** "Quem pega o quê" nesta ida ao mercado, por categoria. Vale só para esta lista. */
+export class DividirCompra {
+  constructor(private readonly gateway: ListasGateway) {}
+  executar(listaId: string, divisao: DivisaoDaCategoria[]) {
+    return this.gateway.dividir(listaId, divisao);
+  }
+}
+
+/** Cancelar a compra: a lista some da aba Lista e do histórico, como se o mês fosse reiniciado. */
+export class CancelarLista {
+  constructor(private readonly gateway: ListasGateway) {}
+  executar(listaId: string) {
+    return this.gateway.cancelar(listaId);
   }
 }
 

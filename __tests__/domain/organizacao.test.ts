@@ -1,6 +1,7 @@
-import type { ItemDaLista, ListaResumo } from '../../src/domain/entities/tipos';
+import type { ItemDaLista, ItemDoModelo, ListaResumo } from '../../src/domain/entities/tipos';
 import {
   escolherListaAtual,
+  existeNaListaPadrao,
   existePrincipalNoMes,
   formatarQuantidade,
   lerQuantidade,
@@ -92,15 +93,25 @@ describe('organizarItens', () => {
   });
 
   it('filtra por categoria e combina com busca e status', () => {
-    const soMercearia = organizarItens(itens, { ...padrao, categoria: 'Mercearia' }, ORDEM);
+    const soMercearia = organizarItens(itens, { ...padrao, categorias: ['Mercearia'] }, ORDEM);
     expect(soMercearia.flatMap((g) => g.itens.map((i) => i.nome))).toEqual(['Arroz', 'Café']);
 
     const combinado = organizarItens(
       itens,
-      { ...padrao, categoria: 'Mercearia', filtro: 'pendentes' },
+      { ...padrao, categorias: ['Mercearia'], filtro: 'pendentes' },
       ORDEM,
     );
     expect(combinado.flatMap((g) => g.itens.map((i) => i.nome))).toEqual(['Arroz']);
+  });
+
+  it('filtra por mais de uma categoria ao mesmo tempo', () => {
+    const duas = organizarItens(
+      itens,
+      { ...padrao, categorias: ['Mercearia', 'Hortifruti'] },
+      ORDEM,
+    );
+    expect(duas.map((g) => g.titulo)).toEqual(['Mercearia', 'Hortifruti']);
+    expect(organizarItens(itens, { ...padrao, categorias: [] }, ORDEM)).toHaveLength(3);
   });
 
   it('categoria desconhecida vai para o fim e lista vazia não gera grupos', () => {
@@ -185,5 +196,19 @@ describe('escolherListaAtual', () => {
     expect(existePrincipalNoMes([resumo({})], '2026-11')).toBe(true);
     expect(existePrincipalNoMes([resumo({ principal: false })], '2026-11')).toBe(false);
     expect(existePrincipalNoMes([resumo({})], '2026-12')).toBe(false);
+  });
+});
+
+describe('existeNaListaPadrao', () => {
+  const modelo = [{ nome: 'Café' }, { nome: 'Arroz 5 kg' }] as ItemDoModelo[];
+
+  it('compara o nome sem acento nem maiúsculas', () => {
+    expect(existeNaListaPadrao(modelo, 'cafe')).toBe(true);
+    expect(existeNaListaPadrao(modelo, '  ARROZ 5 KG ')).toBe(true);
+  });
+
+  it('produto que não está no modelo é novo', () => {
+    expect(existeNaListaPadrao(modelo, 'Feijão')).toBe(false);
+    expect(existeNaListaPadrao([], 'Café')).toBe(false);
   });
 });

@@ -40,7 +40,7 @@ function ferramentas(page, quem) {
     const alvos = await page.$$(`xpath/.//*[normalize-space(text())="${t}"]`);
     // indice -1 = o último (telas já montadas por baixo repetem títulos como "Mais"; o botão da aba vem depois).
     const alvo = indice < 0 ? alvos[alvos.length - 1] : alvos[indice];
-    if (!alvo) throw new Error(`[${quem}] sem elemento "${t}"`);
+    if (!alvo) throw new Error(`[${quem}] sem elemento "${t}". Tela: ${(await texto()).slice(0, 400)}`);
     await alvo.click();
     await pausa(350);
   };
@@ -52,6 +52,9 @@ function ferramentas(page, quem) {
   const digitar = async (rotulo, valor) => {
     await page.waitForSelector(`[aria-label="${rotulo}"]`, { timeout: 10000 });
     await page.click(`[aria-label="${rotulo}"]`, { clickCount: 3 });
+    await page.keyboard.down('Control');
+    await page.keyboard.press('KeyA');
+    await page.keyboard.up('Control');
     await page.type(`[aria-label="${rotulo}"]`, valor);
   };
   return { texto, foto, esperarTexto, clicar, clicarRotulo, digitar };

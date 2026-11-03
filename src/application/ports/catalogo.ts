@@ -2,6 +2,7 @@ import type {
   Categoria,
   DadosDeNovaLista,
   DadosDoItem,
+  DivisaoDaCategoria,
   ItemDaLista,
   ItemDoModelo,
   Lista,
@@ -50,4 +51,8 @@ export interface ListasGateway {
   ): Promise<ItemDaLista>;
   finalizar(listaId: string): Promise<ListaResumo>;
   reabrir(listaId: string): Promise<ListaResumo>;
+  /** Quem pega cada categoria nesta ida ao mercado; troca a divisão inteira (vazio desfaz). */
+  dividir(listaId: string, divisao: DivisaoDaCategoria[]): Promise<DivisaoDaCategoria[]>;
+  /** Apaga a lista em andamento (e os itens) de vez: não fica no histórico. */
+  cancelar(listaId: string): Promise<void>;
 }

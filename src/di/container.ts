@@ -20,6 +20,8 @@ import {
   AdicionarItemNaLista,
   CriarLista,
   EditarItemDaLista,
+  CancelarLista,
+  DividirCompra,
   FinalizarLista,
   ListarListas,
   MarcarItemComprado,
@@ -123,6 +125,8 @@ export function criarContainer(aoExpirarSessao: () => void) {
     reordenarItensDaLista: new ReordenarItensDaLista(listas),
     marcarItemComprado: new MarcarItemComprado(listas),
     finalizarLista: new FinalizarLista(listas),
+    cancelarLista: new CancelarLista(listas),
+    dividirCompra: new DividirCompra(listas),
     reabrirLista: new ReabrirLista(listas),
 
     // Mercados, mapas e rota

@@ -63,6 +63,10 @@ let passo = 0;
   const digitar = async (rotulo, valor) => {
     await page.waitForSelector(`[aria-label="${rotulo}"]`, { timeout: 10000 });
     await page.click(`[aria-label="${rotulo}"]`, { clickCount: 3 });
+    // O triplo clique nem sempre seleciona tudo; Ctrl+A garante que o valor padrão seja substituído.
+    await page.keyboard.down('Control');
+    await page.keyboard.press('KeyA');
+    await page.keyboard.up('Control');
     await page.type(`[aria-label="${rotulo}"]`, valor);
   };
   const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -319,6 +323,7 @@ let passo = 0;
     await foto('lista-copiada');
 
     console.log('13) Ordem manual e filtro por categoria');
+    await clicarRotulo('Ordenar: Por categoria');
     await clicar('Minha ordem');
     await clicarRotulo('Subir Feijão');
     await pausa(500);
@@ -332,7 +337,9 @@ let passo = 0;
       `ordem manual alterada (${ordemManual.join(',')})`,
     );
     await foto('ordem-manual');
+    await clicarRotulo('Ordenar: Minha ordem');
     await clicar('Por categoria');
+    await clicarRotulo('Categorias: Todas as categorias');
     await clicar('Açougue');
     const tF = await texto();
     verificar(

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { mensagemParaUsuario } from '../../application/errors';
 import { calcularTotais } from '../../domain/services/financeiro';
 import { Competencia } from '../../domain/valueObjects/Competencia';
 import { Botao, Cartao, TextoSuave } from '../components/base';
@@ -7,6 +8,7 @@ import { ResumoFinanceiro } from '../components/ResumoFinanceiro';
 import { BarraDeProgresso, Carregando, EstadoVazio, Pagina, Pilula } from '../components/ui';
 import { useContainer, useSessao } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
+import { useToast } from '../hooks/Toast';
 import { useNavegacao } from '../navigation/tipos';
 import { espaco, fonte, usePaleta } from '../theme';
 
@@ -22,7 +24,24 @@ export function InicioScreen() {
     erro,
     recarregar,
   } = useCarregar(() => container.obterListaAtual.executar(), 'atual');
+  const toast = useToast();
+  const [confirmandoCancelar, setConfirmandoCancelar] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
   const mesAtual = Competencia.daData(new Date());
+
+  async function cancelarCompra(listaId: string) {
+    setCancelando(true);
+    try {
+      await container.cancelarLista.executar(listaId);
+      toast('Compra cancelada. A lista foi apagada.');
+      await recarregar();
+    } catch (e) {
+      toast(mensagemParaUsuario(e));
+    } finally {
+      setCancelando(false);
+      setConfirmandoCancelar(false);
+    }
+  }
 
   if (carregando && !lista)
     return (
@@ -118,6 +137,20 @@ export function InicioScreen() {
               titulo={resumo.status === 'Finalizada' ? 'Ver lista' : 'Continuar compra'}
               aoPressionar={() => navegacao.navigate('Lista')}
             />
+            {resumo.status !== 'Finalizada' && (
+              <Botao
+                titulo={
+                  confirmandoCancelar ? 'Toque de novo para apagar esta lista' : 'Cancelar compra'
+                }
+                variante={confirmandoCancelar ? 'principal' : 'texto'}
+                carregando={cancelando}
+                aoPressionar={() =>
+                  confirmandoCancelar
+                    ? void cancelarCompra(resumo.id)
+                    : setConfirmandoCancelar(true)
+                }
+              />
+            )}
           </Cartao>
         ) : (
           <Cartao estilo={{ gap: espaco.md }}>

@@ -80,6 +80,12 @@ export interface ItemForaDaRota {
   motivo: MotivoForaDaRota;
 }
 
+/** Item pendente que ficou fora da rota porque outra pessoa do grupo vai pegar. */
+export interface ItemDeOutraPessoa {
+  item: ItemDaLista;
+  usuarioId: string;
+}
+
 /** Lugar que o usuário marcou para o produto de um item neste mercado (vale mais que a categoria). */
 export interface LocalDoItem {
   itemId: string;
@@ -98,4 +104,5 @@ export interface Rota {
   foraDaRota: ItemForaDaRota[];
   jaCompradosEmOutrosMercados: number;
   locaisProprios: LocalDoItem[];
+  comOutrasPessoas: ItemDeOutraPessoa[];
 }

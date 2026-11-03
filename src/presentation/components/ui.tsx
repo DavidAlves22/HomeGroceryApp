@@ -1,5 +1,13 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Botao, Titulo } from './base';
@@ -247,6 +255,32 @@ const estilos = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  gatilho: {
+    flex: 1,
+    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espaco.sm,
+    paddingHorizontal: 12,
+    borderRadius: raio.sm,
+    borderWidth: 1,
+  },
+  painel: { borderRadius: raio.sm, borderWidth: 1, overflow: 'hidden' },
+  opcao: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espaco.md,
+    paddingHorizontal: 14,
+  },
+  caixa: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   barra: { height: 10, borderRadius: raio.pilula, overflow: 'hidden' },
   pilula: {
     alignSelf: 'flex-start',
@@ -279,3 +313,78 @@ const estilos = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
 });
+
+interface GatilhoProps {
+  rotulo: string;
+  valor: string;
+  aberto: boolean;
+  aoPressionar: () => void;
+}
+
+/** Botão que mostra a escolha atual de um filtro e abre a lista de opções (`PainelDeOpcoes`). */
+export function GatilhoDeSeletor({ rotulo, valor, aberto, aoPressionar }: GatilhoProps) {
+  const p = usePaleta();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${rotulo}: ${valor}`}
+      accessibilityState={{ expanded: aberto }}
+      onPress={aoPressionar}
+      style={[
+        estilos.gatilho,
+        { backgroundColor: p.superficie, borderColor: aberto ? p.destaque : p.linha },
+      ]}
+    >
+      <Text numberOfLines={1} style={{ flex: 1, color: p.texto, fontWeight: '600', fontSize: 13 }}>
+        {valor}
+      </Text>
+      <Icone nome={aberto ? 'cima' : 'baixo'} cor={p.textoSuave} tamanho={16} />
+    </Pressable>
+  );
+}
+
+export interface OpcaoDoPainel {
+  chave: string;
+  rotulo: string;
+  marcada: boolean;
+  aoPressionar: () => void;
+}
+
+/** Lista de opções marcáveis (uma ou várias), exibida logo abaixo dos gatilhos. */
+export function PainelDeOpcoes({ titulo, opcoes }: { titulo: string; opcoes: OpcaoDoPainel[] }) {
+  const p = usePaleta();
+  return (
+    <View
+      accessibilityLabel={titulo}
+      style={[estilos.painel, { backgroundColor: p.superficie, borderColor: p.linha }]}
+    >
+      <ScrollView style={{ maxHeight: 280 }} nestedScrollEnabled>
+        {opcoes.map((o, i) => (
+          <Pressable
+            key={o.chave}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: o.marcada }}
+            onPress={o.aoPressionar}
+            style={[
+              estilos.opcao,
+              i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: p.linha },
+            ]}
+          >
+            <View
+              style={[
+                estilos.caixa,
+                {
+                  backgroundColor: o.marcada ? p.destaque : 'transparent',
+                  borderColor: o.marcada ? p.destaque : p.linha,
+                },
+              ]}
+            >
+              {o.marcada && <Icone nome="check" cor={p.textoSobreDestaque} tamanho={14} />}
+            </View>
+            <Text style={{ flex: 1, color: p.texto, fontSize: fonte.corpo }}>{o.rotulo}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
