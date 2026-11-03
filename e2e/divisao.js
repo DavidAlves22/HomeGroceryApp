@@ -146,6 +146,12 @@ async function preparar() {
     verificar(/Você:\s*Padaria/.test(t), 'resumo mostra "Você: Padaria"');
     const lista = await api('GET', `/listas/${listaId}`, null, token);
     verificar(lista.divisao.length === 2 && lista.divisao.some((d) => d.usuarioId === esposaId), 'a API guardou a divisão');
+    const fundo = (rotulo) => page.evaluate((r) => { const el = [...document.querySelectorAll('[aria-label="' + r + '"]')].pop(); return getComputedStyle(el.parentElement).backgroundColor; }, rotulo);
+    const fundoFrango = await fundo('Frango, 1 unidade');
+    const fundoArroz = await fundo('Arroz, 1 unidade');
+    verificar(fundoFrango !== fundoArroz, 'o item da Ana tem outra cor de fundo (' + fundoFrango + ' x ' + fundoArroz + ')');
+    verificar(t.includes('Com Ana'), 'o item da Ana diz "Com Ana"');
+    verificar((await fundo('Pão francês, 1 unidade')) === fundoArroz, 'os meus itens e os de todos mantêm a cor normal');
     await foto('lista-dividida');
 
     console.log('3) Minha rota: sem o frango da Ana, com "Com Ana"');

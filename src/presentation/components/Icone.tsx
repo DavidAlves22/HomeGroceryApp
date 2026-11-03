@@ -12,6 +12,7 @@ const CAMINHOS = {
   mais: [],
   mais_mais: ['M12 5v14M5 12h14'],
   busca: ['M20 20l-4-4'],
+  filtro: ['M3 5h18l-7 8v6l-4-2v-4z'],
   check: ['M4 12l5 5L20 6'],
   voltar: ['M15 6l-6 6 6 6'],
   seta: ['M9 6l6 6-6 6'],

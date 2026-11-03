@@ -183,6 +183,47 @@ export function CampoDeBusca({ valor, aoMudar, placeholder }: CampoDeBuscaProps)
   );
 }
 
+interface BotaoDeFiltroProps {
+  aberto: boolean;
+  /** Há algum filtro fora do padrão: o ponto avisa mesmo com os filtros recolhidos. */
+  comFiltroAtivo: boolean;
+  aoPressionar: () => void;
+}
+
+/** Ícone de filtro ao lado da busca: recolhe e expande as opções de filtro e ordenação. */
+export function BotaoDeFiltro({ aberto, comFiltroAtivo, aoPressionar }: BotaoDeFiltroProps) {
+  const p = usePaleta();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Filtros"
+      accessibilityState={{ expanded: aberto }}
+      onPress={aoPressionar}
+      style={[
+        estilos.botaoFiltro,
+        {
+          backgroundColor: aberto ? p.destaque : p.superficie,
+          borderColor: aberto ? p.destaque : p.linha,
+        },
+      ]}
+    >
+      <Icone nome="filtro" cor={aberto ? p.textoSobreDestaque : p.texto} tamanho={20} />
+      {comFiltroAtivo && (
+        <View
+          accessibilityLabel="Há filtros aplicados"
+          style={[
+            estilos.pontoDoFiltro,
+            {
+              backgroundColor: p.destaque,
+              borderColor: aberto ? p.textoSobreDestaque : p.superficie,
+            },
+          ]}
+        />
+      )}
+    </Pressable>
+  );
+}
+
 export function BotaoFlutuante({
   aoPressionar,
   rotulo,
@@ -254,6 +295,23 @@ const estilos = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  botaoFiltro: {
+    width: 52,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: raio.md,
+    borderWidth: 1,
+  },
+  pontoDoFiltro: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
   },
   gatilho: {
     flex: 1,

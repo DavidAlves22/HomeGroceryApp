@@ -15,8 +15,6 @@ export interface LocalEscolhido {
   lado: LadoDaSecao;
 }
 
-const MAXIMO_DE_LOCAIS = 5;
-
 interface Props {
   visivel: boolean;
   nomeDoItem: string;
@@ -30,7 +28,7 @@ interface Props {
 
 /**
  * "Onde você achou?": o usuário toca no mapa do mercado na seção (e, em gôndola de dois lados, na metade do
- * lado) onde o produto estava. Tocar de novo desfaz. O produto pode ter mais de um lugar; a rota vai ao mais perto.
+ * lado) onde o produto estava. O produto tem um único local por mercado: tocar em outro lugar troca o anterior.
  */
 export function FolhaDeLocalDoItem({
   visivel,
@@ -43,14 +41,12 @@ export function FolhaDeLocalDoItem({
 }: Props) {
   const p = usePaleta();
   const [escolhidos, setEscolhidos] = useState<LocalEscolhido[]>(locaisAtuais);
-  const [aviso, setAviso] = useState<string | null>(null);
   const larguraPx = useRef(0);
 
   // Cada vez que a folha abre, parte do que já está salvo.
   useEffect(() => {
     if (visivel) {
-      setEscolhidos(locaisAtuais);
-      setAviso(null);
+      setEscolhidos(locaisAtuais.slice(0, 1));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visivel]);
@@ -64,16 +60,9 @@ export function FolhaDeLocalDoItem({
     if (!secao) return;
 
     const lado = ladoNoPonto(secao, fx, fy);
+    // Um local só: tocar no que já está marcado desfaz; tocar em outro troca.
     const jaTem = escolhidos.some((e) => e.secaoId === secao.id && e.lado === lado);
-    if (jaTem) {
-      setEscolhidos(escolhidos.filter((e) => !(e.secaoId === secao.id && e.lado === lado)));
-      setAviso(null);
-    } else if (escolhidos.length >= MAXIMO_DE_LOCAIS) {
-      setAviso(`Escolha no máximo ${MAXIMO_DE_LOCAIS} lugares.`);
-    } else {
-      setEscolhidos([...escolhidos, { secaoId: secao.id, lado }]);
-      setAviso(null);
-    }
+    setEscolhidos(jaTem ? [] : [{ secaoId: secao.id, lado }]);
   }
 
   const rotuloDe = (e: LocalEscolhido) => {
@@ -92,7 +81,8 @@ export function FolhaDeLocalDoItem({
       <TituloDaFolha>Onde você achou {nomeDoItem}?</TituloDaFolha>
       <TextoSuave>
         Toque no mapa de {mercado.nome} na prateleira onde ele estava. Em gôndola de dois lados,
-        toque na metade do lado certo. A rota deste e dos próximos meses passa a ir para lá.
+        toque na metade do lado certo. Se já havia outro lugar marcado, ele é trocado. A rota deste
+        e dos próximos meses passa a ir para lá.
       </TextoSuave>
 
       <View
@@ -111,7 +101,7 @@ export function FolhaDeLocalDoItem({
       </View>
 
       <RotuloDaFolha>
-        {escolhidos.length === 0 ? 'NENHUM LUGAR MARCADO' : 'LUGARES MARCADOS'}
+        {escolhidos.length === 0 ? 'NENHUM LUGAR MARCADO' : 'LUGAR MARCADO'}
       </RotuloDaFolha>
       {escolhidos.length === 0 && (
         <TextoSuave>
@@ -147,7 +137,6 @@ export function FolhaDeLocalDoItem({
           </Pressable>
         </View>
       ))}
-      {aviso && <Text style={{ color: p.alerta, fontWeight: '600' }}>{aviso}</Text>}
 
       <Botao
         titulo={

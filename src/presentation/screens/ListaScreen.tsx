@@ -12,6 +12,7 @@ import { nomesDosMembros } from '../../domain/entities/grupo';
 import {
   categoriasDaListaComId,
   divisaoValida,
+  responsavelDaCategoria,
   resumoDaDivisao,
 } from '../../domain/services/divisao';
 import { calcularTotais } from '../../domain/services/financeiro';
@@ -30,6 +31,7 @@ import { ResumoFinanceiro } from '../components/ResumoFinanceiro';
 import { IndicadorDeSincronizacao } from '../components/Sincronizacao';
 import {
   BarraDeProgresso,
+  BotaoDeFiltro,
   BotaoFlutuante,
   Cabecalho,
   CampoDeBusca,
@@ -111,6 +113,8 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
   const [busca, setBusca] = useState('');
   const [categoriasFiltro, setCategoriasFiltro] = useState<string[]>([]);
   const [painel, setPainel] = useState<'categorias' | 'ordem' | null>(null);
+  // Filtros e ordenação ficam recolhidos até o toque no ícone de filtro, ao lado da busca.
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [filtro, setFiltro] = useState<FiltroDeStatus>('todos');
   const [ordenacao, setOrdenacao] = useState<Ordenacao>('categoria');
   const [folha, setFolha] = useState<Folha>(null);
@@ -166,6 +170,8 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
   );
   // Categoria escolhida que já não existe na lista (último item removido) deixa de filtrar.
   const categoriasSelecionadas = categoriasFiltro.filter((c) => categoriasDaLista.includes(c));
+  const filtroAtivo =
+    filtro !== 'todos' || categoriasSelecionadas.length > 0 || ordenacao !== 'categoria';
   const grupos = organizarItens(
     lista.itens,
     { busca, filtro, ordenacao, categorias: categoriasSelecionadas },
@@ -179,6 +185,12 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
     busca === '' &&
     filtro === 'todos' &&
     categoriasSelecionadas.length === 0;
+
+  // Compra dividida: o item é de outra pessoa quando a categoria dele foi dada a alguém que não sou eu.
+  const comQuemEsta = (item: ItemDaLista) => {
+    const dono = responsavelDaCategoria(divisaoDaCompra, item.categoriaId);
+    return dono && dono !== sessao?.usuario.id ? nomes.get(dono)?.split(' ')[0] : undefined;
+  };
 
   const atualizarItens = (alterar: (itens: ItemDaLista[]) => ItemDaLista[]) =>
     definirDados((atual) => (atual ? { ...atual, itens: alterar(atual.itens) } : atual));
@@ -386,18 +398,11 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
 
         {!somenteLeitura && grupo?.compartilhado && (
           <Cartao estilo={{ gap: espaco.sm }}>
-            {divisaoDaCompra.length > 0 ? (
-              resumoDaDivisao(divisaoDaCompra, categoriasComId, grupo.membros).map((r) => (
-                <Text key={r.usuarioId} style={{ color: p.texto, fontSize: fonte.corpo }}>
-                  <Text style={{ fontWeight: '700' }}>{r.nome}:</Text> {r.categorias.join(', ')}
-                </Text>
-              ))
-            ) : (
-              <TextoSuave>
-                Em compra em família, dê a cada um as categorias que vai pegar: a rota de cada
-                pessoa só passa por elas.
-              </TextoSuave>
-            )}
+            {resumoDaDivisao(divisaoDaCompra, categoriasComId, grupo.membros).map((r) => (
+              <Text key={r.usuarioId} style={{ color: p.texto, fontSize: fonte.corpo }}>
+                <Text style={{ fontWeight: '700' }}>{r.nome}:</Text> {r.categorias.join(', ')}
+              </Text>
+            ))}
             <Botao
               titulo={divisaoDaCompra.length > 0 ? 'Mudar a divisão' : 'Dividir a compra'}
               variante="secundario"
@@ -406,70 +411,86 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
           </Cartao>
         )}
 
-        <CampoDeBusca valor={busca} aoMudar={setBusca} placeholder="Buscar produto" />
-        <View style={estilos.chips}>
-          {FILTROS.map((f) => (
-            <Chip
-              key={f.valor}
-              rotulo={f.rotulo}
-              ativo={filtro === f.valor}
-              aoPressionar={() => setFiltro(f.valor)}
-            />
-          ))}
-        </View>
-        <View style={estilos.seletores}>
-          {categoriasDaLista.length > 1 && (
-            <GatilhoDeSeletor
-              rotulo="Categorias"
-              valor={rotuloDasCategorias(categoriasSelecionadas)}
-              aberto={painel === 'categorias'}
-              aoPressionar={() => setPainel(painel === 'categorias' ? null : 'categorias')}
-            />
-          )}
-          <GatilhoDeSeletor
-            rotulo="Ordenar"
-            valor={ORDENACOES.find((o) => o.valor === ordenacao)?.rotulo ?? ''}
-            aberto={painel === 'ordem'}
-            aoPressionar={() => setPainel(painel === 'ordem' ? null : 'ordem')}
+        <View style={estilos.linhaDeBusca}>
+          <View style={{ flex: 1 }}>
+            <CampoDeBusca valor={busca} aoMudar={setBusca} placeholder="Buscar produto" />
+          </View>
+          <BotaoDeFiltro
+            aberto={filtrosAbertos}
+            comFiltroAtivo={filtroAtivo}
+            aoPressionar={() => {
+              setFiltrosAbertos(!filtrosAbertos);
+              setPainel(null);
+            }}
           />
         </View>
-        {painel === 'categorias' && (
-          <PainelDeOpcoes
-            titulo="Filtrar por categorias"
-            opcoes={[
-              {
-                chave: 'todas',
-                rotulo: 'Todas as categorias',
-                marcada: categoriasSelecionadas.length === 0,
-                aoPressionar: () => setCategoriasFiltro([]),
-              },
-              ...categoriasDaLista.map((nome) => ({
-                chave: nome,
-                rotulo: nome,
-                marcada: categoriasSelecionadas.includes(nome),
-                aoPressionar: () =>
-                  setCategoriasFiltro(
-                    categoriasSelecionadas.includes(nome)
-                      ? categoriasSelecionadas.filter((c) => c !== nome)
-                      : [...categoriasSelecionadas, nome],
-                  ),
-              })),
-            ]}
-          />
-        )}
-        {painel === 'ordem' && (
-          <PainelDeOpcoes
-            titulo="Ordenar a lista"
-            opcoes={ORDENACOES.map((o) => ({
-              chave: o.valor,
-              rotulo: o.rotulo,
-              marcada: ordenacao === o.valor,
-              aoPressionar: () => {
-                setOrdenacao(o.valor);
-                setPainel(null);
-              },
-            }))}
-          />
+        {filtrosAbertos && (
+          <>
+            <View style={estilos.chips}>
+              {FILTROS.map((f) => (
+                <Chip
+                  key={f.valor}
+                  rotulo={f.rotulo}
+                  ativo={filtro === f.valor}
+                  aoPressionar={() => setFiltro(f.valor)}
+                />
+              ))}
+            </View>
+            <View style={estilos.seletores}>
+              {categoriasDaLista.length > 1 && (
+                <GatilhoDeSeletor
+                  rotulo="Categorias"
+                  valor={rotuloDasCategorias(categoriasSelecionadas)}
+                  aberto={painel === 'categorias'}
+                  aoPressionar={() => setPainel(painel === 'categorias' ? null : 'categorias')}
+                />
+              )}
+              <GatilhoDeSeletor
+                rotulo="Ordenar"
+                valor={ORDENACOES.find((o) => o.valor === ordenacao)?.rotulo ?? ''}
+                aberto={painel === 'ordem'}
+                aoPressionar={() => setPainel(painel === 'ordem' ? null : 'ordem')}
+              />
+            </View>
+            {painel === 'categorias' && (
+              <PainelDeOpcoes
+                titulo="Filtrar por categorias"
+                opcoes={[
+                  {
+                    chave: 'todas',
+                    rotulo: 'Todas as categorias',
+                    marcada: categoriasSelecionadas.length === 0,
+                    aoPressionar: () => setCategoriasFiltro([]),
+                  },
+                  ...categoriasDaLista.map((nome) => ({
+                    chave: nome,
+                    rotulo: nome,
+                    marcada: categoriasSelecionadas.includes(nome),
+                    aoPressionar: () =>
+                      setCategoriasFiltro(
+                        categoriasSelecionadas.includes(nome)
+                          ? categoriasSelecionadas.filter((c) => c !== nome)
+                          : [...categoriasSelecionadas, nome],
+                      ),
+                  })),
+                ]}
+              />
+            )}
+            {painel === 'ordem' && (
+              <PainelDeOpcoes
+                titulo="Ordenar a lista"
+                opcoes={ORDENACOES.map((o) => ({
+                  chave: o.valor,
+                  rotulo: o.rotulo,
+                  marcada: ordenacao === o.valor,
+                  aoPressionar: () => {
+                    setOrdenacao(o.valor);
+                    setPainel(null);
+                  },
+                }))}
+              />
+            )}
+          </>
         )}
 
         {lista.itens.length === 0 ? (
@@ -513,6 +534,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
                   }
                   nomeDeQuemMarcou={nomes.get(item.compradoPorUsuarioId ?? '')}
                   nomeDoMercado={item.comprado ? nomeDoMercado(item.compradoNaLojaId) : undefined}
+                  comOutraPessoa={comQuemEsta(item)}
                   aoMarcar={(i) => void marcar(i)}
                   aoEditar={(i) => setFolha({ tipo: 'editar', item: i })}
                   aoMover={
@@ -633,6 +655,7 @@ export function DetalheDaListaScreen() {
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.lg, paddingBottom: 120, gap: espaco.md },
   entre: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  linhaDeBusca: { flexDirection: 'row', alignItems: 'stretch', gap: espaco.sm },
   seletores: { flexDirection: 'row', gap: espaco.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
 });

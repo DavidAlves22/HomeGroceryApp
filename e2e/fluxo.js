@@ -323,6 +323,7 @@ let passo = 0;
     await foto('lista-copiada');
 
     console.log('13) Ordem manual e filtro por categoria');
+    await clicarRotulo('Filtros');
     await clicarRotulo('Ordenar: Por categoria');
     await clicar('Minha ordem');
     await clicarRotulo('Subir Feijão');

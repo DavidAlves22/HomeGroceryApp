@@ -16,6 +16,8 @@ interface Props {
   nomeDeQuemMarcou?: string;
   /** Mercado onde foi comprado (a compra do mês pode ser dividida entre vários). */
   nomeDoMercado?: string;
+  /** Na compra dividida: quem vai pegar este item quando não sou eu. O fundo muda para ficar claro que não é meu. */
+  comOutraPessoa?: string;
   somenteLeitura: boolean;
   aoMarcar: (item: ItemDaLista) => void;
   aoEditar: (item: ItemDaLista) => void;
@@ -45,6 +47,7 @@ export function LinhaDeItem({
   marcadoPorOutro,
   nomeDeQuemMarcou,
   nomeDoMercado,
+  comOutraPessoa,
   somenteLeitura,
   aoMarcar,
   aoEditar,
@@ -57,7 +60,10 @@ export function LinhaDeItem({
     <View
       style={[
         estilos.linha,
-        { backgroundColor: feito ? 'transparent' : p.superficie, borderColor: p.linha },
+        {
+          backgroundColor: feito ? 'transparent' : comOutraPessoa ? p.superficie2 : p.superficie,
+          borderColor: p.linha,
+        },
       ]}
     >
       <Pressable
@@ -96,6 +102,7 @@ export function LinhaDeItem({
         <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
           {formatarQuantidade(item.quantidade)} {rotuloDaUnidade(item.unidade)}
           {textoDeValor(item)}
+          {!feito && comOutraPessoa ? ` · Com ${comOutraPessoa}` : ''}
           {feito && nomeDoMercado ? ` · ${nomeDoMercado}` : ''}
           {feito && marcadoPorOutro ? ` · ${nomeDeQuemMarcou ?? 'outra pessoa'} marcou` : ''}
         </Text>

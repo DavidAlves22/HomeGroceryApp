@@ -10,6 +10,7 @@ import { formatarQuantidade } from '../../domain/services/organizacao';
 import { Botao, Cartao, TextoSuave } from '../components/base';
 import { DivisaoDaCompra } from '../components/DivisaoDaCompra';
 import { FolhaDeLocalDoItem, type LocalEscolhido } from '../components/FolhaDeLocalDoItem';
+import { Icone } from '../components/Icone';
 import { MapaSvg } from '../components/MapaSvg';
 import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina, Pilula } from '../components/ui';
 import { useContainer, useMercadoAtual, useSessao } from '../hooks/AppProviders';
@@ -50,45 +51,54 @@ function LinhaDaRota({
   const p = usePaleta();
   return (
     <View style={[estilos.linhaItem, { borderColor: p.linha, backgroundColor: p.superficie }]}>
-      <Pressable
-        accessibilityRole="checkbox"
-        accessibilityLabel={`${item.nome}, ${formatarQuantidade(item.quantidade)} ${rotuloDaUnidade(item.unidade)}`}
-        accessibilityState={{ checked: item.comprado }}
-        onPress={aoMarcar}
-        style={estilos.areaDoCheck}
-      >
-        <View style={[estilos.caixa, { borderColor: p.textoSuave }]} />
-      </Pressable>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          numberOfLines={2}
-          style={{ color: p.texto, fontSize: fonte.corpo, fontWeight: '600' }}
+      <View style={estilos.linhaItemTopo}>
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityLabel={`${item.nome}, ${formatarQuantidade(item.quantidade)} ${rotuloDaUnidade(item.unidade)}`}
+          accessibilityState={{ checked: item.comprado }}
+          onPress={aoMarcar}
+          style={estilos.areaDoCheck}
         >
-          {item.nome}
-        </Text>
-        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-          {formatarQuantidade(item.quantidade)} {rotuloDaUnidade(item.unidade)}
-        </Text>
-        {aoMarcarLocal && (
+          <View style={[estilos.caixa, { borderColor: p.textoSuave }]} />
+        </Pressable>
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text
+            numberOfLines={2}
+            style={{ color: p.texto, fontSize: fonte.corpo, fontWeight: '600' }}
+          >
+            {item.nome}
+          </Text>
+          <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+            {formatarQuantidade(item.quantidade)} {rotuloDaUnidade(item.unidade)}
+          </Text>
+        </View>
+        {aoNaoTemAqui && (
           <Pressable
             accessibilityRole="button"
-            onPress={aoMarcarLocal}
-            hitSlop={8}
-            style={{ alignSelf: 'flex-start', paddingVertical: 2 }}
+            onPress={aoNaoTemAqui}
+            style={[estilos.botaoPequeno, { borderColor: p.linha, backgroundColor: p.superficie }]}
           >
-            <Text style={{ color: p.destaque, fontSize: fonte.pequena, fontWeight: '700' }}>
-              {localProprio ? 'Local marcado por você · mudar' : 'Estava em outro lugar?'}
+            <Text style={{ color: p.textoSuave, fontSize: 12, fontWeight: '700' }}>
+              Não tem aqui
             </Text>
           </Pressable>
         )}
       </View>
-      {aoNaoTemAqui && (
+      {aoMarcarLocal && (
         <Pressable
           accessibilityRole="button"
-          onPress={aoNaoTemAqui}
-          style={[estilos.botaoPequeno, { borderColor: p.linha, backgroundColor: p.superficie }]}
+          onPress={aoMarcarLocal}
+          style={[estilos.rodapeDoItem, { borderTopColor: p.linha }]}
         >
-          <Text style={{ color: p.textoSuave, fontSize: 12, fontWeight: '700' }}>Não tem aqui</Text>
+          <Icone nome="mapa" cor={p.destaque} tamanho={16} />
+          <Text style={{ flex: 1, color: p.destaque, fontSize: fonte.pequena, fontWeight: '700' }}>
+            {localProprio ? 'Local marcado por você' : 'Estava em outro lugar?'}
+          </Text>
+          {localProprio && (
+            <Text style={{ color: p.textoSuave, fontSize: fonte.pequena, fontWeight: '700' }}>
+              Mudar
+            </Text>
+          )}
         </Pressable>
       )}
     </View>
@@ -394,7 +404,7 @@ export function RotaScreen() {
                   />
                 )}
 
-                <Cartao estilo={{ gap: espaco.sm }}>
+                <Cartao estilo={{ gap: espaco.md }}>
                   <View style={estilos.entre}>
                     <Pilula texto="Próxima parada" />
                     <Text
@@ -581,14 +591,22 @@ const estilos = StyleSheet.create({
   },
   estatisticas: { flexDirection: 'row', gap: espaco.sm },
   estatistica: { flex: 1, borderRadius: raio.sm, padding: espaco.md, gap: 2 },
-  linhaItem: {
+  linhaItem: { borderWidth: 1, borderRadius: raio.md, overflow: 'hidden' },
+  linhaItemTopo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: espaco.sm,
-    borderWidth: 1,
-    borderRadius: raio.md,
-    paddingRight: espaco.sm,
-    minHeight: 56,
+    paddingRight: espaco.md,
+    paddingVertical: espaco.sm,
+    minHeight: 64,
+  },
+  rodapeDoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espaco.sm,
+    paddingHorizontal: espaco.lg,
+    paddingVertical: espaco.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   areaDoCheck: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
   caixa: { width: 26, height: 26, borderRadius: 9, borderWidth: 2 },

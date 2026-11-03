@@ -128,7 +128,7 @@ async function preparar() {
     // Molhos/Limpeza do Mercado A ocupa x 8..21, y 14..15: a metade de baixo (y 15) é o lado B (Limpeza).
     await page.mouse.click(mapaDaFolha.x + 14 * celula, mapaDaFolha.y + 15.5 * celula);
     await esperarTexto('Limpeza · lado de baixo');
-    await esperarTexto('LUGARES MARCADOS');
+    await esperarTexto('LUGAR MARCADO');
     await foto('local-escolhido');
     await clicar('Salvar local');
     await esperarTexto('Local salvo para este mercado');
@@ -138,10 +138,29 @@ async function preparar() {
     verificar(rotaComLocal.paradas.some((x) => x.nome === 'Limpeza' && x.itens.length === 2), 'a rota agora leva o Arroz à gôndola de Limpeza, junto com o detergente');
     await foto('local-salvo');
 
-    console.log('2c) Apagar o local volta à categoria');
-    await clicar('Local marcado por você · mudar');
+    console.log('2b2) Marcar outro local troca o anterior (um único local por mercado)');
+    await clicar('Local marcado por você');
     await esperarTexto('Onde você achou');
-    await page.click('[aria-label^="Tirar Limpeza"]');
+    const mapaTroca = await page.evaluate(() => {
+      const svgs = [...document.querySelectorAll('svg[viewBox="0 0 340 400"]')];
+      const r = svgs[svgs.length - 1].getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width };
+    });
+    // Mercearia do Mercado A ocupa x 8..21, y 22..24: a seção mais perto da entrada, logo a primeira parada.
+    await page.mouse.click(mapaTroca.x + 14 * (mapaTroca.w / 34), mapaTroca.y + 23 * (mapaTroca.w / 34));
+    await pausa(400);
+    verificar((await page.$('[aria-label^="Tirar Mercearia"]')) !== null, 'o novo local aparece marcado');
+    verificar((await page.$('[aria-label^="Tirar Limpeza"]')) === null, 'o local anterior foi descartado na folha');
+    await clicar('Salvar local');
+    await esperarTexto('Local salvo para este mercado');
+    const rotaTrocada = await api('POST', `/listas/${listaId}/rota`, { lojaId: lojaA.id }, token);
+    verificar(rotaTrocada.locaisProprios.length === 1, 'a API guardou só um local');
+    await foto('local-trocado');
+
+    console.log('2c) Apagar o local volta à categoria');
+    await clicar('Local marcado por você');
+    await esperarTexto('Onde você achou');
+    await page.click('[aria-label^="Tirar Mercearia"]');
     await clicar('Apagar local');
     await esperarTexto('Local apagado');
     const rotaSemLocal = await api('POST', `/listas/${listaId}/rota`, { lojaId: lojaA.id }, token);

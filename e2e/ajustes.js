@@ -109,7 +109,11 @@ async function preparar() {
 
     console.log('2) Filtro de categorias em lista suspensa (várias ao mesmo tempo)');
     let t = await texto();
-    verificar(t.includes('Todas as categorias') && t.includes('Por categoria'), 'padrão: "Todas as categorias" e "Por categoria"');
+    verificar(!t.includes('Todas as categorias') && !t.includes('Por categoria'), 'filtros começam recolhidos');
+    await foto('filtros-recolhidos');
+    await clicarRotulo('Filtros');
+    t = await texto();
+    verificar(t.includes('Todas as categorias') && t.includes('Por categoria'), 'o ícone de filtro expande: padrão "Todas as categorias" e "Por categoria"');
     verificar(!t.includes('Minha ordem'), 'ordenações ficam recolhidas até abrir a lista');
     await clicarRotulo('Categorias: Todas as categorias');
     await foto('categorias-aberto');
@@ -132,6 +136,20 @@ async function preparar() {
     verificar(!t.includes('Minha ordem'), 'a lista fecha ao escolher a ordenação');
     await clicarRotulo('Ordenar: Por nome');
     await clicar('Por categoria');
+
+    console.log('3b) Recolher o filtro mantém o que foi escolhido e avisa com o ponto');
+    await clicarRotulo('Ordenar: Por categoria');
+    await clicar('Por nome');
+    await clicarRotulo('Filtros');
+    t = await texto();
+    verificar(!t.includes('Todas as categorias'), 'o ícone recolhe os filtros');
+    verificar((await page.$('[aria-label="Há filtros aplicados"]')) !== null, 'ponto avisa que há filtro aplicado');
+    await foto('filtros-recolhidos-com-ponto');
+    await clicarRotulo('Filtros');
+    await clicarRotulo('Ordenar: Por nome');
+    await clicar('Por categoria');
+    await clicarRotulo('Filtros');
+    verificar((await page.$('[aria-label="Há filtros aplicados"]')) === null, 'sem filtro aplicado, o ponto some');
 
     console.log('4) Produto novo pergunta se entra na lista padrão');
     await adicionarProduto('Biscoito');
