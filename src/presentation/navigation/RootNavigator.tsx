@@ -37,6 +37,9 @@ const LINKING: LinkingOptions<RootStackParamList> | undefined =
     ? {
         prefixes: [],
         config: {
+          // Ao abrir ou recarregar numa tela de fora das abas (ex.: /grupo depois de entrar numa família), as abas
+          // ficam por baixo: a seta de voltar e a barra de navegação continuam funcionando.
+          initialRouteName: 'Abas',
           screens: {
             Abas: {
               path: '',

@@ -147,6 +147,9 @@ const verificar = (cond, msg) => {
     await bruno.foto('digitando-codigo');
     await bruno.clicar('Entrar na família');
     await bruno.esperarTexto('Você entrou no grupo');
+    // Entrar na família recarrega o app em /grupo: as abas têm de continuar por baixo, com a seta de voltar.
+    await paginaBruno.$$eval('[aria-label="Voltar"]', (els) => els[els.length - 1].click());
+    await new Promise((r) => setTimeout(r, 500));
     await bruno.clicar('Lista'); // aba Lista: agora é a lista da Ana
     await bruno.esperarTexto('Arroz');
     verificar((await bruno.texto()).includes('Leite'), 'Bruno vê a lista que a Ana criou');
@@ -186,7 +189,8 @@ const verificar = (cond, msg) => {
 
     console.log('7) Bruno perde o acesso à família e volta às próprias listas');
     // O aviso em tempo real faz o app renovar a sessão e recomeçar no grupo pessoal do Bruno (vazio).
-    await bruno.esperarTexto('Sem lista para', 15000);
+    // Ele estava na aba Lista: sem os dados da família, ela mostra que não há lista em andamento.
+    await bruno.esperarTexto('Nenhuma lista em andamento', 15000);
     const tRemovido = await bruno.texto();
     verificar(
       !tRemovido.includes('Arroz') && !tRemovido.includes('Leite'),
