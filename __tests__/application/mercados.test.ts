@@ -2,6 +2,7 @@ import { ErroDeApi } from '../../src/application/errors';
 import type { MercadosGateway, RotasGateway } from '../../src/application/ports/mercados';
 import {
   CriarMercado,
+  DefinirLocalDoItem,
   MarcarItemSemNoMercado,
   SalvarMapaDoMercado,
 } from '../../src/application/useCases/mercados';
@@ -77,5 +78,32 @@ describe('MarcarItemSemNoMercado', () => {
 
     expect(g.marcarSemNoMercado).toHaveBeenNthCalledWith(1, 'lista', 'item', 'm1', true);
     expect(g.marcarSemNoMercado).toHaveBeenNthCalledWith(2, 'lista', 'item', 'm1', false);
+  });
+});
+
+describe('DefinirLocalDoItem', () => {
+  it('envia os locais ao servidor e recusa mais de 5 por mercado', async () => {
+    const definirLocalDoItem = jest.fn().mockResolvedValue([]);
+    const caso = new DefinirLocalDoItem({ definirLocalDoItem } as unknown as RotasGateway);
+    const local = (i: number) => ({ secaoId: `s${i}`, lado: 'A' as const });
+
+    await caso.executar('l1', 'i1', 'm1', [local(1), local(2)]);
+    await expect(
+      caso.executar('l1', 'i1', 'm1', [1, 2, 3, 4, 5, 6].map(local)),
+    ).rejects.toBeInstanceOf(ErroDeApi);
+
+    expect(definirLocalDoItem).toHaveBeenCalledTimes(1);
+    expect(definirLocalDoItem).toHaveBeenCalledWith('l1', 'i1', 'm1', [local(1), local(2)]);
+  });
+
+  it('lista vazia é válida: apaga o local e a rota volta à categoria', async () => {
+    const definirLocalDoItem = jest.fn().mockResolvedValue([]);
+    await new DefinirLocalDoItem({ definirLocalDoItem } as unknown as RotasGateway).executar(
+      'l1',
+      'i1',
+      'm1',
+      [],
+    );
+    expect(definirLocalDoItem).toHaveBeenCalledWith('l1', 'i1', 'm1', []);
   });
 });

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
 import type { ParadaDaRota, Ponto } from '../../domain/entities/mercados';
@@ -7,6 +7,7 @@ import { mercadoEmUso } from '../../domain/services/compraDividida';
 import { formatarQuantidade } from '../../domain/services/organizacao';
 import { Botao, Cartao, TextoSuave } from '../components/base';
 import { DivisaoDaCompra } from '../components/DivisaoDaCompra';
+import { FolhaDeLocalDoItem, type LocalEscolhido } from '../components/FolhaDeLocalDoItem';
 import { MapaSvg } from '../components/MapaSvg';
 import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina, Pilula } from '../components/ui';
 import { useContainer, useMercadoAtual } from '../hooks/AppProviders';
@@ -35,10 +36,14 @@ function LinhaDaRota({
   item,
   aoMarcar,
   aoNaoTemAqui,
+  aoMarcarLocal,
+  localProprio,
 }: {
   item: ItemDaLista;
   aoMarcar: () => void;
   aoNaoTemAqui?: () => void;
+  aoMarcarLocal?: () => void;
+  localProprio?: boolean;
 }) {
   const p = usePaleta();
   return (
@@ -62,6 +67,18 @@ function LinhaDaRota({
         <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
           {formatarQuantidade(item.quantidade)} {rotuloDaUnidade(item.unidade)}
         </Text>
+        {aoMarcarLocal && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={aoMarcarLocal}
+            hitSlop={8}
+            style={{ alignSelf: 'flex-start', paddingVertical: 2 }}
+          >
+            <Text style={{ color: p.destaque, fontSize: fonte.pequena, fontWeight: '700' }}>
+              {localProprio ? 'Local marcado por você · mudar' : 'Estava em outro lugar?'}
+            </Text>
+          </Pressable>
+        )}
       </View>
       {aoNaoTemAqui && (
         <Pressable
@@ -116,6 +133,10 @@ export function RotaScreen() {
     `mercado:${atual?.id}`,
   );
 
+  // Item cujo local está sendo marcado (abre a folha com o mapa).
+  const [itemDoLocal, setItemDoLocal] = useState<ItemDaLista | null>(null);
+  const [salvandoLocal, setSalvandoLocal] = useState(false);
+
   const escolher = (id: string) => {
     posicao.current = null;
     definirMercado(id);
@@ -129,6 +150,22 @@ export function RotaScreen() {
       await Promise.all([recarregarRota(), recarregarLista()]);
     } catch (e) {
       toast(mensagemParaUsuario(e));
+    }
+  }
+
+  async function salvarLocal(locais: LocalEscolhido[]) {
+    if (!itemDoLocal) return;
+    setSalvandoLocal(true);
+    try {
+      await container.definirLocalDoItem.executar(listaId!, itemDoLocal.id, atual!.id, locais);
+      toast(locais.length === 0 ? 'Local apagado' : 'Local salvo para este mercado');
+      setItemDoLocal(null);
+      // A posição estimada não muda: só o destino do item.
+      await recarregarRota();
+    } catch (e) {
+      toast(mensagemParaUsuario(e));
+    } finally {
+      setSalvandoLocal(false);
     }
   }
 
@@ -184,6 +221,10 @@ export function RotaScreen() {
     rotaAtual.posicao.x === mapa.entrada.x &&
     rotaAtual.posicao.y === mapa.entrada.y;
   const faltam = (lista?.itens ?? []).filter((i) => !i.comprado).length;
+  const locaisDe = (itemId: string): LocalEscolhido[] =>
+    (rotaAtual?.locaisProprios ?? [])
+      .filter((l) => l.itemId === itemId)
+      .map(({ secaoId, lado }) => ({ secaoId, lado }));
 
   const cabecalho = (
     <>
@@ -326,6 +367,8 @@ export function RotaScreen() {
                       item={item}
                       aoMarcar={() => void marcar(item, rotaAtual.paradas[0])}
                       aoNaoTemAqui={() => void semNoMercado(item, true)}
+                      aoMarcarLocal={() => setItemDoLocal(item)}
+                      localProprio={locaisDe(item.id).length > 0}
                     />
                   ))}
                 </Cartao>
@@ -384,6 +427,20 @@ export function RotaScreen() {
                           : 'Você marcou que não tem aqui'}
                       </Text>
                     </View>
+                    {motivo === 'SemSecao' && (
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => setItemDoLocal(item)}
+                        style={[
+                          estilos.botaoPequeno,
+                          { borderColor: p.linha, backgroundColor: p.superficie },
+                        ]}
+                      >
+                        <Text style={{ color: p.destaque, fontSize: 12, fontWeight: '700' }}>
+                          Marcar local
+                        </Text>
+                      </Pressable>
+                    )}
                     {motivo === 'NaoTemNaLoja' && (
                       <Pressable
                         accessibilityRole="button"
@@ -417,6 +474,17 @@ export function RotaScreen() {
           aoPressionar={() => navegacao.navigate('MapaDoMercado', { mercadoId: atual.id })}
         />
       </ScrollView>
+      {!!mapa && !!itemDoLocal && (
+        <FolhaDeLocalDoItem
+          visivel
+          nomeDoItem={itemDoLocal.nome}
+          mercado={mapa}
+          locaisAtuais={locaisDe(itemDoLocal.id)}
+          salvando={salvandoLocal}
+          aoSalvar={(locais) => void salvarLocal(locais)}
+          aoFechar={() => setItemDoLocal(null)}
+        />
+      )}
     </Pagina>
   );
 }

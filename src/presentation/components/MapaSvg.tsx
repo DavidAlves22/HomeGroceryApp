@@ -85,6 +85,8 @@ interface Props {
   modo: 'mini' | 'rota' | 'editar';
   selecionado?: AlvoDoMapa | null;
   rota?: { trilha: Ponto[]; paradas: ParadaDaRota[]; posicao: Ponto } | null;
+  /** Seções realçadas à força (ex.: onde o usuário marcou o produto). Sobrepõe o realce padrão. */
+  destacadas?: string[];
   aoMedir?: (largura: number) => void;
 }
 
@@ -92,7 +94,14 @@ interface Props {
  * Desenho do mercado: seções, entrada, caixas e (na rota) a trilha, as paradas numeradas e a posição
  * de quem está comprando. Só desenha: no editor, os toques são tratados pela tela que envolve o mapa.
  */
-export function MapaSvg({ mapa, modo, selecionado = null, rota = null, aoMedir }: Props) {
+export function MapaSvg({
+  mapa,
+  modo,
+  selecionado = null,
+  rota = null,
+  destacadas,
+  aoMedir,
+}: Props) {
   const p = usePaleta();
   const editar = modo === 'editar';
   const ativas = new Set(rota?.paradas.map((x) => x.secaoId));
@@ -130,7 +139,13 @@ export function MapaSvg({ mapa, modo, selecionado = null, rota = null, aoMedir }
 
         {mapa.secoes.map((s) => {
           const tem = s.categoriasLadoA.length + s.categoriasLadoB.length > 0;
-          const marcada = editar ? s.id === selecionadoSecao : rota ? ativas.has(s.id) : tem;
+          const marcada = destacadas
+            ? destacadas.includes(s.id)
+            : editar
+              ? s.id === selecionadoSecao
+              : rota
+                ? ativas.has(s.id)
+                : tem;
           const realce = marcada || (editar && tem);
           const { rotulos, divisoria } = rotulosDaSecao(s);
           const w = s.area.largura * CELULA;

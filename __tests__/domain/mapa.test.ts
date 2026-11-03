@@ -10,8 +10,10 @@ import {
   duplicarSecao,
   girarSecao,
   juntarSecao,
+  ladoNoPonto,
   moverAlvo,
   redimensionarSecao,
+  secaoNoPonto,
   textoDoLado,
   validarMapa,
 } from '../../src/domain/services/mapa';
@@ -180,6 +182,32 @@ describe('duplicarSecao', () => {
     expect(duplicarSecao(mapa(), 'x', 'b')).toBeNull();
     const cheio = { ...mapa(), largura: 10, altura: 10 };
     expect(duplicarSecao({ ...cheio, secoes: [secao('a', 0, 0, 10, 8)] }, 'a', 'b')).toBeNull();
+  });
+});
+
+describe('onde o produto foi achado (toque no mapa)', () => {
+  const horizontal = { ...secao('h', 5, 5, 10, 2), dividida: true, nomeLadoB: 'B' };
+  const vertical = { ...secao('v', 20, 2, 2, 10), dividida: true, nomeLadoB: 'B' };
+
+  it('acha a seção sob o toque, com folga para as finas, e nada no chão', () => {
+    const m = mapa([horizontal]);
+    expect(secaoNoPonto(m, 7, 5.5)?.id).toBe('h');
+    expect(secaoNoPonto(m, 7, 4.9)?.id).toBe('h');
+    expect(secaoNoPonto(m, 7, 9)).toBeNull();
+  });
+
+  it('em gôndola horizontal a metade de cima é o lado A e a de baixo é o B', () => {
+    expect(ladoNoPonto(horizontal, 8, 5.4)).toBe('A');
+    expect(ladoNoPonto(horizontal, 8, 6.6)).toBe('B');
+  });
+
+  it('em gôndola vertical a metade da esquerda é o lado A e a da direita é o B', () => {
+    expect(ladoNoPonto(vertical, 20.4, 6)).toBe('A');
+    expect(ladoNoPonto(vertical, 21.6, 6)).toBe('B');
+  });
+
+  it('seção de um lado só é sempre o lado A', () => {
+    expect(ladoNoPonto(secao('s', 1, 1, 4, 2), 3, 2.9)).toBe('A');
   });
 });
 

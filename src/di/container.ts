@@ -41,6 +41,7 @@ import {
   CriarMercado,
   ExcluirMercado,
   ListarMercados,
+  DefinirLocalDoItem,
   MarcarItemSemNoMercado,
   ObterMercado,
   PlanejarRota,
@@ -132,6 +133,7 @@ export function criarContainer(aoExpirarSessao: () => void) {
     excluirMercado: new ExcluirMercado(mercados),
     planejarRota: new PlanejarRota(rotas),
     marcarItemSemNoMercado: new MarcarItemSemNoMercado(rotas),
+    definirLocalDoItem: new DefinirLocalDoItem(rotas),
 
     // Grupo familiar e tempo real
     obterGrupo: new ObterGrupo(grupo),

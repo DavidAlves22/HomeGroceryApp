@@ -266,6 +266,32 @@ export function textoDoLado(secao: Secao, lado: LadoDaSecao): string | null {
   return horizontal ? 'lado de baixo' : 'lado direito';
 }
 
+/** A seção sob o ponto (em células, com fração). Tem uma folga pequena para ser fácil de tocar quando é fina. */
+export function secaoNoPonto(
+  mapa: Pick<MapaEmEdicao, 'secoes'>,
+  fx: number,
+  fy: number,
+): Secao | null {
+  const folga = 0.25;
+  return (
+    mapa.secoes.find(
+      ({ area: a }) =>
+        fx >= a.x - folga &&
+        fx < a.x + a.largura + folga &&
+        fy >= a.y - folga &&
+        fy < a.y + a.altura + folga,
+    ) ?? null
+  );
+}
+
+/** Em gôndola de dois lados, qual lado foi tocado: a metade de cima/esquerda é A, a de baixo/direita é B. */
+export function ladoNoPonto(secao: Secao, fx: number, fy: number): LadoDaSecao {
+  if (!secao.dividida) return 'A';
+  const { x, y, largura, altura } = secao.area;
+  const segundaMetade = largura >= altura ? fy >= y + altura / 2 : fx >= x + largura / 2;
+  return segundaMetade ? 'B' : 'A';
+}
+
 /** "6 x 2 células, cerca de 9 m x 3 m". */
 export function descreverTamanho(area: Area): string {
   const m = (c: number) => String(Math.round(c * METROS_POR_CELULA * 10) / 10).replace('.', ',');

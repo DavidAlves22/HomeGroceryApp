@@ -53,7 +53,7 @@ async function preparar() {
 }
 
 (async () => {
-  const { token, lojaB, listaId } = await preparar();
+  const { token, lojaA, lojaB, listaId } = await preparar();
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
     userDataDir: require('os').tmpdir() + '/e2e-mercados-' + Date.now(),
@@ -115,6 +115,37 @@ async function preparar() {
     verificar(t2.includes('Mercearia') && t2.includes('Falta 4'), 'rota mostra a parada e "Falta 4"');
     verificar(t2.includes('Gôndola de dois lados') || t2.includes('lado de baixo'), 'a gôndola de dois lados mostra o lado do item');
     await foto('rota-a');
+
+    console.log('2b) "Estava em outro lugar?": toca no mapa e o produto passa a ir para lá');
+    await clicar('Estava em outro lugar?');
+    await esperarTexto('Onde você achou');
+    const mapaDaFolha = await page.evaluate(() => {
+      const svgs = [...document.querySelectorAll('svg[viewBox="0 0 340 400"]')];
+      const r = svgs[svgs.length - 1].getBoundingClientRect();
+      return { x: r.x, y: r.y, w: r.width };
+    });
+    const celula = mapaDaFolha.w / 34;
+    // Molhos/Limpeza do Mercado A ocupa x 8..21, y 14..15: a metade de baixo (y 15) é o lado B (Limpeza).
+    await page.mouse.click(mapaDaFolha.x + 14 * celula, mapaDaFolha.y + 15.5 * celula);
+    await esperarTexto('Limpeza · lado de baixo');
+    await esperarTexto('LUGARES MARCADOS');
+    await foto('local-escolhido');
+    await clicar('Salvar local');
+    await esperarTexto('Local salvo para este mercado');
+    await esperarTexto('Local marcado por você');
+    const rotaComLocal = await api('POST', `/listas/${listaId}/rota`, { lojaId: lojaA.id }, token);
+    verificar(rotaComLocal.locaisProprios.length === 1, 'a API guardou o local do produto');
+    verificar(rotaComLocal.paradas.some((x) => x.nome === 'Limpeza' && x.itens.length === 2), 'a rota agora leva o Arroz à gôndola de Limpeza, junto com o detergente');
+    await foto('local-salvo');
+
+    console.log('2c) Apagar o local volta à categoria');
+    await clicar('Local marcado por você · mudar');
+    await esperarTexto('Onde você achou');
+    await page.click('[aria-label^="Tirar Limpeza"]');
+    await clicar('Apagar local');
+    await esperarTexto('Local apagado');
+    const rotaSemLocal = await api('POST', `/listas/${listaId}/rota`, { lojaId: lojaA.id }, token);
+    verificar(rotaSemLocal.locaisProprios.length === 0, 'sem local marcado a rota volta a usar a categoria');
 
     console.log('3) Marcar o primeiro item: vira comprado no Mercado A');
     // A tela da Lista continua montada por baixo: o item da Rota é o último do documento.

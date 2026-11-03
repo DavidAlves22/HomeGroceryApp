@@ -80,6 +80,13 @@ export interface ItemForaDaRota {
   motivo: MotivoForaDaRota;
 }
 
+/** Lugar que o usuário marcou para o produto de um item neste mercado (vale mais que a categoria). */
+export interface LocalDoItem {
+  itemId: string;
+  secaoId: string;
+  lado: LadoDaSecao;
+}
+
 export interface Rota {
   lojaId: string;
   posicao: Ponto;
@@ -90,4 +97,5 @@ export interface Rota {
   tempoEstimadoEmMinutos: number;
   foraDaRota: ItemForaDaRota[];
   jaCompradosEmOutrosMercados: number;
+  locaisProprios: LocalDoItem[];
 }

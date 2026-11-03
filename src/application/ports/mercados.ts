@@ -1,4 +1,6 @@
 import type {
+  LadoDaSecao,
+  LocalDoItem,
   MapaEmEdicao,
   Mercado,
   MercadoResumo,
@@ -25,4 +27,11 @@ export interface RotasGateway {
     mercadoId: string,
     sem: boolean,
   ): Promise<ItemDaLista>;
+  /** Substitui onde o produto do item fica neste mercado. Lista vazia apaga. */
+  definirLocalDoItem(
+    listaId: string,
+    itemId: string,
+    mercadoId: string,
+    locais: { secaoId: string; lado: LadoDaSecao }[],
+  ): Promise<LocalDoItem[]>;
 }

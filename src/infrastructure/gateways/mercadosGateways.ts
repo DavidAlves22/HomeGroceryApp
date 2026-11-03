@@ -1,5 +1,7 @@
 import type { MercadosGateway, RotasGateway } from '../../application/ports/mercados';
 import type {
+  LadoDaSecao,
+  LocalDoItem,
   MapaEmEdicao,
   Mercado,
   MercadoResumo,
@@ -28,8 +30,12 @@ export class MercadosApiGateway implements MercadosGateway {
   }
 
   salvarMapa(id: string, mapa: MapaEmEdicao, versao: number) {
-    // As ids das seções são sempre da API: o que o editor usa antes de salvar é provisório.
-    const secoes = mapa.secoes.map(({ id: _id, ...resto }) => resto);
+    // As ids das seções são sempre da API e mudam a cada salvamento. A id anterior (só das seções que já
+    // vieram do servidor) deixa a API manter os locais que o usuário marcou para produtos.
+    const secoes = mapa.secoes.map(({ id, ...resto }) => ({
+      ...resto,
+      idAnterior: id.startsWith("local-") ? undefined : id,
+    }));
     return this.http.put<Mercado>(`/lojas/${id}/mapa`, { corpo: { ...mapa, secoes, versao } });
   }
 
@@ -50,6 +56,17 @@ export class RotasApiGateway implements RotasGateway {
   marcarSemNoMercado(listaId: string, itemId: string, mercadoId: string, sem: boolean) {
     return this.http.put<ItemDaLista>(`/listas/${listaId}/itens/${itemId}/sem-na-loja`, {
       corpo: { lojaId: mercadoId, sem },
+    });
+  }
+
+  definirLocalDoItem(
+    listaId: string,
+    itemId: string,
+    mercadoId: string,
+    locais: { secaoId: string; lado: LadoDaSecao }[],
+  ) {
+    return this.http.put<LocalDoItem[]>(`/listas/${listaId}/itens/${itemId}/local`, {
+      corpo: { lojaId: mercadoId, locais },
     });
   }
 }

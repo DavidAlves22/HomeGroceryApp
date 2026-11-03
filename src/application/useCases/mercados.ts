@@ -1,4 +1,4 @@
-import type { MapaEmEdicao, Ponto } from '../../domain/entities/mercados';
+import type { LadoDaSecao, MapaEmEdicao, Ponto } from '../../domain/entities/mercados';
 import { validarMapa } from '../../domain/services/mapa';
 import { ErroDeApi } from '../errors';
 import type { MercadosGateway, RotasGateway } from '../ports/mercados';
@@ -59,5 +59,20 @@ export class MarcarItemSemNoMercado {
   constructor(private readonly gateway: RotasGateway) {}
   executar(listaId: string, itemId: string, mercadoId: string, sem: boolean) {
     return this.gateway.marcarSemNoMercado(listaId, itemId, mercadoId, sem);
+  }
+}
+
+/** "Achei em outro lugar": grava onde o produto fica neste mercado, para a rota e as próximas listas. */
+export class DefinirLocalDoItem {
+  constructor(private readonly gateway: RotasGateway) {}
+
+  async executar(
+    listaId: string,
+    itemId: string,
+    mercadoId: string,
+    locais: { secaoId: string; lado: LadoDaSecao }[],
+  ) {
+    if (locais.length > 5) throw new ErroDeApi("Um produto pode ter até 5 locais por mercado.", 400);
+    return this.gateway.definirLocalDoItem(listaId, itemId, mercadoId, locais);
   }
 }
