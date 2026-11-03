@@ -137,7 +137,16 @@ export function NovaListaScreen() {
         itensDeOrigemIds: origem === 'Copiar' ? selecionados : undefined,
         permitirDuplicada,
       });
-      navegacao.replace('DetalheDaLista', { listaId: lista.resumo.id });
+      // A lista do mês atual é a da aba Lista (com a barra de navegação): vai para lá, sem tela à parte.
+      // Lista de outro mês ou segunda lista do mesmo mês não é a "atual" da aba, então abre o detalhe dela.
+      if (
+        lista.resumo.principal &&
+        lista.resumo.competencia === Competencia.daData(new Date()).chave
+      ) {
+        navegacao.navigate('Abas', { screen: 'Lista' });
+      } else {
+        navegacao.replace('DetalheDaLista', { listaId: lista.resumo.id });
+      }
     } catch (e) {
       if (e instanceof ListaPrincipalJaExiste) setPedirConfirmacao(true);
       else setErro(mensagemParaUsuario(e));

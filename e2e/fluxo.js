@@ -163,6 +163,10 @@ let passo = 0;
     await foto('nova-lista-selecao');
     await clicar('Criar lista com 2 produtos');
     await esperarTexto('0%');
+    // Telas anteriores continuam no DOM, escondidas: só conta o Voltar visível.
+    const voltarVisivel = await page.evaluate(() => [...document.querySelectorAll('[aria-label="Voltar"]')].some((e) => e.offsetParent !== null));
+    verificar(!voltarVisivel, 'a lista criada abre na aba Lista, sem tela à parte (sem seta de voltar)');
+    verificar((await texto()).includes('Análises'), 'a barra de navegação continua visível');
     const t5 = await texto();
     verificar(
       t5.includes('Arroz') && t5.includes('Banana') && !t5.includes('Leite'),
@@ -191,7 +195,6 @@ let passo = 0;
     await foto('lista-com-precos');
 
     console.log('7) Alterar a lista padrão não muda a lista do mês');
-    await clicarRotulo('Voltar').catch(() => {});
     await page.goto(BASE, { waitUntil: 'networkidle2' });
     await esperarTexto('Em andamento');
     verificar((await texto()).includes('50%'), 'início mostra 50% da lista do mês');

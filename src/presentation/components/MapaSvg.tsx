@@ -1,3 +1,4 @@
+import { JANELA_INICIAL, type Janela } from '../../domain/services/zoomDoMapa';
 import React from 'react';
 import { Platform, View } from 'react-native';
 import Svg, {
@@ -88,6 +89,8 @@ interface Props {
   /** Seções realçadas à força (ex.: onde o usuário marcou o produto). Sobrepõe o realce padrão. */
   destacadas?: string[];
   aoMedir?: (largura: number) => void;
+  /** Zoom do editor: o pedaço do mapa que aparece (canto em células e escala). Sem isso, o mapa inteiro. */
+  janela?: Janela;
 }
 
 /**
@@ -101,6 +104,7 @@ export function MapaSvg({
   rota = null,
   destacadas,
   aoMedir,
+  janela = JANELA_INICIAL,
 }: Props) {
   const p = usePaleta();
   const editar = modo === 'editar';
@@ -115,10 +119,14 @@ export function MapaSvg({
   return (
     <View
       pointerEvents="none"
-      style={{ width: '100%', aspectRatio: mapa.largura / mapa.altura }}
+      style={{ width: '100%', aspectRatio: mapa.largura / mapa.altura, overflow: 'hidden' }}
       onLayout={(ev) => aoMedir?.(ev.nativeEvent.layout.width)}
     >
-      <Svg width="100%" height="100%" viewBox={`0 0 ${largura} ${altura}`}>
+      <Svg
+        width="100%"
+        height="100%"
+        viewBox={`${janela.x * CELULA} ${janela.y * CELULA} ${largura / janela.escala} ${altura / janela.escala}`}
+      >
         <Rect width={largura} height={altura} rx={16} fill={p.superficie2} />
         {editar && (
           <>

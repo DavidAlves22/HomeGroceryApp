@@ -1,9 +1,13 @@
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import { useNavigation, type CompositeNavigationProp } from '@react-navigation/native';
+import {
+  useNavigation,
+  type CompositeNavigationProp,
+  type NavigatorScreenParams,
+} from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export type RootStackParamList = {
-  Abas: undefined;
+  Abas: NavigatorScreenParams<AbasParamList> | undefined;
   NovaLista: undefined;
   ListaPadrao: undefined;
   DetalheDaLista: { listaId: string };

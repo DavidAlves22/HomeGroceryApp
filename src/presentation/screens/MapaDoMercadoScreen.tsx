@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Text,
   View,
+  type GestureResponderEvent,
   type ViewStyle,
 } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
@@ -32,6 +33,13 @@ import {
   type AlvoDoMapa,
   type Toque,
 } from '../../domain/services/mapa';
+import {
+  celulaNoPonto,
+  deslocarJanela,
+  JANELA_INICIAL,
+  zoomEmTorno,
+  type Janela,
+} from '../../domain/services/zoomDoMapa';
 import { Botao, Campo, Cartao, TextoSuave } from '../components/base';
 import { MapaSvg } from '../components/MapaSvg';
 import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina, Pilula } from '../components/ui';
@@ -83,6 +91,8 @@ export function MapaDoMercadoScreen() {
   const [salvando, setSalvando] = useState(false);
   const [confirmandoExclusao, setConfirmandoExclusao] = useState(false);
   const [confirmandoSaida, setConfirmandoSaida] = useState(false);
+  // Zoom: o pedaço do mapa que aparece. Dois dedos aproximam e movem; um dedo no vazio também move quando há zoom.
+  const [janela, setJanela] = useState<Janela>(JANELA_INICIAL);
 
   const sujo = !!mapa && JSON.stringify(mapa) !== original;
   // O voltar do celular/navegador também passa por aqui: com alterações não salvas, pede confirmação como a seta.
@@ -117,59 +127,156 @@ export function MapaDoMercadoScreen() {
   const larguraPx = useRef(0);
   const arrasto = useRef<Arrasto | null>(null);
   const candidato = useRef<Toque | null>(null);
+  const janelaRef = useRef<Janela>(JANELA_INICIAL);
+  // O que o gesto em curso está fazendo: arrastar uma seção, mover a visão com um dedo ou o pinça de dois dedos.
+  const modo = useRef<'nenhum' | 'arrastar' | 'mover' | 'pinca'>('nenhum');
+  const pinca = useRef<{ d0: number; escala0: number; focal: { x: number; y: number } } | null>(
+    null,
+  );
+  const visaoAoComecar = useRef<Janela>(JANELA_INICIAL);
   mapaRef.current = mapa;
   selecionadoRef.current = selecionado;
+  janelaRef.current = janela;
 
-  const gestos = useMemo(
-    () =>
-      PanResponder.create({
-        onStartShouldSetPanResponder: (e) => {
-          const m = mapaRef.current;
-          if (!m || larguraPx.current === 0) return false;
-          const px = larguraPx.current / m.largura;
-          candidato.current = acharAlvo(
-            m,
-            e.nativeEvent.locationX / px,
-            e.nativeEvent.locationY / px,
-            TOLERANCIA_DO_DEDO_PX / px,
-            selecionadoRef.current,
+  const gestos = useMemo(() => {
+    const medidas = (e: GestureResponderEvent) => {
+      const [a, b] = e.nativeEvent.touches;
+      return {
+        d: Math.hypot(b.pageX - a.pageX, b.pageY - a.pageY),
+        meio: { x: (a.locationX + b.locationX) / 2, y: (a.locationY + b.locationY) / 2 },
+      };
+    };
+
+    // Segundo dedo na tela: vira pinça. Se um dedo já arrastava uma seção, o arrasto é desfeito (volta ao início).
+    const comecarPinca = (e: GestureResponderEvent) => {
+      const m = mapaRef.current;
+      if (!m || larguraPx.current === 0) return;
+      if (arrasto.current) {
+        setMapa(arrasto.current.base);
+        arrasto.current = null;
+      }
+      const { d, meio } = medidas(e);
+      pinca.current = {
+        d0: Math.max(d, 1),
+        escala0: janelaRef.current.escala,
+        focal: celulaNoPonto(janelaRef.current, larguraPx.current / m.largura, meio.x, meio.y),
+      };
+      modo.current = 'pinca';
+    };
+
+    return PanResponder.create({
+      onStartShouldSetPanResponder: (e) => {
+        const m = mapaRef.current;
+        if (!m || larguraPx.current === 0) return false;
+        if (e.nativeEvent.touches.length >= 2) return true;
+        const pxBase = larguraPx.current / m.largura;
+        const celula = celulaNoPonto(
+          janelaRef.current,
+          pxBase,
+          e.nativeEvent.locationX,
+          e.nativeEvent.locationY,
+        );
+        candidato.current = acharAlvo(
+          m,
+          celula.x,
+          celula.y,
+          TOLERANCIA_DO_DEDO_PX / (pxBase * janelaRef.current.escala),
+          selecionadoRef.current,
+        );
+        // Sem zoom, o vazio do mapa não faz nada; com zoom, um dedo no vazio move a visão.
+        return candidato.current !== null || janelaRef.current.escala > 1;
+      },
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: (e) => {
+        if (e.nativeEvent.touches.length >= 2) {
+          comecarPinca(e);
+          return;
+        }
+        const m = mapaRef.current;
+        const toque = candidato.current;
+        const area = m && toque ? areaDoAlvo(m, toque.alvo) : undefined;
+        if (!m || !toque || !area) {
+          modo.current = 'mover';
+          visaoAoComecar.current = janelaRef.current;
+          return;
+        }
+        modo.current = 'arrastar';
+        arrasto.current = { toque, base: m, inicio: { ...area } };
+        setSelecionado(toque.alvo);
+        setConfirmandoExclusao(false);
+      },
+      onPanResponderMove: (e, g) => {
+        const m = mapaRef.current;
+        if (!m || larguraPx.current === 0) return;
+        const pxBase = larguraPx.current / m.largura;
+
+        if (e.nativeEvent.touches.length >= 2) {
+          if (modo.current !== 'pinca') comecarPinca(e);
+          const inicio = pinca.current;
+          if (!inicio) return;
+          const { d, meio } = medidas(e);
+          // O ponto entre os dedos fica sobre a mesma célula: aproximar e mover a visão acontecem juntos.
+          setJanela(
+            zoomEmTorno(
+              janelaRef.current,
+              (inicio.escala0 * d) / inicio.d0,
+              inicio.focal,
+              meio,
+              pxBase,
+              m.largura,
+              m.altura,
+            ),
           );
-          return candidato.current !== null;
-        },
-        onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: () => {
-          const m = mapaRef.current;
-          const toque = candidato.current;
-          const area = m && toque ? areaDoAlvo(m, toque.alvo) : undefined;
-          if (!m || !toque || !area) return;
-          arrasto.current = { toque, base: m, inicio: { ...area } };
-          setSelecionado(toque.alvo);
-          setConfirmandoExclusao(false);
-        },
-        onPanResponderMove: (_e, g) => {
-          const a = arrasto.current;
-          if (!a || larguraPx.current === 0) return;
-          const px = larguraPx.current / a.base.largura;
-          const dx = Math.round(g.dx / px);
-          const dy = Math.round(g.dy / px);
-          const { toque, base, inicio } = a;
-          let novo: MapaEmEdicao | null;
-          if (dx === 0 && dy === 0) novo = base;
-          else if (toque.alca && toque.alvo.tipo === 'secao') {
-            novo = redimensionarSecao(base, toque.alvo.id, inicio.largura + dx, inicio.altura + dy);
-          } else novo = moverAlvo(base, toque.alvo, inicio.x + dx, inicio.y + dy);
-          // Destino ocupado: a seção fica na última posição válida, sem pular.
-          if (novo) setMapa(novo);
-        },
-        onPanResponderRelease: () => {
-          arrasto.current = null;
-        },
-        onPanResponderTerminate: () => {
-          arrasto.current = null;
-        },
-      }),
-    [],
-  );
+          return;
+        }
+        // Depois do pinça, o dedo que ficou não mexe em nada até soltar.
+        if (modo.current === 'pinca') return;
+
+        if (modo.current === 'mover') {
+          setJanela(
+            deslocarJanela(visaoAoComecar.current, g.dx, g.dy, pxBase, m.largura, m.altura),
+          );
+          return;
+        }
+
+        const a = arrasto.current;
+        if (!a) return;
+        const px = (larguraPx.current / a.base.largura) * janelaRef.current.escala;
+        const dx = Math.round(g.dx / px);
+        const dy = Math.round(g.dy / px);
+        const { toque, base, inicio } = a;
+        let novo: MapaEmEdicao | null;
+        if (dx === 0 && dy === 0) novo = base;
+        else if (toque.alca && toque.alvo.tipo === 'secao') {
+          novo = redimensionarSecao(base, toque.alvo.id, inicio.largura + dx, inicio.altura + dy);
+        } else novo = moverAlvo(base, toque.alvo, inicio.x + dx, inicio.y + dy);
+        // Destino ocupado: a seção fica na última posição válida, sem pular.
+        if (novo) setMapa(novo);
+      },
+      onPanResponderRelease: () => {
+        arrasto.current = null;
+        pinca.current = null;
+        modo.current = 'nenhum';
+      },
+      onPanResponderTerminate: () => {
+        arrasto.current = null;
+        pinca.current = null;
+        modo.current = 'nenhum';
+      },
+    });
+  }, []);
+
+  // Botões de zoom (para quem não tem dois dedos): aproximam ou afastam em torno do centro da tela.
+  const zoomPelosBotoes = (fator: number) => {
+    const m = mapaRef.current;
+    if (!m || larguraPx.current === 0) return;
+    const pxBase = larguraPx.current / m.largura;
+    const centro = { x: larguraPx.current / 2, y: (larguraPx.current * m.altura) / m.largura / 2 };
+    const focal = celulaNoPonto(janela, pxBase, centro.x, centro.y);
+    setJanela(
+      zoomEmTorno(janela, janela.escala * fator, focal, centro, pxBase, m.largura, m.altura),
+    );
+  };
 
   if (carregando && !mercado) {
     return (
@@ -350,7 +457,8 @@ export function MapaDoMercadoScreen() {
         />
         <TextoSuave>
           Arraste uma seção para mover. A bolinha do canto muda o tamanho. A entrada e os caixas
-          também se arrastam. Cada quadradinho vale cerca de 1,5 m.
+          também se arrastam. Com dois dedos você aproxima e move o mapa. Cada quadradinho vale
+          cerca de 1,5 m.
         </TextoSuave>
 
         <Cartao estilo={{ padding: espaco.md }}>
@@ -359,9 +467,23 @@ export function MapaDoMercadoScreen() {
               mapa={mapa}
               modo="editar"
               selecionado={selecionado}
+              janela={janela}
               aoMedir={(largura) => {
                 larguraPx.current = largura;
               }}
+            />
+          </View>
+          <View style={estilos.zoom}>
+            <Chip rotulo="Afastar" ativo={false} aoPressionar={() => zoomPelosBotoes(1 / 1.5)} />
+            <Chip rotulo="Aproximar" ativo={false} aoPressionar={() => zoomPelosBotoes(1.5)} />
+            <Chip
+              rotulo={
+                janela.escala > 1
+                  ? `Ver tudo · ${janela.escala.toFixed(1).replace('.', ',')}×`
+                  : 'Ver tudo'
+              }
+              ativo={janela.escala > 1}
+              aoPressionar={() => setJanela(JANELA_INICIAL)}
             />
           </View>
         </Cartao>
@@ -510,5 +632,6 @@ const estilos = StyleSheet.create({
   conteudo: { padding: espaco.lg, paddingBottom: 48, gap: espaco.md },
   acoes: { flexDirection: 'row', gap: espaco.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
+  zoom: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm, marginTop: espaco.md },
   entre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });
