@@ -19,8 +19,6 @@ export interface MercadosGateway {
   /** O mapa é salvo por inteiro; a resposta traz as ids definitivas das seções. */
   salvarMapa(id: string, mapa: MapaEmEdicao, versao: number): Promise<Mercado>;
   excluir(id: string): Promise<void>;
-  /** Liga/desliga a presença do mapa no catálogo de mapas compartilhados. */
-  compartilhar(id: string, compartilhada: boolean): Promise<MercadoResumo>;
 }
 
 /** Mapas de mercado de todos os grupos: só se vê e se copia (a cópia vira um mercado do grupo, editável). */

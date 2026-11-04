@@ -70,6 +70,13 @@ async function preparar() {
           categoriasLadoA: [cat('Açougue')],
           categoriasLadoB: [],
         },
+        ...Array.from({ length: 6 }, (_, i) => ({
+          nome: `Corredor ${i + 1}`,
+          dividida: false,
+          area: area(8 + 3 * i, 8, 2, 8),
+          categoriasLadoA: [],
+          categoriasLadoB: [],
+        })),
       ],
     },
     token,
@@ -170,7 +177,7 @@ async function preparar() {
       (await texto()).includes('São Carlos'),
       'o filtro de cidade ignora acento e maiúscula e o cartão mostra a cidade',
     );
-    verificar((await texto()).includes('2 seções'), 'a lista mostra o mapa com 2 seções');
+    verificar((await texto()).includes('8 seções'), 'a lista mostra o mapa com 8 seções');
     verificar((await texto()).includes('ainda ninguém copiou'), 'ninguém copiou ainda');
     await pausa(1200);
     await clicar('Ver mapa');
@@ -198,30 +205,76 @@ async function preparar() {
     verificar(
       lojasDela.length === 1 &&
         lojasDela[0].nome === nomeDoMapa &&
-        lojasDela[0].secoes === 2 &&
+        lojasDela[0].secoes === 8 &&
         lojasDela[0].cidade === 'São Carlos',
       'o servidor guardou a cópia (com a cidade) no grupo dela',
     );
     const original = await api('GET', `/lojas/${lojaId}`, null, token);
     verificar(
-      original.secoes.length === 2 && original.versao === 2,
+      original.secoes.length === 8 && original.versao === 2,
       'o mapa original continua intacto',
     );
 
-    console.log('4) "Parar de compartilhar" tira o mapa do catálogo');
-    await api('PUT', `/lojas/${lojaId}/compartilhamento`, { compartilhada: false }, token);
+    console.log('4) Só entram no catálogo mapas com 8 seções de nome próprio');
     const terceiro = await api('POST', '/autenticacao/cadastro', {
       nome: 'Terceiro',
       email: `e2e_catalogo_t_${sufixo}@teste.com`,
       senha: 'senha1234',
     });
-    const visto = await api(
-      'GET',
-      `/catalogo/mercados?busca=${encodeURIComponent(nomeDoMapa)}`,
-      null,
-      terceiro.tokenDeAcesso,
+    const area = (x, y, largura, altura) => ({ x, y, largura, altura });
+    const secoesDe = (nomes) =>
+      nomes.map((nome, i) => ({
+        nome,
+        dividida: false,
+        area: area(1 + 3 * i, 8, 2, 8),
+        categoriasLadoA: [],
+        categoriasLadoB: [],
+      }));
+    const nomeCurto = `Mercado Curto ${sufixo}`;
+    const curto = await api('POST', '/lojas', { nome: nomeCurto, cidade: 'São Carlos' }, token);
+    await api(
+      'PUT',
+      `/lojas/${curto.id}/mapa`,
+      {
+        nome: nomeCurto,
+        largura: 34,
+        altura: 40,
+        entrada: { x: 16, y: 37 },
+        caixas: area(24, 34, 7, 2),
+        versao: curto.versao,
+        secoes: secoesDe(['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7']),
+      },
+      token,
     );
-    verificar(visto.length === 0, 'sem compartilhar, outro grupo não vê mais o mapa');
+    const nomePadrao = `Mercado Padrao ${sufixo}`;
+    const padrao = await api('POST', '/lojas', { nome: nomePadrao, cidade: 'São Carlos' }, token);
+    await api(
+      'PUT',
+      `/lojas/${padrao.id}/mapa`,
+      {
+        nome: nomePadrao,
+        largura: 34,
+        altura: 40,
+        entrada: { x: 16, y: 37 },
+        caixas: area(24, 34, 7, 2),
+        versao: padrao.versao,
+        secoes: secoesDe(['B1', 'B2', 'B3', 'B4', 'B5', 'Nova seção', 'Nova seção', 'Nova seção']),
+      },
+      token,
+    );
+    const busca = (nome) =>
+      api(
+        'GET',
+        `/catalogo/mercados?busca=${encodeURIComponent(nome)}`,
+        null,
+        terceiro.tokenDeAcesso,
+      );
+    verificar((await busca(nomeCurto)).length === 0, 'mapa com 7 seções não entra no catálogo');
+    verificar(
+      (await busca(nomePadrao)).length === 0,
+      'mapa com 8 seções mas só 5 com nome próprio não entra',
+    );
+    verificar((await busca(nomeDoMapa)).length === 1, 'o mapa com 8 seções de nome próprio entra');
 
     console.log('5) Novo mercado pela tela exige nome e cidade');
     await page.goto(BASE + '/mercados', { waitUntil: 'networkidle2' });
@@ -233,8 +286,13 @@ async function preparar() {
     await digitar('Cidade', 'Araras');
     await clicar('Criar e abrir o editor');
     await esperarTexto('Arraste uma seção para mover');
-    const cidadeNoEditor = await page.evaluate(() => document.querySelector('[aria-label="Cidade"]')?.value);
-    verificar(cidadeNoEditor === 'Araras', 'com a cidade, cria o mercado e abre o editor com ela preenchida');
+    const cidadeNoEditor = await page.evaluate(
+      () => document.querySelector('[aria-label="Cidade"]')?.value,
+    );
+    verificar(
+      cidadeNoEditor === 'Araras',
+      'com a cidade, cria o mercado e abre o editor com ela preenchida',
+    );
     await foto('novo-mercado');
 
     console.log(erros.length ? '\nErros:\n' + erros.join('\n') : '\nSem erros no navegador.');

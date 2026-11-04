@@ -48,12 +48,6 @@ export class MercadosApiGateway implements MercadosGateway {
   async excluir(id: string) {
     await this.http.delete<void>(`/lojas/${id}`);
   }
-
-  compartilhar(id: string, compartilhada: boolean) {
-    return this.http.put<MercadoResumo>(`/lojas/${id}/compartilhamento`, {
-      corpo: { compartilhada },
-    });
-  }
 }
 
 export class MapasCompartilhadosApiGateway implements MapasCompartilhadosGateway {

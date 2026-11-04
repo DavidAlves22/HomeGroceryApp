@@ -3,7 +3,6 @@ import type {
   MercadosGateway,
 } from '../../src/application/ports/mercados';
 import {
-  CompartilharMercado,
   CopiarMapaCompartilhado,
   ListarMapasCompartilhados,
   ObterMapaCompartilhado,
@@ -31,12 +30,5 @@ describe('mapas compartilhados', () => {
     const novo = await new CopiarMapaCompartilhado(g).executar('m1');
     expect(g.copiar).toHaveBeenCalledWith('m1');
     expect(novo.id).toBe('novo');
-  });
-
-  it('compartilhar liga ou desliga o mapa do grupo no catálogo', async () => {
-    const g = { compartilhar: jest.fn().mockResolvedValue({}) } as unknown as MercadosGateway &
-      Record<string, jest.Mock>;
-    await new CompartilharMercado(g).executar('loja-1', false);
-    expect(g.compartilhar).toHaveBeenCalledWith('loja-1', false);
   });
 });

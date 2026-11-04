@@ -23,7 +23,6 @@ function CartaoDoMercado({
   aoComprar,
   aoEditar,
   aoExcluir,
-  aoCompartilhar,
 }: {
   mercado: MercadoResumo;
   emUso: boolean;
@@ -33,7 +32,6 @@ function CartaoDoMercado({
   aoComprar: () => void;
   aoEditar: () => void;
   aoExcluir: () => void;
-  aoCompartilhar: () => void;
 }) {
   const p = usePaleta();
   const container = useContainer();
@@ -85,19 +83,6 @@ function CartaoDoMercado({
           variante="secundario"
           aoPressionar={aoEditar}
           estilo={{ flex: 1, minHeight: 44 }}
-        />
-      </View>
-      <View style={estilos.compartilhar}>
-        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena, flex: 1 }}>
-          {mercado.compartilhada === false
-            ? 'Mapa só seu: não aparece em Mapas existentes.'
-            : 'Outras pessoas podem copiar este mapa (sem alterar o seu).'}
-        </Text>
-        <Botao
-          titulo={mercado.compartilhada === false ? 'Compartilhar' : 'Parar de compartilhar'}
-          variante="texto"
-          aoPressionar={aoCompartilhar}
-          estilo={{ minHeight: 36, paddingHorizontal: espaco.sm }}
         />
       </View>
       {podeExcluir && (
@@ -230,21 +215,6 @@ export function MercadosScreen() {
     }
   }
 
-  async function alternarCompartilhamento(m: MercadoResumo) {
-    const compartilhar = m.compartilhada === false;
-    try {
-      await container.compartilharMercado.executar(m.id, compartilhar);
-      toast(
-        compartilhar
-          ? 'Mapa compartilhado: outras pessoas podem copiá-lo.'
-          : 'Mapa deixou de aparecer para os outros. Quem já copiou continua com a cópia.',
-      );
-      await recarregar();
-    } catch (e) {
-      toast(mensagemParaUsuario(e));
-    }
-  }
-
   return (
     <Pagina>
       <Cabecalho titulo="Mercados" aoVoltar={() => navegacao.goBack()} />
@@ -285,7 +255,6 @@ export function MercadosScreen() {
               }}
               aoEditar={() => navegacao.navigate('MapaDoMercado', { mercadoId: m.id })}
               aoExcluir={() => void excluir(m)}
-              aoCompartilhar={() => void alternarCompartilhamento(m)}
             />
           ))
         )}
@@ -320,6 +289,5 @@ const estilos = StyleSheet.create({
   conteudo: { padding: espaco.lg, paddingBottom: 40, gap: espaco.lg },
   linha: { flexDirection: 'row', gap: espaco.md, alignItems: 'flex-start' },
   acoes: { flexDirection: 'row', gap: espaco.sm },
-  compartilhar: { flexDirection: 'row', alignItems: 'center', gap: espaco.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
 });

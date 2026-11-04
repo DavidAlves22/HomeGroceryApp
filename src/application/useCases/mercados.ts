@@ -87,13 +87,6 @@ export class DefinirLocalDoItem {
   }
 }
 
-export class CompartilharMercado {
-  constructor(private readonly gateway: MercadosGateway) {}
-  executar(id: string, compartilhada: boolean) {
-    return this.gateway.compartilhar(id, compartilhada);
-  }
-}
-
 export class ListarMapasCompartilhados {
   constructor(private readonly gateway: MapasCompartilhadosGateway) {}
   executar(busca: string, cidade: string) {

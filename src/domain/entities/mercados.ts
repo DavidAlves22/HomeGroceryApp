@@ -41,8 +41,6 @@ export interface Mercado {
   caixas: Area;
   secoes: Secao[];
   versao: number;
-  /** Aparece no catálogo para outros grupos copiarem (padrão: sim). */
-  compartilhada?: boolean;
   /** Obrigatória em mercados novos; mercados antigos podem vir sem (o editor pede para preencher). */
   cidade?: string | null;
 }
@@ -56,7 +54,6 @@ export interface MercadoResumo {
   versao: number;
   /** CNPJ (só dígitos) aprendido ao importar notas: a próxima nota desse mercado já abre nele. */
   cnpj?: string | null;
-  compartilhada?: boolean;
   cidade?: string | null;
 }
 

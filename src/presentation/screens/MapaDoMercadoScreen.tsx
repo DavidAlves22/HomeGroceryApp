@@ -25,12 +25,14 @@ import {
   girarSecao,
   juntarSecao,
   ladosSemCategoria,
+  MINIMO_DE_SECOES_PARA_O_CATALOGO,
   mapaDoMercado,
   moverAlvo,
   novoIdLocal,
   redimensionarMapa,
   redimensionarSecao,
   removerSecao,
+  secoesComNomeProprio,
   renomearSecao,
   TAMANHO_MAXIMO_DO_MAPA,
   TAMANHO_MINIMO_DO_MAPA,
@@ -531,6 +533,11 @@ export function MapaDoMercadoScreen() {
           maxLength={80}
           editable={!travado}
         />
+        {secoesComNomeProprio(mapa) < MINIMO_DE_SECOES_PARA_O_CATALOGO && (
+          <TextoSuave estilo={{ fontSize: fonte.pequena }}>
+            {`Para este mapa aparecer em Mapas existentes, ele precisa de pelo menos ${MINIMO_DE_SECOES_PARA_O_CATALOGO} seções com nome próprio (agora: ${secoesComNomeProprio(mapa)}). "Nova seção" não conta.`}
+          </TextoSuave>
+        )}
         {!mapa.cidade.trim() && (
           <TextoSuave>
             Informe a cidade para salvar o mapa. Ela ajuda outras pessoas a encontrá-lo em Mapas

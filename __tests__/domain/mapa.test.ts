@@ -11,11 +11,13 @@ import {
   girarSecao,
   juntarSecao,
   ladosSemCategoria,
+  MINIMO_DE_SECOES_PARA_O_CATALOGO,
   ladoNoPonto,
   moverAlvo,
   redimensionarMapa,
   redimensionarSecao,
   secaoNoPonto,
+  secoesComNomeProprio,
   TAMANHO_MAXIMO_DO_MAPA,
   textoDoLado,
   validarMapa,
@@ -303,5 +305,20 @@ describe('ladosSemCategoria', () => {
       { secaoId: 'c', lado: 'B', rotulo: 'Refrigerantes · lado direito' },
     ]);
     expect(ladosSemCategoria(mapa([comCategoria]))).toEqual([]);
+  });
+});
+
+describe('secoesComNomeProprio', () => {
+  it('não conta seção sem nome nem com o nome padrão, em qualquer caixa', () => {
+    const nomeada = (id: string, nome: string) => ({ ...secao(id, 1, 1, 2, 2), nome });
+    const m = mapa([
+      nomeada('a', 'Açougue'),
+      nomeada('b', 'Nova seção'),
+      nomeada('c', ' NOVA SEÇÃO '),
+      nomeada('d', '   '),
+      nomeada('e', 'Padaria'),
+    ]);
+    expect(secoesComNomeProprio(m)).toBe(2);
+    expect(MINIMO_DE_SECOES_PARA_O_CATALOGO).toBe(8);
   });
 });

@@ -51,7 +51,6 @@ import { ObterAnaliseDeGastos, ObterAnaliseDePrecos } from '../application/useCa
 import {
   CriarMercado,
   ExcluirMercado,
-  CompartilharMercado,
   CopiarMapaCompartilhado,
   ListarMapasCompartilhados,
   ListarMercados,
@@ -174,7 +173,6 @@ export function criarContainer(aoExpirarSessao: () => void) {
     listarMercados: new ListarMercados(mercados),
     obterMercado: new ObterMercado(mercados),
     criarMercado: new CriarMercado(mercados),
-    compartilharMercado: new CompartilharMercado(mercados),
     listarMapasCompartilhados: new ListarMapasCompartilhados(mapasCompartilhados),
     obterMapaCompartilhado: new ObterMapaCompartilhado(mapasCompartilhados),
     copiarMapaCompartilhado: new CopiarMapaCompartilhado(mapasCompartilhados),

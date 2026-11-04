@@ -5,6 +5,10 @@ export const TAMANHO_MINIMO_DO_MAPA = 10;
 export const TAMANHO_MAXIMO_DO_MAPA = 120;
 export const MAXIMO_DE_SECOES = 150;
 export const METROS_POR_CELULA = 1.5;
+/** Nome que uma seção recém-criada recebe; não conta para o catálogo de mapas. */
+export const NOME_PADRAO_DA_SECAO = 'Nova seção';
+/** Quantas seções com nome próprio um mapa precisa ter para aparecer em "Mapas existentes" (a API confere de novo). */
+export const MINIMO_DE_SECOES_PARA_O_CATALOGO = 8;
 
 /** O que o usuário pode arrastar no editor. */
 export type AlvoDoMapa = { tipo: 'secao'; id: string } | { tipo: 'entrada' } | { tipo: 'caixas' };
@@ -168,7 +172,7 @@ export function adicionarSecao(mapa: MapaEmEdicao, id: string) {
       if (areaLivre(mapa, area)) {
         const secao: Secao = {
           id,
-          nome: 'Nova seção',
+          nome: NOME_PADRAO_DA_SECAO,
           nomeLadoB: null,
           dividida: false,
           area,
@@ -207,7 +211,7 @@ export function duplicarSecao(mapa: MapaEmEdicao, id: string, novoId: string) {
   if (!area) return null;
   const copia: Secao = {
     id: novoId,
-    nome: 'Nova seção',
+    nome: NOME_PADRAO_DA_SECAO,
     nomeLadoB: origem.dividida ? 'Lado B' : null,
     dividida: origem.dividida,
     area,
@@ -254,6 +258,15 @@ export function alternarCategoria(
 export function categoriasSemLocal(mapa: MapaEmEdicao, categorias: Categoria[]): Categoria[] {
   const usadas = new Set(mapa.secoes.flatMap((s) => [...s.categoriasLadoA, ...s.categoriasLadoB]));
   return categorias.filter((c) => !usadas.has(c.id));
+}
+
+/** Quantas seções já têm nome próprio (vazio ou "Nova seção" não contam). */
+export function secoesComNomeProprio(mapa: MapaEmEdicao): number {
+  const padrao = NOME_PADRAO_DA_SECAO.toLocaleLowerCase('pt-BR');
+  return mapa.secoes.filter((s) => {
+    const nome = s.nome.trim().toLocaleLowerCase('pt-BR');
+    return nome !== '' && nome !== padrao;
+  }).length;
 }
 
 /** Um lado de seção que ainda não tem nenhuma categoria (a rota nunca vai até ele). */
