@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "HomeGrocery",
+    "name": "Home Grocery",
     "slug": "homegrocery",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -10,7 +10,7 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./public/icon.png"
+      "favicon": "./public/icon-redondo-192.png"
     },
     "plugins": ["expo-secure-store"]
   }

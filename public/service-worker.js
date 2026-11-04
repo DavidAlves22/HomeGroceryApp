@@ -1,4 +1,4 @@
-// Cache do "app shell" do HomeGrocery (PWA).
+// Cache do "app shell" do Home Grocery (PWA).
 //
 // O app é online-only: DADOS NUNCA entram no cache. Só arquivos estáticos do próprio site
 // (HTML, JS, ícones) são guardados, e apenas para a PWA abrir mais rápido. Chamadas à API
@@ -50,11 +50,11 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
       if (janelas.some((j) => j.visibilityState === 'visible')) return undefined;
-      return self.registration.showNotification(dados.titulo || 'HomeGrocery', {
+      return self.registration.showNotification(dados.titulo || 'Home Grocery', {
         body: dados.corpo || '',
         tag: dados.tag || undefined,
         renotify: !!dados.tag,
-        icon: '/icon.png',
+        icon: '/icon-redondo-192.png',
         badge: '/icon.png',
         data: { url: dados.url || '/' },
       });

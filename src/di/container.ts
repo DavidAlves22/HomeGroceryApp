@@ -40,6 +40,12 @@ import {
   RestaurarSessao,
   SairDaConta,
   VerificarServidor,
+  AlterarNomeDoUsuario,
+  ConsultarLoginComGoogle,
+  EntrarComGoogle,
+  ConsultarRecuperacaoDeSenha,
+  PedirCodigoDeRecuperacao,
+  RedefinirSenha,
 } from '../application/useCases/autenticacao';
 import { ObterAnaliseDeGastos, ObterAnaliseDePrecos } from '../application/useCases/analises';
 import {
@@ -75,6 +81,7 @@ import { AutenticacaoApiGateway, ServidorApiGateway } from '../infrastructure/ga
 import { GrupoApiGateway } from '../infrastructure/gateways/grupoGateway';
 import { NotificacoesApiGateway } from '../infrastructure/gateways/notificacoesGateway';
 import { LeitorDeQrDoNavegador } from '../infrastructure/camera/LeitorDeQrDoNavegador';
+import { BotaoDeLoginGoogleDoNavegador } from '../infrastructure/google/BotaoDeLoginGoogleDoNavegador';
 import { AvisosDoNavegador } from '../infrastructure/push/AvisosDoNavegador';
 import { ClienteHttp } from '../infrastructure/http/ClienteHttp';
 import { TempoRealSignalR } from '../infrastructure/tempoReal/TempoRealSignalR';
@@ -105,6 +112,13 @@ export function criarContainer(aoExpirarSessao: () => void) {
     // Conta e sessão
     cadastrarUsuario: new CadastrarUsuario(autenticacao, armazenamento),
     entrarNaConta: new EntrarNaConta(autenticacao, armazenamento),
+    consultarRecuperacaoDeSenha: new ConsultarRecuperacaoDeSenha(autenticacao),
+    pedirCodigoDeRecuperacao: new PedirCodigoDeRecuperacao(autenticacao),
+    redefinirSenha: new RedefinirSenha(autenticacao),
+    consultarLoginComGoogle: new ConsultarLoginComGoogle(autenticacao),
+    entrarComGoogle: new EntrarComGoogle(autenticacao, armazenamento),
+    botaoDeLoginGoogle: new BotaoDeLoginGoogleDoNavegador(),
+    alterarNomeDoUsuario: new AlterarNomeDoUsuario(autenticacao, armazenamento),
     restaurarSessao: new RestaurarSessao(autenticacao, armazenamento),
     sairDaConta: new SairDaConta(armazenamento),
     verificarServidor: new VerificarServidor(servidor),

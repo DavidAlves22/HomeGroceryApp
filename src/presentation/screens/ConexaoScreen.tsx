@@ -29,7 +29,7 @@ export function ConexaoScreen({ estado, aoTentarNovamente }: Props) {
       </Titulo>
       <TextoSuave estilo={{ textAlign: 'center', maxWidth: 320 }}>
         {offline
-          ? 'O HomeGrocery precisa de internet para manter a lista igual para todos da família. Conecte-se e tente novamente.'
+          ? 'O Home Grocery precisa de internet para manter a lista igual para todos da família. Conecte-se e tente novamente.'
           : estado === 'acordando'
             ? 'O servidor estava descansando e pode levar até 1 minuto para responder na primeira vez.'
             : 'Verificando o servidor.'}

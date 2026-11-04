@@ -1,10 +1,27 @@
-import type { DadosDeCadastro, DadosDeLogin, Sessao } from '../dtos/sessao';
+import type {
+  DadosDeCadastro,
+  DadosDeLogin,
+  DadosDeRedefinicaoDeSenha,
+  Sessao,
+  Usuario,
+} from '../dtos/sessao';
 
 /** Fala com o servidor sobre contas. A implementação HTTP fica na infraestrutura. */
 export interface AutenticacaoGateway {
   cadastrar(dados: DadosDeCadastro): Promise<Sessao>;
   entrar(dados: DadosDeLogin): Promise<Sessao>;
   renovar(tokenDeRenovacao: string): Promise<Sessao>;
+  /** O servidor consegue enviar e-mail? Sem isso o app nem mostra "Esqueci minha senha". */
+  recuperacaoDisponivel(): Promise<boolean>;
+  /** Pede o código por e-mail. A resposta é a mesma exista ou não a conta (ninguém descobre e-mails cadastrados). */
+  pedirCodigoDeRecuperacao(email: string): Promise<void>;
+  redefinirSenha(dados: DadosDeRedefinicaoDeSenha): Promise<void>;
+  /** Client ID público do login com Google; null = o servidor não tem o login com Google ligado. */
+  googleClienteId(): Promise<string | null>;
+  /** Entra (ou cria a conta) com o ID token que o botão do Google entregou. */
+  entrarComGoogle(idToken: string): Promise<Sessao>;
+  /** Troca o nome de quem está logado. */
+  alterarNome(nome: string): Promise<Usuario>;
 }
 
 /** Pergunta ao servidor se ele está de pé (health check feito ao abrir o app). */

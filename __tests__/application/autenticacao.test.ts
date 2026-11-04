@@ -40,6 +40,12 @@ function gatewayFalso(sobrescritas: Partial<AutenticacaoGateway> = {}): Autentic
     cadastrar: jest.fn().mockResolvedValue(sessaoExemplo),
     entrar: jest.fn().mockResolvedValue(sessaoExemplo),
     renovar: jest.fn().mockResolvedValue({ ...sessaoExemplo, tokenDeRenovacao: 'renovacao-2' }),
+    recuperacaoDisponivel: jest.fn().mockResolvedValue(true),
+    pedirCodigoDeRecuperacao: jest.fn().mockResolvedValue(undefined),
+    redefinirSenha: jest.fn().mockResolvedValue(undefined),
+    alterarNome: jest.fn(),
+    googleClienteId: jest.fn().mockResolvedValue(null),
+    entrarComGoogle: jest.fn().mockResolvedValue(sessaoExemplo),
     ...sobrescritas,
   };
 }

@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Botao, Cartao } from '../components/base';
 import { CartaoDeAvisos } from '../components/CartaoDeAvisos';
 import { Icone, type NomeDoIcone } from '../components/Icone';
+import { FolhaDeTexto } from '../components/Folhas';
 import { Cabecalho, Pagina, Pilula } from '../components/ui';
 import { useContainer, useSessao } from '../hooks/AppProviders';
 import { useNavegacao } from '../navigation/tipos';
@@ -36,7 +37,8 @@ function Linha({
 
 export function MaisScreen() {
   const p = usePaleta();
-  const { sairDaConta } = useContainer();
+  const { sairDaConta, alterarNomeDoUsuario } = useContainer();
+  const [editandoNome, setEditandoNome] = useState(false);
   const { sessao, definirSessao } = useSessao();
   const navegacao = useNavegacao();
 
@@ -91,7 +93,24 @@ export function MaisScreen() {
             {sessao?.usuario.email}
           </Text>
           <Pilula texto="Servidor conectado" />
+          <Botao
+            titulo="Alterar nome"
+            variante="secundario"
+            aoPressionar={() => setEditandoNome(true)}
+          />
         </Cartao>
+        <FolhaDeTexto
+          visivel={editandoNome}
+          titulo="Alterar nome"
+          rotulo="Seu nome"
+          valorInicial={sessao?.usuario.nome}
+          rotuloDoBotao="Salvar"
+          aoSalvar={async (nome) => {
+            definirSessao(await alterarNomeDoUsuario.executar(nome));
+            setEditandoNome(false);
+          }}
+          aoFechar={() => setEditandoNome(false)}
+        />
 
         <Botao
           titulo="Sair da conta"

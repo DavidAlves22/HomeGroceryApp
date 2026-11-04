@@ -23,3 +23,10 @@ export interface DadosDeLogin {
   email: string;
   senha: string;
 }
+
+export interface DadosDeRedefinicaoDeSenha {
+  email: string;
+  /** Os 6 dígitos que chegaram por e-mail. */
+  codigo: string;
+  novaSenha: string;
+}

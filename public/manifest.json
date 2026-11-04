@@ -1,9 +1,13 @@
 {
-  "name": "HomeGrocery",
-  "short_name": "HomeGrocery",
+  "name": "Home Grocery",
+  "short_name": "Home Grocery",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#f8f4f1",
   "theme_color": "#c2540a",
-  "icons": [{ "src": "/icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }]
+  "icons": [
+    { "src": "/icon-redondo-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-redondo-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }

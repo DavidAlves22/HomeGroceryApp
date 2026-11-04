@@ -97,7 +97,7 @@ export function GrupoScreen() {
     });
 
   async function compartilhar(c: Convite) {
-    const mensagem = `Entre na minha lista de compras no HomeGrocery com o código ${c.codigo} (vale por 7 dias).`;
+    const mensagem = `Entre na minha lista de compras no Home Grocery com o código ${c.codigo} (vale por 7 dias).`;
     try {
       await Share.share({ message: mensagem });
     } catch {
