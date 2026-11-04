@@ -86,13 +86,18 @@ export function MaisScreen() {
         </Cartao>
 
         <Cartao estilo={{ gap: espaco.sm }}>
-          <Text style={{ color: p.texto, fontWeight: '700', fontSize: fonte.corpo }}>
-            {sessao?.usuario.nome}
-          </Text>
+          <View style={estilos.nomeELinha}>
+            <Text
+              numberOfLines={1}
+              style={{ flex: 1, color: p.texto, fontWeight: '700', fontSize: fonte.corpo }}
+            >
+              {sessao?.usuario.nome}
+            </Text>
+            <Pilula texto="Servidor conectado" />
+          </View>
           <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
             {sessao?.usuario.email}
           </Text>
-          <Pilula texto="Servidor conectado" />
           <Botao
             titulo="Alterar nome"
             variante="secundario"
@@ -126,6 +131,12 @@ export function MaisScreen() {
 }
 
 const estilos = StyleSheet.create({
+  nomeELinha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: espaco.sm,
+  },
   conteudo: { padding: espaco.lg, gap: espaco.lg, paddingBottom: 40 },
   linha: {
     flexDirection: 'row',

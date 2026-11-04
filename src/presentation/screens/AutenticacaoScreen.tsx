@@ -136,6 +136,23 @@ export function AutenticacaoScreen() {
             onSubmitEditing={etapa ? redefinir : enviar}
           />
         )}
+        {!criando && !etapa && recuperacaoDisponivel && (
+          <Botao
+            variante="texto"
+            titulo="Esqueci minha senha"
+            estilo={{
+              alignSelf: 'flex-start',
+              minHeight: 32,
+              paddingHorizontal: 0,
+              marginTop: -espaco.sm,
+            }}
+            aoPressionar={() => {
+              setErro(null);
+              setAviso(null);
+              setEtapa('email');
+            }}
+          />
+        )}
         {(criando || etapa === 'codigo') && (
           <TextoSuave estilo={{ fontSize: 12 }}>
             Mínimo de 8 caracteres, com ao menos um número.
@@ -164,17 +181,6 @@ export function AutenticacaoScreen() {
               carregando={enviando}
             />
             <BotaoGoogle />
-            {!criando && recuperacaoDisponivel && (
-              <Botao
-                variante="texto"
-                titulo="Esqueci minha senha"
-                aoPressionar={() => {
-                  setErro(null);
-                  setAviso(null);
-                  setEtapa('email');
-                }}
-              />
-            )}
             <Botao
               variante="texto"
               titulo={criando ? 'Já tenho conta' : 'Criar uma conta'}
