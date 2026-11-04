@@ -62,6 +62,7 @@ import {
 } from '../components/ui';
 import { useContainer, useMercadoAtual } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
+import { useLayoutLargo } from '../hooks/useLayoutLargo';
 import { useToast } from '../hooks/Toast';
 import { useNavegacao, type RootStackParamList } from '../navigation/tipos';
 import { espaco, fonte, usePaleta } from '../theme';
@@ -84,6 +85,7 @@ export function MapaDoMercadoScreen() {
   const container = useContainer();
   const navegacao = useNavegacao();
   const toast = useToast();
+  const largo = useLayoutLargo();
   const { definirMercado } = useMercadoAtual();
   const { params } = useRoute<RouteProp<RootStackParamList, 'MapaDoMercado'>>();
   const {
@@ -464,342 +466,361 @@ export function MapaDoMercadoScreen() {
     />
   );
 
-  return (
-    <Pagina>
-      <Cabecalho titulo={mapa.nome || 'Mapa do mercado'} aoVoltar={voltar} />
-      <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled">
-        {confirmandoSaida && (
-          <Cartao
-            estilo={{ backgroundColor: p.alertaSuave, borderColor: p.alertaSuave, gap: espaco.sm }}
-          >
-            <Text style={{ color: p.alerta, fontWeight: '700' }}>
-              Há alterações que não foram salvas.
-            </Text>
-            <View style={estilos.acoes}>
-              <Botao
-                titulo="Salvar"
-                carregando={salvando}
-                aoPressionar={() => void salvar()}
-                estilo={{ flex: 1 }}
-              />
-              <Botao
-                titulo="Descartar e sair"
-                variante="secundario"
-                aoPressionar={() => navegacao.goBack()}
-                estilo={{ flex: 1 }}
-              />
-            </View>
-          </Cartao>
-        )}
-        {desatualizado && (
-          <Cartao
-            estilo={{
-              backgroundColor: p.destaqueSuave,
-              borderColor: p.destaqueSuave,
-              gap: espaco.sm,
-            }}
-          >
-            <Text style={{ color: p.destaque, fontWeight: '700' }}>
-              Outra pessoa alterou o mapa deste mercado.
-            </Text>
-            <TextoSuave>
-              Se você salvar agora, o app vai pedir para atualizar. Recarregar descarta o que você
-              mudou.
-            </TextoSuave>
-            <Botao
-              titulo="Recarregar o mapa"
-              variante="secundario"
-              aoPressionar={() => {
-                setMapa(null);
-                void recarregar();
-              }}
-            />
-          </Cartao>
-        )}
-
-        <Campo
-          rotulo="Nome do mercado"
-          value={mapa.nome}
-          onChangeText={(nome) => setMapa({ ...mapa, nome })}
-          maxLength={120}
-          editable={!travado}
-        />
-        <Campo
-          rotulo="Cidade"
-          value={mapa.cidade}
-          onChangeText={(cidade) => setMapa({ ...mapa, cidade })}
-          placeholder="Ex.: Araras"
-          autoCapitalize="words"
-          maxLength={80}
-          editable={!travado}
-        />
-        {secoesComNomeProprio(mapa) < MINIMO_DE_SECOES_PARA_O_CATALOGO && (
-          <TextoSuave estilo={{ fontSize: fonte.pequena }}>
-            {`Para este mapa aparecer em Mapas existentes, ele precisa de pelo menos ${MINIMO_DE_SECOES_PARA_O_CATALOGO} seções com nome próprio (agora: ${secoesComNomeProprio(mapa)}). "Nova seção" não conta.`}
-          </TextoSuave>
-        )}
-        {!mapa.cidade.trim() && (
-          <TextoSuave>
-            Informe a cidade para salvar o mapa. Ela ajuda outras pessoas a encontrá-lo em Mapas
-            existentes.
-          </TextoSuave>
-        )}
-        <TextoSuave>
-          {travado
-            ? 'Mapa travado: você só aproxima e anda pelo mapa (dois dedos, ou um dedo com zoom). Toque no cadeado para editar.'
-            : 'Arraste uma seção para mover. A bolinha do canto muda o tamanho. A entrada e os caixas também se arrastam. Com dois dedos você aproxima e move o mapa. Cada quadradinho vale cerca de 1,5 m.'}
-        </TextoSuave>
-
-        <Cartao estilo={{ padding: espaco.md }}>
-          <View style={SEM_ROLAGEM} {...gestos.panHandlers}>
-            <MapaSvg
-              mapa={mapa}
-              modo="editar"
-              selecionado={travado ? null : selecionado}
-              janela={janela}
-              aoMedir={(largura) => {
-                larguraPx.current = largura;
-              }}
-            />
-          </View>
-          <View style={estilos.zoom}>
-            <Chip rotulo="Afastar" ativo={false} aoPressionar={() => zoomPelosBotoes(1 / 1.5)} />
-            <Chip rotulo="Aproximar" ativo={false} aoPressionar={() => zoomPelosBotoes(1.5)} />
-            <Chip
-              rotulo={
-                janela.escala > 1
-                  ? `Ver tudo · ${janela.escala.toFixed(1).replace('.', ',')}×`
-                  : 'Ver tudo'
-              }
-              ativo={janela.escala > 1}
-              aoPressionar={() => setJanela(JANELA_INICIAL)}
-            />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                travado ? 'Destravar a edição do mapa' : 'Travar a edição do mapa'
-              }
-              accessibilityState={{ selected: !travado }}
-              onPress={() => {
-                // Ao travar, solta o que estiver em confirmação para não ficar um "Confirmar" pendurado.
-                setConfirmandoExclusao(false);
-                setTravado(!travado);
-              }}
-              style={[
-                estilos.cadeado,
-                {
-                  backgroundColor: travado ? p.superficie : p.destaque,
-                  borderColor: travado ? p.linha : p.destaque,
-                },
-              ]}
-            >
-              <Icone
-                nome={travado ? 'cadeado' : 'cadeado_aberto'}
-                cor={travado ? p.texto : p.textoSobreDestaque}
-                tamanho={20}
-              />
-            </Pressable>
-          </View>
-        </Cartao>
-
-        {!travado && (
-          <>
-            <Cartao estilo={{ gap: espaco.sm }}>
-              <Text style={{ color: p.texto, fontSize: fonte.titulo, fontWeight: '700' }}>
-                Tamanho do mapa
-              </Text>
-              <View style={estilos.acoes}>
-                <View style={{ flex: 1 }}>
-                  <Campo
-                    rotulo="Colunas"
-                    value={colunas}
-                    onChangeText={(t) => setColunas(t.replace(/\D/g, ''))}
-                    keyboardType="number-pad"
-                    maxLength={3}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Campo
-                    rotulo="Linhas"
-                    value={linhas}
-                    onChangeText={(t) => setLinhas(t.replace(/\D/g, ''))}
-                    keyboardType="number-pad"
-                    maxLength={3}
-                  />
-                </View>
-              </View>
-              <TextoSuave estilo={{ fontSize: fonte.pequena }}>
-                {descreverTamanho({ x: 0, y: 0, largura: mapa.largura, altura: mapa.altura })}. De{' '}
-                {TAMANHO_MINIMO_DO_MAPA} a {TAMANHO_MAXIMO_DO_MAPA} em cada lado. Para diminuir, as
-                seções precisam caber no tamanho novo.
-              </TextoSuave>
-              <Botao
-                titulo="Aplicar tamanho"
-                variante="secundario"
-                desabilitado={Number(colunas) === mapa.largura && Number(linhas) === mapa.altura}
-                aoPressionar={aplicarTamanho}
-                estilo={{ minHeight: 44 }}
-              />
-            </Cartao>
-            <View style={estilos.acoes}>
-              <Botao
-                titulo="Adicionar seção"
-                aoPressionar={adicionar}
-                estilo={{ flex: 1, minHeight: 44 }}
-              />
-              <Botao
-                titulo="Girar"
-                variante="secundario"
-                desabilitado={!secao}
-                aoPressionar={() =>
-                  secao && aplicar(girarSecao(mapa, secao.id), 'Sem espaço para girar aqui')
-                }
-                estilo={{ minHeight: 44, paddingHorizontal: espaco.lg }}
-              />
-              <Botao
-                titulo="Duplicar"
-                variante="secundario"
-                desabilitado={!secao}
-                aoPressionar={duplicar}
-                estilo={{ minHeight: 44, paddingHorizontal: espaco.lg }}
-              />
-            </View>
-            <View style={estilos.acoes}>
-              <Botao
-                titulo={secao?.dividida ? 'Juntar lados' : 'Dividir em dois lados'}
-                variante="secundario"
-                desabilitado={!secao}
-                aoPressionar={() => {
-                  if (!secao) return;
-                  aplicar(
-                    secao.dividida ? juntarSecao(mapa, secao.id) : dividirSecao(mapa, secao.id),
-                    'Sem espaço para a gôndola de dois lados',
-                  );
-                }}
-                estilo={{ flex: 1, minHeight: 44 }}
-              />
-              <Botao
-                titulo={confirmandoExclusao ? 'Confirmar' : 'Excluir seção'}
-                variante={confirmandoExclusao ? 'principal' : 'secundario'}
-                desabilitado={!secao}
-                aoPressionar={excluirSecao}
-                estilo={{ flex: 1, minHeight: 44 }}
-              />
-            </View>
-
-            {secao ? (
-              <Cartao estilo={{ gap: espaco.md }}>
-                <View style={estilos.entre}>
-                  <Text style={{ color: p.texto, fontSize: fonte.titulo, fontWeight: '700' }}>
-                    {secao.dividida ? 'Gôndola de dois lados' : 'Seção'}
-                  </Text>
-                  <Pilula texto={`${secao.area.largura} × ${secao.area.altura}`} tom="neutro" />
-                </View>
-                <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                  {descreverTamanho(secao.area)}
-                </Text>
-                <Campo
-                  rotulo={
-                    secao.dividida
-                      ? `Lado ${textoDoLado(secao, 'A')?.replace('lado ', '')}`
-                      : 'Nome da seção'
-                  }
-                  value={secao.nome}
-                  onChangeText={(t) => setMapa(renomearSecao(mapa, secao.id, 'A', t))}
-                  maxLength={40}
-                />
-                {gatilhoDeCategorias('A', secao.categoriasLadoA)}
-                {secao.dividida && (
-                  <>
-                    <Campo
-                      rotulo={`Lado ${textoDoLado(secao, 'B')?.replace('lado ', '')}`}
-                      value={secao.nomeLadoB ?? ''}
-                      onChangeText={(t) => setMapa(renomearSecao(mapa, secao.id, 'B', t))}
-                      maxLength={40}
-                    />
-                    {gatilhoDeCategorias('B', secao.categoriasLadoB)}
-                  </>
-                )}
-                <TextoSuave estilo={{ fontSize: fonte.pequena }}>
-                  Uma categoria pode estar em vários lugares do mercado, como Mercearia em várias
-                  gôndolas. A rota vai ao mais próximo.
-                  {secao.dividida
-                    ? ' Em gôndola de dois lados, a rota para no corredor do lado do item.'
-                    : ''}
-                </TextoSuave>
-              </Cartao>
-            ) : selecionado?.tipo === 'entrada' ? (
-              <Cartao>
-                <Text style={{ color: p.texto, fontWeight: '700' }}>Entrada</Text>
-                <TextoSuave>
-                  É de onde a rota sai quando você chega ao mercado. Arraste para a porta real.
-                </TextoSuave>
-              </Cartao>
-            ) : selecionado?.tipo === 'caixas' ? (
-              <Cartao>
-                <Text style={{ color: p.texto, fontWeight: '700' }}>Caixas</Text>
-                <TextoSuave>A rota termina aqui. Arraste para onde ficam os caixas.</TextoSuave>
-              </Cartao>
-            ) : (
-              <Cartao>
-                <Text style={{ color: p.texto, fontWeight: '700' }}>Nada selecionado</Text>
-                <TextoSuave>Toque numa seção do mapa ou em Adicionar seção.</TextoSuave>
-              </Cartao>
-            )}
-          </>
-        )}
-
-        {semCategoria.length > 0 && (
-          <Cartao estilo={{ gap: espaco.sm }}>
-            <Pilula texto={`Seções sem categorias: ${semCategoria.length}`} tom="alerta" />
-            <TextoSuave>
-              A rota não passa por elas até você escolher as categorias. Toque para preencher.
-            </TextoSuave>
-            <View style={estilos.chips}>
-              {semCategoria.map((l) => (
-                <Chip
-                  key={`${l.secaoId}-${l.lado}`}
-                  rotulo={l.rotulo}
-                  ativo={selecionado?.tipo === 'secao' && selecionado.id === l.secaoId}
-                  aoPressionar={() => preencherCategorias(l.secaoId, l.lado)}
-                />
-              ))}
-            </View>
-          </Cartao>
-        )}
-        {semLocal.length > 0 ? (
-          <Cartao estilo={{ gap: espaco.sm }}>
-            <Pilula texto={`Sem local neste mercado: ${semLocal.length}`} tom="alerta" />
-            <TextoSuave>{semLocal.map((c) => c.nome).join(', ')}</TextoSuave>
-          </Cartao>
-        ) : (
-          <Pilula texto="Todas as categorias têm local" />
-        )}
-        {!travado &&
-          secao &&
-          (secao.categoriasLadoA.length > 0 || secao.categoriasLadoB.length > 0) && (
-            <TextoSuave estilo={{ fontSize: fonte.pequena }}>
-              Nesta seção:{' '}
-              {[...secao.categoriasLadoA, ...secao.categoriasLadoB].map(nomeDaCategoria).join(', ')}
-              .
-            </TextoSuave>
-          )}
-
-        <Botao
-          titulo={sujo ? 'Salvar mapa' : 'Mapa salvo'}
-          desabilitado={!sujo}
-          carregando={salvando}
-          aoPressionar={() => void salvar()}
-        />
-        <Botao
-          titulo="Comprar neste mercado"
-          variante="secundario"
-          aoPressionar={() => {
-            definirMercado(params.mercadoId);
-            navegacao.navigate('Rota');
+  const cartaoDoMapa = (
+    <Cartao estilo={{ padding: espaco.md }}>
+      <View style={SEM_ROLAGEM} {...gestos.panHandlers}>
+        <MapaSvg
+          mapa={mapa}
+          modo="editar"
+          selecionado={travado ? null : selecionado}
+          janela={janela}
+          aoMedir={(largura) => {
+            larguraPx.current = largura;
           }}
         />
-      </ScrollView>
+      </View>
+      <View style={estilos.zoom}>
+        <Chip rotulo="Afastar" ativo={false} aoPressionar={() => zoomPelosBotoes(1 / 1.5)} />
+        <Chip rotulo="Aproximar" ativo={false} aoPressionar={() => zoomPelosBotoes(1.5)} />
+        <Chip
+          rotulo={
+            janela.escala > 1
+              ? `Ver tudo · ${janela.escala.toFixed(1).replace('.', ',')}×`
+              : 'Ver tudo'
+          }
+          ativo={janela.escala > 1}
+          aoPressionar={() => setJanela(JANELA_INICIAL)}
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={travado ? 'Destravar a edição do mapa' : 'Travar a edição do mapa'}
+          accessibilityState={{ selected: !travado }}
+          onPress={() => {
+            // Ao travar, solta o que estiver em confirmação para não ficar um "Confirmar" pendurado.
+            setConfirmandoExclusao(false);
+            setTravado(!travado);
+          }}
+          style={[
+            estilos.cadeado,
+            {
+              backgroundColor: travado ? p.superficie : p.destaque,
+              borderColor: travado ? p.linha : p.destaque,
+            },
+          ]}
+        >
+          <Icone
+            nome={travado ? 'cadeado' : 'cadeado_aberto'}
+            cor={travado ? p.texto : p.textoSobreDestaque}
+            tamanho={20}
+          />
+        </Pressable>
+      </View>
+    </Cartao>
+  );
+
+  return (
+    <Pagina larga>
+      <Cabecalho titulo={mapa.nome || 'Mapa do mercado'} aoVoltar={voltar} />
+      <View style={largo ? estilos.duasColunas : estilos.umaColuna}>
+        {largo && (
+          <ScrollView style={estilos.colunaDoMapa} contentContainerStyle={estilos.conteudo}>
+            {cartaoDoMapa}
+          </ScrollView>
+        )}
+        <ScrollView
+          style={largo ? estilos.colunaDoPainel : undefined}
+          contentContainerStyle={estilos.conteudo}
+          keyboardShouldPersistTaps="handled"
+        >
+          {confirmandoSaida && (
+            <Cartao
+              estilo={{
+                backgroundColor: p.alertaSuave,
+                borderColor: p.alertaSuave,
+                gap: espaco.sm,
+              }}
+            >
+              <Text style={{ color: p.alerta, fontWeight: '700' }}>
+                Há alterações que não foram salvas.
+              </Text>
+              <View style={estilos.acoes}>
+                <Botao
+                  titulo="Salvar"
+                  carregando={salvando}
+                  aoPressionar={() => void salvar()}
+                  estilo={{ flex: 1 }}
+                />
+                <Botao
+                  titulo="Descartar e sair"
+                  variante="secundario"
+                  aoPressionar={() => navegacao.goBack()}
+                  estilo={{ flex: 1 }}
+                />
+              </View>
+            </Cartao>
+          )}
+          {desatualizado && (
+            <Cartao
+              estilo={{
+                backgroundColor: p.destaqueSuave,
+                borderColor: p.destaqueSuave,
+                gap: espaco.sm,
+              }}
+            >
+              <Text style={{ color: p.destaque, fontWeight: '700' }}>
+                Outra pessoa alterou o mapa deste mercado.
+              </Text>
+              <TextoSuave>
+                Se você salvar agora, o app vai pedir para atualizar. Recarregar descarta o que você
+                mudou.
+              </TextoSuave>
+              <Botao
+                titulo="Recarregar o mapa"
+                variante="secundario"
+                aoPressionar={() => {
+                  setMapa(null);
+                  void recarregar();
+                }}
+              />
+            </Cartao>
+          )}
+
+          <Campo
+            rotulo="Nome do mercado"
+            value={mapa.nome}
+            onChangeText={(nome) => setMapa({ ...mapa, nome })}
+            maxLength={120}
+            editable={!travado}
+          />
+          <Campo
+            rotulo="Cidade"
+            value={mapa.cidade}
+            onChangeText={(cidade) => setMapa({ ...mapa, cidade })}
+            placeholder="Ex.: Araras"
+            autoCapitalize="words"
+            maxLength={80}
+            editable={!travado}
+          />
+          {secoesComNomeProprio(mapa) < MINIMO_DE_SECOES_PARA_O_CATALOGO && (
+            <TextoSuave estilo={{ fontSize: fonte.pequena }}>
+              {`Para este mapa aparecer em Mapas existentes, ele precisa de pelo menos ${MINIMO_DE_SECOES_PARA_O_CATALOGO} seções com nome próprio (agora: ${secoesComNomeProprio(mapa)}). "Nova seção" não conta.`}
+            </TextoSuave>
+          )}
+          {!mapa.cidade.trim() && (
+            <TextoSuave>
+              Informe a cidade para salvar o mapa. Ela ajuda outras pessoas a encontrá-lo em Mapas
+              existentes.
+            </TextoSuave>
+          )}
+          <TextoSuave>
+            {travado
+              ? 'Mapa travado: você só aproxima e anda pelo mapa (dois dedos, ou um dedo com zoom). Toque no cadeado para editar.'
+              : 'Arraste uma seção para mover. A bolinha do canto muda o tamanho. A entrada e os caixas também se arrastam. Com dois dedos você aproxima e move o mapa. Cada quadradinho vale cerca de 1,5 m.'}
+          </TextoSuave>
+
+          {!largo && cartaoDoMapa}
+
+          {!travado && (
+            <>
+              <Cartao estilo={{ gap: espaco.sm }}>
+                <Text style={{ color: p.texto, fontSize: fonte.titulo, fontWeight: '700' }}>
+                  Tamanho do mapa
+                </Text>
+                <View style={estilos.acoes}>
+                  <View style={{ flex: 1 }}>
+                    <Campo
+                      rotulo="Colunas"
+                      value={colunas}
+                      onChangeText={(t) => setColunas(t.replace(/\D/g, ''))}
+                      keyboardType="number-pad"
+                      maxLength={3}
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Campo
+                      rotulo="Linhas"
+                      value={linhas}
+                      onChangeText={(t) => setLinhas(t.replace(/\D/g, ''))}
+                      keyboardType="number-pad"
+                      maxLength={3}
+                    />
+                  </View>
+                </View>
+                <TextoSuave estilo={{ fontSize: fonte.pequena }}>
+                  {descreverTamanho({ x: 0, y: 0, largura: mapa.largura, altura: mapa.altura })}. De{' '}
+                  {TAMANHO_MINIMO_DO_MAPA} a {TAMANHO_MAXIMO_DO_MAPA} em cada lado. Para diminuir,
+                  as seções precisam caber no tamanho novo.
+                </TextoSuave>
+                <Botao
+                  titulo="Aplicar tamanho"
+                  variante="secundario"
+                  desabilitado={Number(colunas) === mapa.largura && Number(linhas) === mapa.altura}
+                  aoPressionar={aplicarTamanho}
+                  estilo={{ minHeight: 44 }}
+                />
+              </Cartao>
+              <View style={estilos.acoes}>
+                <Botao
+                  titulo="Adicionar seção"
+                  aoPressionar={adicionar}
+                  estilo={{ flex: 1, minHeight: 44 }}
+                />
+                <Botao
+                  titulo="Girar"
+                  variante="secundario"
+                  desabilitado={!secao}
+                  aoPressionar={() =>
+                    secao && aplicar(girarSecao(mapa, secao.id), 'Sem espaço para girar aqui')
+                  }
+                  estilo={{ minHeight: 44, paddingHorizontal: espaco.lg }}
+                />
+                <Botao
+                  titulo="Duplicar"
+                  variante="secundario"
+                  desabilitado={!secao}
+                  aoPressionar={duplicar}
+                  estilo={{ minHeight: 44, paddingHorizontal: espaco.lg }}
+                />
+              </View>
+              <View style={estilos.acoes}>
+                <Botao
+                  titulo={secao?.dividida ? 'Juntar lados' : 'Dividir em dois lados'}
+                  variante="secundario"
+                  desabilitado={!secao}
+                  aoPressionar={() => {
+                    if (!secao) return;
+                    aplicar(
+                      secao.dividida ? juntarSecao(mapa, secao.id) : dividirSecao(mapa, secao.id),
+                      'Sem espaço para a gôndola de dois lados',
+                    );
+                  }}
+                  estilo={{ flex: 1, minHeight: 44 }}
+                />
+                <Botao
+                  titulo={confirmandoExclusao ? 'Confirmar' : 'Excluir seção'}
+                  variante={confirmandoExclusao ? 'principal' : 'secundario'}
+                  desabilitado={!secao}
+                  aoPressionar={excluirSecao}
+                  estilo={{ flex: 1, minHeight: 44 }}
+                />
+              </View>
+
+              {secao ? (
+                <Cartao estilo={{ gap: espaco.md }}>
+                  <View style={estilos.entre}>
+                    <Text style={{ color: p.texto, fontSize: fonte.titulo, fontWeight: '700' }}>
+                      {secao.dividida ? 'Gôndola de dois lados' : 'Seção'}
+                    </Text>
+                    <Pilula texto={`${secao.area.largura} × ${secao.area.altura}`} tom="neutro" />
+                  </View>
+                  <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                    {descreverTamanho(secao.area)}
+                  </Text>
+                  <Campo
+                    rotulo={
+                      secao.dividida
+                        ? `Lado ${textoDoLado(secao, 'A')?.replace('lado ', '')}`
+                        : 'Nome da seção'
+                    }
+                    value={secao.nome}
+                    onChangeText={(t) => setMapa(renomearSecao(mapa, secao.id, 'A', t))}
+                    maxLength={40}
+                  />
+                  {gatilhoDeCategorias('A', secao.categoriasLadoA)}
+                  {secao.dividida && (
+                    <>
+                      <Campo
+                        rotulo={`Lado ${textoDoLado(secao, 'B')?.replace('lado ', '')}`}
+                        value={secao.nomeLadoB ?? ''}
+                        onChangeText={(t) => setMapa(renomearSecao(mapa, secao.id, 'B', t))}
+                        maxLength={40}
+                      />
+                      {gatilhoDeCategorias('B', secao.categoriasLadoB)}
+                    </>
+                  )}
+                  <TextoSuave estilo={{ fontSize: fonte.pequena }}>
+                    Uma categoria pode estar em vários lugares do mercado, como Mercearia em várias
+                    gôndolas. A rota vai ao mais próximo.
+                    {secao.dividida
+                      ? ' Em gôndola de dois lados, a rota para no corredor do lado do item.'
+                      : ''}
+                  </TextoSuave>
+                </Cartao>
+              ) : selecionado?.tipo === 'entrada' ? (
+                <Cartao>
+                  <Text style={{ color: p.texto, fontWeight: '700' }}>Entrada</Text>
+                  <TextoSuave>
+                    É de onde a rota sai quando você chega ao mercado. Arraste para a porta real.
+                  </TextoSuave>
+                </Cartao>
+              ) : selecionado?.tipo === 'caixas' ? (
+                <Cartao>
+                  <Text style={{ color: p.texto, fontWeight: '700' }}>Caixas</Text>
+                  <TextoSuave>A rota termina aqui. Arraste para onde ficam os caixas.</TextoSuave>
+                </Cartao>
+              ) : (
+                <Cartao>
+                  <Text style={{ color: p.texto, fontWeight: '700' }}>Nada selecionado</Text>
+                  <TextoSuave>Toque numa seção do mapa ou em Adicionar seção.</TextoSuave>
+                </Cartao>
+              )}
+            </>
+          )}
+
+          {semCategoria.length > 0 && (
+            <Cartao estilo={{ gap: espaco.sm }}>
+              <Pilula texto={`Seções sem categorias: ${semCategoria.length}`} tom="alerta" />
+              <TextoSuave>
+                A rota não passa por elas até você escolher as categorias. Toque para preencher.
+              </TextoSuave>
+              <View style={estilos.chips}>
+                {semCategoria.map((l) => (
+                  <Chip
+                    key={`${l.secaoId}-${l.lado}`}
+                    rotulo={l.rotulo}
+                    ativo={selecionado?.tipo === 'secao' && selecionado.id === l.secaoId}
+                    aoPressionar={() => preencherCategorias(l.secaoId, l.lado)}
+                  />
+                ))}
+              </View>
+            </Cartao>
+          )}
+          {semLocal.length > 0 ? (
+            <Cartao estilo={{ gap: espaco.sm }}>
+              <Pilula texto={`Sem local neste mercado: ${semLocal.length}`} tom="alerta" />
+              <TextoSuave>{semLocal.map((c) => c.nome).join(', ')}</TextoSuave>
+            </Cartao>
+          ) : (
+            <Pilula texto="Todas as categorias têm local" />
+          )}
+          {!travado &&
+            secao &&
+            (secao.categoriasLadoA.length > 0 || secao.categoriasLadoB.length > 0) && (
+              <TextoSuave estilo={{ fontSize: fonte.pequena }}>
+                Nesta seção:{' '}
+                {[...secao.categoriasLadoA, ...secao.categoriasLadoB]
+                  .map(nomeDaCategoria)
+                  .join(', ')}
+                .
+              </TextoSuave>
+            )}
+
+          <Botao
+            titulo={sujo ? 'Salvar mapa' : 'Mapa salvo'}
+            desabilitado={!sujo}
+            carregando={salvando}
+            aoPressionar={() => void salvar()}
+          />
+          <Botao
+            titulo="Comprar neste mercado"
+            variante="secundario"
+            aoPressionar={() => {
+              definirMercado(params.mercadoId);
+              navegacao.navigate('Rota');
+            }}
+          />
+        </ScrollView>
+      </View>
       {secao && (
         <SeletorDeCategorias
           visivel={escolhendoCategorias !== null}
@@ -825,6 +846,10 @@ export function MapaDoMercadoScreen() {
 }
 
 const estilos = StyleSheet.create({
+  umaColuna: { flex: 1 },
+  duasColunas: { flex: 1, flexDirection: 'row' },
+  colunaDoMapa: { flex: 3 },
+  colunaDoPainel: { flex: 2 },
   conteudo: { padding: espaco.lg, paddingBottom: 48, gap: espaco.md },
   acoes: { flexDirection: 'row', gap: espaco.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },

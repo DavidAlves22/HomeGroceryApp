@@ -15,6 +15,7 @@ import { MapaSvg } from '../components/MapaSvg';
 import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina, Pilula } from '../components/ui';
 import { useContainer, useMercadoAtual, useSessao } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
+import { useLayoutLargo } from '../hooks/useLayoutLargo';
 import { useToast } from '../hooks/Toast';
 import { useNavegacao } from '../navigation/tipos';
 import { espaco, fonte, raio, usePaleta } from '../theme';
@@ -132,6 +133,7 @@ export function RotaScreen() {
   const container = useContainer();
   const navegacao = useNavegacao();
   const toast = useToast();
+  const largo = useLayoutLargo();
   const { mercadoId, definirMercado } = useMercadoAtual();
 
   const {
@@ -283,305 +285,328 @@ export function RotaScreen() {
     </>
   );
 
+  const cartaoDoMapa =
+    rotaAtual && mapa ? (
+      <Cartao estilo={{ padding: espaco.md, gap: espaco.sm }}>
+        <MapaSvg
+          mapa={mapa}
+          modo="rota"
+          rota={rotaAtual}
+          outras={rotaAtual.rotasDeOutrasPessoas.map((o) => ({
+            inicial: primeiroNome(o.usuarioId, membros).charAt(0).toUpperCase(),
+            posicao: o.posicao,
+            trilha: o.trilha,
+          }))}
+        />
+        {rotaAtual.rotasDeOutrasPessoas.map((o) => (
+          <Text key={o.usuarioId} style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+            <Text style={{ fontWeight: '700' }}>{primeiroNome(o.usuarioId, membros)}</Text> (cinza
+            no mapa) ·{' '}
+            {o.itensRestantes === 0
+              ? 'já pegou tudo'
+              : `faltam ${o.itensRestantes} ${o.itensRestantes === 1 ? 'item' : 'itens'}`}
+          </Text>
+        ))}
+        <View style={estilos.entre}>
+          <Text style={{ color: p.textoSuave, fontSize: fonte.pequena, flex: 1 }}>
+            {naEntrada ? 'Você está na entrada' : 'Você está onde marcou o último item'}
+          </Text>
+          {!naEntrada && (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                posicao.current = null;
+                void recarregarRota();
+              }}
+              style={[
+                estilos.botaoPequeno,
+                { borderColor: p.linha, backgroundColor: p.superficie },
+              ]}
+            >
+              <Text style={{ color: p.textoSuave, fontSize: 12, fontWeight: '700' }}>
+                Voltar à entrada
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      </Cartao>
+    ) : null;
+
   return (
-    <Pagina>
+    <Pagina larga>
       {cabecalho}
-      <ScrollView contentContainerStyle={estilos.conteudo}>
-        {divisao.length > 0 && (
+      <View style={largo ? estilos.duasColunas : estilos.umaColuna}>
+        {largo && !!cartaoDoMapa && (
+          <ScrollView style={estilos.colunaDoMapa} contentContainerStyle={estilos.conteudo}>
+            {cartaoDoMapa}
+          </ScrollView>
+        )}
+        <ScrollView
+          style={largo ? estilos.colunaDoPainel : undefined}
+          contentContainerStyle={estilos.conteudo}
+        >
+          {divisao.length > 0 && (
+            <Cartao estilo={{ gap: espaco.sm }}>
+              <Text
+                style={{ color: p.textoSuave, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 }}
+              >
+                ROTA DE
+              </Text>
+              <View style={estilos.escolhaDeRota}>
+                {membros.map((m) => (
+                  <Chip
+                    key={m.usuarioId}
+                    rotulo={m.voce ? 'Eu' : m.nome.split(' ')[0]}
+                    ativo={rotaDe === m.usuarioId}
+                    aoPressionar={() => {
+                      posicao.current = null;
+                      setEscolhaDaRota(m.usuarioId);
+                    }}
+                  />
+                ))}
+                <Chip
+                  rotulo="Todos"
+                  ativo={rotaDe === 'todos'}
+                  aoPressionar={() => {
+                    posicao.current = null;
+                    setEscolhaDaRota('todos');
+                  }}
+                />
+              </View>
+            </Cartao>
+          )}
+
           <Cartao estilo={{ gap: espaco.sm }}>
             <Text
               style={{ color: p.textoSuave, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 }}
             >
-              ROTA DE
+              DIVISÃO DA COMPRA
             </Text>
-            <View style={estilos.escolhaDeRota}>
-              {membros.map((m) => (
-                <Chip
-                  key={m.usuarioId}
-                  rotulo={m.voce ? 'Eu' : m.nome.split(' ')[0]}
-                  ativo={rotaDe === m.usuarioId}
-                  aoPressionar={() => {
-                    posicao.current = null;
-                    setEscolhaDaRota(m.usuarioId);
-                  }}
-                />
-              ))}
-              <Chip
-                rotulo="Todos"
-                ativo={rotaDe === 'todos'}
-                aoPressionar={() => {
-                  posicao.current = null;
-                  setEscolhaDaRota('todos');
-                }}
-              />
-            </View>
+            <DivisaoDaCompra itens={lista?.itens ?? []} mercados={mercados ?? []} />
+            {!!rotaAtual && rotaAtual.jaCompradosEmOutrosMercados > 0 && (
+              <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                {rotaAtual.jaCompradosEmOutrosMercados === 1
+                  ? '1 item já comprado em outro mercado não entra'
+                  : `${rotaAtual.jaCompradosEmOutrosMercados} itens já comprados em outros mercados não entram`}{' '}
+                nesta rota.
+              </Text>
+            )}
           </Cartao>
-        )}
 
-        <Cartao estilo={{ gap: espaco.sm }}>
-          <Text
-            style={{ color: p.textoSuave, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 }}
-          >
-            DIVISÃO DA COMPRA
-          </Text>
-          <DivisaoDaCompra itens={lista?.itens ?? []} mercados={mercados ?? []} />
-          {!!rotaAtual && rotaAtual.jaCompradosEmOutrosMercados > 0 && (
-            <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-              {rotaAtual.jaCompradosEmOutrosMercados === 1
-                ? '1 item já comprado em outro mercado não entra'
-                : `${rotaAtual.jaCompradosEmOutrosMercados} itens já comprados em outros mercados não entram`}{' '}
-              nesta rota.
-            </Text>
-          )}
-        </Cartao>
-
-        {!rotaAtual || !mapa ? (
-          erroDaRota ? (
-            <EstadoVazio
-              titulo="Não foi possível montar a rota"
-              texto={erroDaRota}
-              acao={{ rotulo: 'Tentar novamente', aoPressionar: () => void recarregarRota() }}
-            />
-          ) : (
-            <Carregando />
-          )
-        ) : (
-          <>
-            <Cartao estilo={{ padding: espaco.md, gap: espaco.sm }}>
-              <MapaSvg
-                mapa={mapa}
-                modo="rota"
-                rota={rotaAtual}
-                outras={rotaAtual.rotasDeOutrasPessoas.map((o) => ({
-                  inicial: primeiroNome(o.usuarioId, membros).charAt(0).toUpperCase(),
-                  posicao: o.posicao,
-                  trilha: o.trilha,
-                }))}
+          {!rotaAtual || !mapa ? (
+            erroDaRota ? (
+              <EstadoVazio
+                titulo="Não foi possível montar a rota"
+                texto={erroDaRota}
+                acao={{ rotulo: 'Tentar novamente', aoPressionar: () => void recarregarRota() }}
               />
-              {rotaAtual.rotasDeOutrasPessoas.map((o) => (
-                <Text key={o.usuarioId} style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                  <Text style={{ fontWeight: '700' }}>{primeiroNome(o.usuarioId, membros)}</Text>{' '}
-                  (cinza no mapa) ·{' '}
-                  {o.itensRestantes === 0
-                    ? 'já pegou tudo'
-                    : `faltam ${o.itensRestantes} ${o.itensRestantes === 1 ? 'item' : 'itens'}`}
-                </Text>
-              ))}
-              <View style={estilos.entre}>
-                <Text style={{ color: p.textoSuave, fontSize: fonte.pequena, flex: 1 }}>
-                  {naEntrada ? 'Você está na entrada' : 'Você está onde marcou o último item'}
-                </Text>
-                {!naEntrada && (
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => {
-                      posicao.current = null;
-                      void recarregarRota();
-                    }}
-                    style={[
-                      estilos.botaoPequeno,
-                      { borderColor: p.linha, backgroundColor: p.superficie },
-                    ]}
-                  >
-                    <Text style={{ color: p.textoSuave, fontSize: 12, fontWeight: '700' }}>
-                      Voltar à entrada
-                    </Text>
-                  </Pressable>
-                )}
-              </View>
-            </Cartao>
-
-            {rotaAtual.paradas.length === 0 ? (
-              <Cartao estilo={{ gap: espaco.md, alignItems: 'center' }}>
-                <Text
-                  style={{
-                    color: p.texto,
-                    fontSize: fonte.titulo,
-                    fontWeight: '700',
-                    textAlign: 'center',
-                  }}
-                >
-                  {faltam === 0 ? 'Tudo no carrinho' : 'Este mercado não tem o que falta'}
-                </Text>
-                <TextoSuave estilo={{ textAlign: 'center' }}>
-                  {faltam === 0
-                    ? 'Siga para os caixas e finalize a compra.'
-                    : `Faltam ${faltam} ${faltam === 1 ? 'item' : 'itens'}. Escolha outro mercado acima para ver a rota só do que falta.`}
-                </TextoSuave>
-                <Botao
-                  titulo="Voltar à lista"
-                  aoPressionar={voltar}
-                  estilo={{ alignSelf: 'stretch' }}
-                />
-              </Cartao>
             ) : (
-              <>
-                <View style={estilos.estatisticas}>
-                  <Estatistica rotulo="Paradas" valor={String(rotaAtual.paradas.length)} />
-                  <Estatistica rotulo="Caminhada" valor={metros(rotaAtual.distanciaEmMetros)} />
-                  <Estatistica rotulo="Tempo" valor={`~${rotaAtual.tempoEstimadoEmMinutos} min`} />
-                </View>
-                {rotaAtual.economiaEmMetros > 0 && (
-                  <Pilula
-                    texto={`${rotaAtual.economiaEmMetros} m a menos que seguir a ordem da lista`}
-                  />
-                )}
+              <Carregando />
+            )
+          ) : (
+            <>
+              {!largo && cartaoDoMapa}
 
-                <Cartao estilo={{ gap: espaco.md }}>
-                  <View style={estilos.entre}>
-                    <Pilula texto="Próxima parada" />
+              {rotaAtual.paradas.length === 0 ? (
+                <Cartao estilo={{ gap: espaco.md, alignItems: 'center' }}>
+                  <Text
+                    style={{
+                      color: p.texto,
+                      fontSize: fonte.titulo,
+                      fontWeight: '700',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {faltam === 0 ? 'Tudo no carrinho' : 'Este mercado não tem o que falta'}
+                  </Text>
+                  <TextoSuave estilo={{ textAlign: 'center' }}>
+                    {faltam === 0
+                      ? 'Siga para os caixas e finalize a compra.'
+                      : `Faltam ${faltam} ${faltam === 1 ? 'item' : 'itens'}. Escolha outro mercado acima para ver a rota só do que falta.`}
+                  </TextoSuave>
+                  <Botao
+                    titulo="Voltar à lista"
+                    aoPressionar={voltar}
+                    estilo={{ alignSelf: 'stretch' }}
+                  />
+                </Cartao>
+              ) : (
+                <>
+                  <View style={estilos.estatisticas}>
+                    <Estatistica rotulo="Paradas" valor={String(rotaAtual.paradas.length)} />
+                    <Estatistica rotulo="Caminhada" valor={metros(rotaAtual.distanciaEmMetros)} />
+                    <Estatistica
+                      rotulo="Tempo"
+                      valor={`~${rotaAtual.tempoEstimadoEmMinutos} min`}
+                    />
+                  </View>
+                  {rotaAtual.economiaEmMetros > 0 && (
+                    <Pilula
+                      texto={`${rotaAtual.economiaEmMetros} m a menos que seguir a ordem da lista`}
+                    />
+                  )}
+
+                  <Cartao estilo={{ gap: espaco.md }}>
+                    <View style={estilos.entre}>
+                      <Pilula texto="Próxima parada" />
+                      <Text
+                        style={{
+                          color: p.textoSuave,
+                          fontSize: fonte.pequena,
+                          fontVariant: ['tabular-nums'],
+                        }}
+                      >
+                        a {metros(rotaAtual.paradas[0].distanciaEmMetros)}
+                      </Text>
+                    </View>
                     <Text
                       style={{
-                        color: p.textoSuave,
-                        fontSize: fonte.pequena,
-                        fontVariant: ['tabular-nums'],
+                        color: p.texto,
+                        fontSize: 24,
+                        fontWeight: '800',
+                        letterSpacing: -0.4,
                       }}
                     >
-                      a {metros(rotaAtual.paradas[0].distanciaEmMetros)}
+                      {rotaAtual.paradas[0].nome}
                     </Text>
-                  </View>
-                  <Text
-                    style={{ color: p.texto, fontSize: 24, fontWeight: '800', letterSpacing: -0.4 }}
-                  >
-                    {rotaAtual.paradas[0].nome}
-                  </Text>
-                  {rotaAtual.paradas[0].ladoTexto && (
-                    <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                      Gôndola de dois lados · {rotaAtual.paradas[0].ladoTexto}
-                    </Text>
-                  )}
-                  {rotaAtual.paradas[0].itens.map((item) => (
-                    <LinhaDaRota
-                      key={item.id}
-                      item={item}
-                      aoMarcar={() => void marcar(item, rotaAtual.paradas[0])}
-                      aoNaoTemAqui={() => void semNoMercado(item, true)}
-                      aoMarcarLocal={() => setItemDoLocal(item)}
-                      localProprio={locaisDe(item.id).length > 0}
-                    />
-                  ))}
-                </Cartao>
-
-                {rotaAtual.paradas.length > 1 && (
-                  <Cartao estilo={{ paddingVertical: espaco.xs }}>
-                    {rotaAtual.paradas.slice(1).map((parada, i) => (
-                      <View
-                        key={`${parada.secaoId}-${parada.lado ?? ''}`}
-                        style={[
-                          estilos.parada,
-                          i > 0 && { borderTopWidth: 1, borderTopColor: p.linha },
-                        ]}
-                      >
-                        <View style={[estilos.numero, { backgroundColor: p.destaqueSuave }]}>
-                          <Text style={{ color: p.destaque, fontWeight: '800' }}>{i + 2}</Text>
-                        </View>
-                        <View style={{ flex: 1, minWidth: 0 }}>
-                          <Text style={{ color: p.texto, fontWeight: '700' }}>
-                            {parada.nome}
-                            {parada.ladoTexto ? (
-                              <Text
-                                style={{
-                                  color: p.textoSuave,
-                                  fontWeight: '400',
-                                  fontSize: fonte.pequena,
-                                }}
-                              >
-                                {' '}
-                                · {parada.ladoTexto}
-                              </Text>
-                            ) : null}
-                          </Text>
-                          <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                            {parada.itens.map((x) => x.nome).join(', ')}
-                          </Text>
-                        </View>
-                        <Pilula texto={String(parada.itens.length)} tom="neutro" />
-                      </View>
+                    {rotaAtual.paradas[0].ladoTexto && (
+                      <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                        Gôndola de dois lados · {rotaAtual.paradas[0].ladoTexto}
+                      </Text>
+                    )}
+                    {rotaAtual.paradas[0].itens.map((item) => (
+                      <LinhaDaRota
+                        key={item.id}
+                        item={item}
+                        aoMarcar={() => void marcar(item, rotaAtual.paradas[0])}
+                        aoNaoTemAqui={() => void semNoMercado(item, true)}
+                        aoMarcarLocal={() => setItemDoLocal(item)}
+                        localProprio={locaisDe(item.id).length > 0}
+                      />
                     ))}
                   </Cartao>
-                )}
-              </>
-            )}
 
-            {rotaAtual.comOutrasPessoas.length > 0 && (
-              <Cartao estilo={{ gap: espaco.sm }}>
-                <Pilula
-                  texto={`Com outras pessoas · ${rotaAtual.comOutrasPessoas.length}`}
-                  tom="neutro"
-                />
-                {nomesDeQuemPega(rotaAtual.comOutrasPessoas, membros).map(({ nome, itens }) => (
-                  <View key={nome} style={estilos.parada}>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={{ color: p.texto, fontWeight: '700' }}>Com {nome}</Text>
-                      <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                        {itens.join(', ')}
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </Cartao>
-            )}
+                  {rotaAtual.paradas.length > 1 && (
+                    <Cartao estilo={{ paddingVertical: espaco.xs }}>
+                      {rotaAtual.paradas.slice(1).map((parada, i) => (
+                        <View
+                          key={`${parada.secaoId}-${parada.lado ?? ''}`}
+                          style={[
+                            estilos.parada,
+                            i > 0 && { borderTopWidth: 1, borderTopColor: p.linha },
+                          ]}
+                        >
+                          <View style={[estilos.numero, { backgroundColor: p.destaqueSuave }]}>
+                            <Text style={{ color: p.destaque, fontWeight: '800' }}>{i + 2}</Text>
+                          </View>
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text style={{ color: p.texto, fontWeight: '700' }}>
+                              {parada.nome}
+                              {parada.ladoTexto ? (
+                                <Text
+                                  style={{
+                                    color: p.textoSuave,
+                                    fontWeight: '400',
+                                    fontSize: fonte.pequena,
+                                  }}
+                                >
+                                  {' '}
+                                  · {parada.ladoTexto}
+                                </Text>
+                              ) : null}
+                            </Text>
+                            <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                              {parada.itens.map((x) => x.nome).join(', ')}
+                            </Text>
+                          </View>
+                          <Pilula texto={String(parada.itens.length)} tom="neutro" />
+                        </View>
+                      ))}
+                    </Cartao>
+                  )}
+                </>
+              )}
 
-            {rotaAtual.foraDaRota.length > 0 && (
-              <Cartao estilo={{ gap: espaco.sm }}>
-                <Pilula texto={`Fora desta rota · ${rotaAtual.foraDaRota.length}`} tom="alerta" />
-                {rotaAtual.foraDaRota.map(({ item, motivo }) => (
-                  <View key={item.id} style={estilos.parada}>
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={{ color: p.texto, fontWeight: '700' }}>{item.nome}</Text>
-                      <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                        {motivo === 'SemSecao'
-                          ? `Este mercado não tem seção para ${item.categoriaNome}`
-                          : 'Você marcou que não tem aqui'}
-                      </Text>
-                    </View>
-                    {motivo === 'SemSecao' && (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => setItemDoLocal(item)}
-                        style={[
-                          estilos.botaoPequeno,
-                          { borderColor: p.linha, backgroundColor: p.superficie },
-                        ]}
-                      >
-                        <Text style={{ color: p.destaque, fontSize: 12, fontWeight: '700' }}>
-                          Marcar local
+              {rotaAtual.comOutrasPessoas.length > 0 && (
+                <Cartao estilo={{ gap: espaco.sm }}>
+                  <Pilula
+                    texto={`Com outras pessoas · ${rotaAtual.comOutrasPessoas.length}`}
+                    tom="neutro"
+                  />
+                  {nomesDeQuemPega(rotaAtual.comOutrasPessoas, membros).map(({ nome, itens }) => (
+                    <View key={nome} style={estilos.parada}>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ color: p.texto, fontWeight: '700' }}>Com {nome}</Text>
+                        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                          {itens.join(', ')}
                         </Text>
-                      </Pressable>
-                    )}
-                    {motivo === 'NaoTemNaLoja' && (
-                      <Pressable
-                        accessibilityRole="button"
-                        onPress={() => void semNoMercado(item, false)}
-                        style={[
-                          estilos.botaoPequeno,
-                          { borderColor: p.linha, backgroundColor: p.superficie },
-                        ]}
-                      >
-                        <Text style={{ color: p.textoSuave, fontSize: 12, fontWeight: '700' }}>
-                          Desfazer
-                        </Text>
-                      </Pressable>
-                    )}
-                  </View>
-                ))}
-                <TextoSuave estilo={{ fontSize: fonte.pequena }}>
-                  Continuam pendentes e entram na rota do próximo mercado.
-                </TextoSuave>
-              </Cartao>
-            )}
-          </>
-        )}
+                      </View>
+                    </View>
+                  ))}
+                </Cartao>
+              )}
 
-        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-          Sua posição é estimada pelo último item marcado. O app não usa GPS dentro do mercado.
-        </Text>
-        <Botao
-          titulo="Editar mapa deste mercado"
-          variante="secundario"
-          aoPressionar={() => navegacao.navigate('MapaDoMercado', { mercadoId: atual.id })}
-        />
-      </ScrollView>
+              {rotaAtual.foraDaRota.length > 0 && (
+                <Cartao estilo={{ gap: espaco.sm }}>
+                  <Pilula texto={`Fora desta rota · ${rotaAtual.foraDaRota.length}`} tom="alerta" />
+                  {rotaAtual.foraDaRota.map(({ item, motivo }) => (
+                    <View key={item.id} style={estilos.parada}>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ color: p.texto, fontWeight: '700' }}>{item.nome}</Text>
+                        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                          {motivo === 'SemSecao'
+                            ? `Este mercado não tem seção para ${item.categoriaNome}`
+                            : 'Você marcou que não tem aqui'}
+                        </Text>
+                      </View>
+                      {motivo === 'SemSecao' && (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => setItemDoLocal(item)}
+                          style={[
+                            estilos.botaoPequeno,
+                            { borderColor: p.linha, backgroundColor: p.superficie },
+                          ]}
+                        >
+                          <Text style={{ color: p.destaque, fontSize: 12, fontWeight: '700' }}>
+                            Marcar local
+                          </Text>
+                        </Pressable>
+                      )}
+                      {motivo === 'NaoTemNaLoja' && (
+                        <Pressable
+                          accessibilityRole="button"
+                          onPress={() => void semNoMercado(item, false)}
+                          style={[
+                            estilos.botaoPequeno,
+                            { borderColor: p.linha, backgroundColor: p.superficie },
+                          ]}
+                        >
+                          <Text style={{ color: p.textoSuave, fontSize: 12, fontWeight: '700' }}>
+                            Desfazer
+                          </Text>
+                        </Pressable>
+                      )}
+                    </View>
+                  ))}
+                  <TextoSuave estilo={{ fontSize: fonte.pequena }}>
+                    Continuam pendentes e entram na rota do próximo mercado.
+                  </TextoSuave>
+                </Cartao>
+              )}
+            </>
+          )}
+
+          <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+            Sua posição é estimada pelo último item marcado. O app não usa GPS dentro do mercado.
+          </Text>
+          <Botao
+            titulo="Editar mapa deste mercado"
+            variante="secundario"
+            aoPressionar={() => navegacao.navigate('MapaDoMercado', { mercadoId: atual.id })}
+          />
+        </ScrollView>
+      </View>
       {!!mapa && !!itemDoLocal && (
         <FolhaDeLocalDoItem
           visivel
@@ -598,6 +623,10 @@ export function RotaScreen() {
 }
 
 const estilos = StyleSheet.create({
+  umaColuna: { flex: 1 },
+  duasColunas: { flex: 1, flexDirection: 'row' },
+  colunaDoMapa: { flex: 3 },
+  colunaDoPainel: { flex: 2 },
   conteudo: { padding: espaco.lg, paddingBottom: 48, gap: espaco.md },
   chipsLinha: {
     flexDirection: 'row',

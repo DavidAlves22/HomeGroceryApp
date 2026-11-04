@@ -12,13 +12,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Botao, Titulo } from './base';
 import { Icone, type NomeDoIcone } from './Icone';
+import { LARGURA_MAXIMA_LARGA, useLayoutLargo } from '../hooks/useLayoutLargo';
 
-/** Moldura de toda tela: respeita as áreas seguras e limita a largura no desktop. */
-export function Pagina({ children }: { children: React.ReactNode }) {
+/**
+ * Moldura de toda tela: respeita as áreas seguras e limita a largura no desktop. `larga` libera a tela para
+ * ocupar a janela larga (duas colunas); sem ela fica a coluna estreita de celular.
+ */
+export function Pagina({ children, larga }: { children: React.ReactNode; larga?: boolean }) {
   const p = usePaleta();
+  const largo = useLayoutLargo();
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: p.fundo }}>
-      <View style={estilos.coluna}>{children}</View>
+      <View style={[estilos.coluna, larga && largo && { maxWidth: LARGURA_MAXIMA_LARGA }]}>
+        {children}
+      </View>
     </SafeAreaView>
   );
 }

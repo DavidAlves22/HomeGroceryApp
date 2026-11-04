@@ -24,6 +24,7 @@ import { RotaScreen } from '../screens/RotaScreen';
 import { GrupoScreen } from '../screens/GrupoScreen';
 import { ProdutosScreen } from '../screens/ProdutosScreen';
 import { NovaListaScreen } from '../screens/NovaListaScreen';
+import { useLayoutLargo } from '../hooks/useLayoutLargo';
 import { usePaleta } from '../theme';
 import type { AbasParamList, RootStackParamList } from './tipos';
 
@@ -79,19 +80,31 @@ const ICONES: Record<keyof AbasParamList, NomeDoIcone> = {
 
 function NavegacaoPorAbas() {
   const p = usePaleta();
+  // No computador o menu vira uma coluna na lateral; no celular continua embaixo.
+  const largo = useLayoutLargo();
   return (
     <Abas.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarPosition: largo ? 'left' : 'bottom',
+        tabBarVariant: largo ? 'material' : 'uikit',
         tabBarActiveTintColor: p.destaque,
         tabBarInactiveTintColor: p.textoSuave,
-        tabBarStyle: {
-          backgroundColor: p.superficie,
-          borderTopColor: p.linha,
-          height: 76,
-          paddingBottom: 14,
-          paddingTop: 8,
-        },
+        tabBarStyle: largo
+          ? {
+              backgroundColor: p.superficie,
+              borderRightColor: p.linha,
+              paddingTop: 12,
+              width: 220,
+              minWidth: 220,
+            }
+          : {
+              backgroundColor: p.superficie,
+              borderTopColor: p.linha,
+              height: 76,
+              paddingBottom: 14,
+              paddingTop: 8,
+            },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         tabBarIcon: ({ color }) => <Icone nome={ICONES[route.name]} cor={color} />,
       })}
