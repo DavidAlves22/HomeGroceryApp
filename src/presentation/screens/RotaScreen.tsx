@@ -625,8 +625,8 @@ export function RotaScreen() {
 const estilos = StyleSheet.create({
   umaColuna: { flex: 1 },
   duasColunas: { flex: 1, flexDirection: 'row' },
-  colunaDoMapa: { flex: 1 },
-  colunaDoPainel: { flex: 0, width: 400, flexShrink: 0 },
+  colunaDoMapa: { flexGrow: 1, flexShrink: 1, flexBasis: 0 },
+  colunaDoPainel: { flexGrow: 0, flexShrink: 0, flexBasis: 400, width: 400 },
   conteudo: { padding: espaco.lg, paddingBottom: 48, gap: espaco.md },
   chipsLinha: {
     flexDirection: 'row',
