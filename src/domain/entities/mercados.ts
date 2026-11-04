@@ -50,6 +50,8 @@ export interface MercadoResumo {
   altura: number;
   secoes: number;
   versao: number;
+  /** CNPJ (só dígitos) aprendido ao importar notas: a próxima nota desse mercado já abre nele. */
+  cnpj?: string | null;
 }
 
 /** O desenho do mercado como o editor o manipula (sem id nem versão do servidor). */

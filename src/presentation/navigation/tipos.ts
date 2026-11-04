@@ -11,6 +11,7 @@ export type RootStackParamList = {
   NovaLista: undefined;
   ListaPadrao: undefined;
   DetalheDaLista: { listaId: string };
+  ImportarNota: { listaId: string };
   Categorias: undefined;
   Produtos: undefined;
   Grupo: undefined;

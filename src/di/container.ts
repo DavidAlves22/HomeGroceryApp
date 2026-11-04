@@ -21,7 +21,10 @@ import {
   CriarLista,
   EditarItemDaLista,
   CancelarLista,
+  ConsultarNotaImportada,
   DividirCompra,
+  ImportarNota,
+  ObterVinculosDaNota,
   FinalizarLista,
   ListarListas,
   MarcarItemComprado,
@@ -71,6 +74,7 @@ import {
 import { AutenticacaoApiGateway, ServidorApiGateway } from '../infrastructure/gateways/gateways';
 import { GrupoApiGateway } from '../infrastructure/gateways/grupoGateway';
 import { NotificacoesApiGateway } from '../infrastructure/gateways/notificacoesGateway';
+import { LeitorDeQrDoNavegador } from '../infrastructure/camera/LeitorDeQrDoNavegador';
 import { AvisosDoNavegador } from '../infrastructure/push/AvisosDoNavegador';
 import { ClienteHttp } from '../infrastructure/http/ClienteHttp';
 import { TempoRealSignalR } from '../infrastructure/tempoReal/TempoRealSignalR';
@@ -136,6 +140,11 @@ export function criarContainer(aoExpirarSessao: () => void) {
     finalizarLista: new FinalizarLista(listas),
     cancelarLista: new CancelarLista(listas),
     dividirCompra: new DividirCompra(listas),
+    importarNota: new ImportarNota(listas),
+    obterVinculosDaNota: new ObterVinculosDaNota(listas),
+    consultarNotaImportada: new ConsultarNotaImportada(listas),
+    // Câmera para ler o QR da nota (só no navegador).
+    leitorDeQr: new LeitorDeQrDoNavegador(),
     reabrirLista: new ReabrirLista(listas),
 
     // Mercados, mapas e rota

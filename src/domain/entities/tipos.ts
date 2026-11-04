@@ -92,6 +92,32 @@ export interface ListaResumo {
   totalRealizado: number;
 }
 
+/** Um item da nota fiscal pronto para importar: casado com um item da lista (itemId) ou novo (categoriaId). */
+export interface ItemParaImportar {
+  codigo: string;
+  nome: string;
+  quantidade: number;
+  precoUnitario: number;
+  itemId: string | null;
+  categoriaId: string | null;
+  unidade: Unidade | null;
+}
+
+export interface DadosDaNota {
+  /** CNPJ do mercado da nota (com ou sem pontuação). */
+  cnpj: string | null;
+  mercadoId: string | null;
+  /** Chave de acesso (44 dígitos) quando a nota foi lida pelo QR: reconhece a mesma nota importada antes. */
+  chaveDeAcesso?: string | null;
+  itens: ItemParaImportar[];
+}
+
+/** "O código X deste mercado é este produto": o que o app já aprendeu das notas anteriores. */
+export interface VinculoDaNota {
+  codigo: string;
+  produtoId: string;
+}
+
 /** Quem pega esta categoria nesta ida ao mercado. Categoria fora da divisão é de todos. */
 export interface DivisaoDaCategoria {
   categoriaId: string;

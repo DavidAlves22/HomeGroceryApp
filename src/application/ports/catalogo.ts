@@ -1,6 +1,7 @@
 import type {
   Categoria,
   DadosDeNovaLista,
+  DadosDaNota,
   DadosDoItem,
   DivisaoDaCategoria,
   ItemDaLista,
@@ -8,6 +9,7 @@ import type {
   Lista,
   ListaResumo,
   Produto,
+  VinculoDaNota,
 } from '../../domain/entities/tipos';
 
 export interface CatalogoGateway {
@@ -53,6 +55,11 @@ export interface ListasGateway {
   reabrir(listaId: string): Promise<ListaResumo>;
   /** Quem pega cada categoria nesta ida ao mercado; troca a divisão inteira (vazio desfaz). */
   dividir(listaId: string, divisao: DivisaoDaCategoria[]): Promise<DivisaoDaCategoria[]>;
+  /** Importa uma nota fiscal já lida: preços e quantidades pagos, itens comprados. Vale também para lista finalizada. */
+  importarNota(listaId: string, dados: DadosDaNota): Promise<Lista>;
+  vinculosDaNota(cnpj: string): Promise<VinculoDaNota[]>;
+  /** A nota (pela chave de acesso do QR) já foi importada neste grupo? */
+  notaJaImportada(chave: string): Promise<boolean>;
   /** Apaga a lista em andamento (e os itens) de vez: não fica no histórico. */
   cancelar(listaId: string): Promise<void>;
 }

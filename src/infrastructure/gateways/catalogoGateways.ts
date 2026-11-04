@@ -4,6 +4,7 @@ import type { AnaliseDeGastos, AnaliseDePrecos } from '../../domain/entities/ana
 import type {
   Categoria,
   DadosDeNovaLista,
+  DadosDaNota,
   DadosDoItem,
   DivisaoDaCategoria,
   ItemDaLista,
@@ -11,6 +12,7 @@ import type {
   Lista,
   ListaResumo,
   Produto,
+  VinculoDaNota,
 } from '../../domain/entities/tipos';
 import type { ClienteHttp } from '../http/ClienteHttp';
 
@@ -143,6 +145,28 @@ export class ListasApiGateway implements ListasGateway {
     return this.http.put<DivisaoDaCategoria[]>(`/listas/${listaId}/divisao`, {
       corpo: { atribuicoes: divisao },
     });
+  }
+
+  importarNota(listaId: string, dados: DadosDaNota) {
+    return this.http.post<Lista>(`/listas/${listaId}/nota`, {
+      corpo: {
+        cnpj: dados.cnpj,
+        lojaId: dados.mercadoId,
+        chaveDeAcesso: dados.chaveDeAcesso ?? null,
+        itens: dados.itens,
+      },
+    });
+  }
+
+  vinculosDaNota(cnpj: string) {
+    return this.http.get<VinculoDaNota[]>(`/notas/vinculos?cnpj=${encodeURIComponent(cnpj)}`);
+  }
+
+  async notaJaImportada(chave: string) {
+    const resposta = await this.http.get<{ importada: boolean }>(
+      `/notas/importada?chave=${encodeURIComponent(chave)}`,
+    );
+    return resposta.importada;
   }
 
   async cancelar(listaId: string) {

@@ -1,4 +1,5 @@
 import type {
+  DadosDaNota,
   DadosDeNovaLista,
   DadosDoItem,
   DivisaoDaCategoria,
@@ -113,6 +114,40 @@ export class DividirCompra {
   constructor(private readonly gateway: ListasGateway) {}
   executar(listaId: string, divisao: DivisaoDaCategoria[]) {
     return this.gateway.dividir(listaId, divisao);
+  }
+}
+
+/** Importa uma nota fiscal já lida: valida antes de chamar a API (a API valida de novo). */
+export class ImportarNota {
+  constructor(private readonly gateway: ListasGateway) {}
+  async executar(listaId: string, dados: DadosDaNota) {
+    if (dados.itens.length === 0) throw new ErroDeApi('Escolha pelo menos um item da nota.', 400);
+    for (const item of dados.itens) {
+      if (!item.itemId && !item.categoriaId) {
+        throw new ErroDeApi(`Escolha a categoria de "${item.nome}".`, 400);
+      }
+      if (!(item.quantidade > 0) || item.precoUnitario < 0) {
+        throw new ErroDeApi(`Quantidade ou preço inválido em "${item.nome}".`, 400);
+      }
+    }
+    return this.gateway.importarNota(listaId, dados);
+  }
+}
+
+/** "Esta nota já foi importada?", logo depois de ler o QR (antes de pedir o texto da nota). */
+export class ConsultarNotaImportada {
+  constructor(private readonly gateway: ListasGateway) {}
+  executar(chave: string) {
+    return this.gateway.notaJaImportada(chave);
+  }
+}
+
+/** O que o grupo já ensinou para o CNPJ da nota (código do mercado = produto). Sem CNPJ, nada. */
+export class ObterVinculosDaNota {
+  constructor(private readonly gateway: ListasGateway) {}
+  async executar(cnpj: string | null) {
+    if (!cnpj || cnpj.replace(/\D/g, '').length !== 14) return [];
+    return this.gateway.vinculosDaNota(cnpj.replace(/\D/g, ''));
   }
 }
 

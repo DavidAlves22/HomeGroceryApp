@@ -13,6 +13,7 @@ import { AnalisesScreen } from '../screens/AnalisesScreen';
 import { CategoriasScreen } from '../screens/CategoriasScreen';
 import { HistoricoScreen } from '../screens/HistoricoScreen';
 import { InicioScreen } from '../screens/InicioScreen';
+import { ImportarNotaScreen } from '../screens/ImportarNotaScreen';
 import { DetalheDaListaScreen, ListaScreen } from '../screens/ListaScreen';
 import { ListaPadraoScreen } from '../screens/ListaPadraoScreen';
 import { MaisScreen } from '../screens/MaisScreen';
@@ -54,6 +55,7 @@ const LINKING: LinkingOptions<RootStackParamList> | undefined =
             NovaLista: 'nova-lista',
             ListaPadrao: 'lista-padrao',
             DetalheDaLista: 'lista/:listaId',
+            ImportarNota: 'importar-nota/:listaId',
             Categorias: 'categorias',
             Produtos: 'produtos',
             Grupo: 'grupo',
@@ -124,6 +126,7 @@ export function NavegacaoApp() {
         <Pilha.Screen name="NovaLista" component={NovaListaScreen} />
         <Pilha.Screen name="ListaPadrao" component={ListaPadraoScreen} />
         <Pilha.Screen name="DetalheDaLista" component={DetalheDaListaScreen} />
+        <Pilha.Screen name="ImportarNota" component={ImportarNotaScreen} />
         <Pilha.Screen name="Categorias" component={CategoriasScreen} />
         <Pilha.Screen name="Produtos" component={ProdutosScreen} />
         <Pilha.Screen name="Grupo" component={GrupoScreen} />

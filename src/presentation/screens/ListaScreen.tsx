@@ -448,6 +448,14 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
           )}
         </Cartao>
 
+        {resumo.comprados >= 1 && (
+          <Botao
+            titulo="Importar nota fiscal"
+            variante="secundario"
+            aoPressionar={() => navegacao.navigate('ImportarNota', { listaId: lista.resumo.id })}
+          />
+        )}
+
         {!somenteLeitura && (
           <Botao
             titulo={mercadoDeHoje ? `Rota em ${mercadoDeHoje.nome}` : 'Mapear meu mercado'}

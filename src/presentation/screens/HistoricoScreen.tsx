@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
-import { Cartao } from '../components/base';
+import { Botao, Cartao } from '../components/base';
 import {
   BarraDeProgresso,
   Cabecalho,
@@ -114,6 +114,13 @@ export function HistoricoScreen() {
                     ? `Finalizada em ${new Date(lista.finalizadaEm).toLocaleDateString('pt-BR')}`
                     : 'Em andamento: o total muda conforme você compra'}
                 </Text>
+                {lista.comprados >= 1 && (
+                  <Botao
+                    titulo="Importar nota fiscal"
+                    variante="secundario"
+                    aoPressionar={() => navegacao.navigate('ImportarNota', { listaId: lista.id })}
+                  />
+                )}
               </Cartao>
             </Pressable>
           ))}
