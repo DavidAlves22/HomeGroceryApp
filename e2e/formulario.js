@@ -184,6 +184,30 @@ async function preparar() {
     verificar(item.categoriaId === hortifruti, 'categoria Hortifruti');
     verificar(item.precoUnitario === 0.5 && item.precoEstimado === 30 && item.quantidadeComprada === 3, 'preço pago 0,50, estimado 30,00 e comprada 3');
 
+    console.log('7) O voltar do navegador fecha só a folha de cima');
+    const abrir = async (prefixo) => {
+      const els = await page.$$(`[aria-label^="${prefixo}"]`);
+      await els[els.length - 1].click();
+      await pausa(400);
+    };
+    const voltar = async () => {
+      await page.evaluate(() => history.back());
+      await pausa(600);
+    };
+    await clicarRotulo('Editar Feijão');
+    await esperarTexto('Editar produto');
+    await abrir('Preço pago,');
+    await esperarTexto('Concluído');
+    await voltar();
+    let tv = await texto();
+    verificar(!tv.includes('Concluído') && tv.includes('Editar produto'), 'voltar com o teclado aberto fecha só o teclado (o formulário continua)');
+    await abrir('Preço pago,');
+    await clicar('Cancelar', -1);
+    await voltar();
+    tv = await texto();
+    verificar(!tv.includes('Editar produto') && tv.includes('Novembro de 2026'), 'depois de fechar o teclado pelo botão, um voltar fecha o formulário e fica na Lista (sem entrada sobrando)');
+    await foto('voltar-fecha-folha');
+
     console.log(erros.length ? '\nErros:\n' + erros.join('\n') : '\nSem erros no navegador.');
     console.log('Formulário OK.');
   } catch (e) {

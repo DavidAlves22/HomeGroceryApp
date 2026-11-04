@@ -7,12 +7,27 @@ import type {
   SerieDePreco,
 } from '../../domain/entities/analises';
 import { formatarVariacao } from '../../domain/services/financeiro';
+import { normalizar } from '../../domain/services/organizacao';
+import {
+  ORDENS_DE_PRODUTOS,
+  ordenarProdutos,
+  type OrdemDeProdutos,
+} from '../../domain/services/ordemDeProdutos';
 import { Competencia } from '../../domain/valueObjects/Competencia';
 import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
 import { Botao, Cartao, TextoSuave } from '../components/base';
 import { BarrasHorizontais, GraficoDeBarras, GraficoDeLinha } from '../components/graficos';
 import { Icone } from '../components/Icone';
-import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina } from '../components/ui';
+import {
+  CampoDeBusca,
+  Cabecalho,
+  Carregando,
+  Chip,
+  EstadoVazio,
+  GatilhoDeSeletor,
+  Pagina,
+  PainelDeOpcoes,
+} from '../components/ui';
 import { useContainer } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { espaco, fonte, usePaleta } from '../theme';
@@ -77,6 +92,10 @@ export function AnalisesScreen() {
   const p = usePaleta();
   const [competenciaEscolhida, setCompetenciaEscolhida] = useState<string | undefined>(undefined);
   const [produtoEscolhido, setProdutoEscolhido] = useState<string | null>(null);
+  // Lista suspensa de produtos (com busca): com dezenas de produtos, pílulas viram uma parede de botões.
+  const [escolhendoProduto, setEscolhendoProduto] = useState(false);
+  const [buscaDeProduto, setBuscaDeProduto] = useState('');
+  const [ordemDosProdutos, setOrdemDosProdutos] = useState<OrdemDeProdutos>('meses');
   const [erroDeCategorias, setErroDeCategorias] = useState<string | null>(null);
 
   const gastos = useCarregar<AnaliseDeGastos>(
@@ -103,6 +122,15 @@ export function AnalisesScreen() {
       null,
     [produtosOrdenados, produtoEscolhido],
   );
+
+  const produtosFiltrados = useMemo(() => {
+    const termo = normalizar(buscaDeProduto);
+    const filtrados =
+      termo === ''
+        ? produtosOrdenados
+        : produtosOrdenados.filter((s) => normalizar(s.nome).includes(termo));
+    return ordenarProdutos(filtrados, ordemDosProdutos);
+  }, [produtosOrdenados, buscaDeProduto, ordemDosProdutos]);
 
   if ((gastos.carregando && !gastos.dados) || (precos.carregando && !precos.dados)) {
     return (
@@ -279,19 +307,61 @@ export function AnalisesScreen() {
         {serieSelecionada ? (
           <Cartao estilo={{ gap: espaco.md }}>
             <Titulo2>Evolução de preços</Titulo2>
-            <View style={estilos.chips}>
-              {produtosOrdenados.slice(0, 12).map((s) => {
-                const chave = `${s.nome}|${s.unidadeBase}`;
-                return (
-                  <Chip
-                    key={chave}
-                    rotulo={s.nome}
-                    ativo={chave === `${serieSelecionada.nome}|${serieSelecionada.unidadeBase}`}
-                    aoPressionar={() => setProdutoEscolhido(chave)}
-                  />
-                );
-              })}
-            </View>
+            {produtosOrdenados.length > 1 && (
+              <>
+                <GatilhoDeSeletor
+                  rotulo="Produto"
+                  valor={nomeNaLista(serieSelecionada, produtosOrdenados)}
+                  aberto={escolhendoProduto}
+                  aoPressionar={() => {
+                    setEscolhendoProduto(!escolhendoProduto);
+                    setBuscaDeProduto('');
+                  }}
+                />
+                {escolhendoProduto && (
+                  <>
+                    <CampoDeBusca
+                      valor={buscaDeProduto}
+                      aoMudar={setBuscaDeProduto}
+                      placeholder="Filtrar produtos"
+                    />
+                    <View style={estilos.chips}>
+                      {ORDENS_DE_PRODUTOS.map((o) => (
+                        <Chip
+                          key={o.valor}
+                          rotulo={o.rotulo}
+                          ativo={ordemDosProdutos === o.valor}
+                          aoPressionar={() => setOrdemDosProdutos(o.valor)}
+                        />
+                      ))}
+                    </View>
+                    {produtosFiltrados.length === 0 ? (
+                      <TextoSuave>Nenhum produto encontrado.</TextoSuave>
+                    ) : (
+                      <PainelDeOpcoes
+                        titulo="Escolher o produto"
+                        opcoes={produtosFiltrados.map((s) => ({
+                          chave: `${s.nome}|${s.unidadeBase}`,
+                          rotulo: `${nomeNaLista(s, produtosOrdenados)} · ${s.pontos.length} ${s.pontos.length === 1 ? 'mês' : 'meses'}`,
+                          detalhe:
+                            s.variacaoPercentual === null
+                              ? undefined
+                              : formatarVariacao(s.variacaoPercentual),
+                          marcada:
+                            `${s.nome}|${s.unidadeBase}` ===
+                            `${serieSelecionada.nome}|${serieSelecionada.unidadeBase}`,
+                          aoPressionar: () => {
+                            setProdutoEscolhido(`${s.nome}|${s.unidadeBase}`);
+                            setEscolhendoProduto(false);
+                            setBuscaDeProduto('');
+                          },
+                        }))}
+                      />
+                    )}
+                  </>
+                )}
+              </>
+            )}
             <View style={estilos.entre}>
               <Text style={{ color: p.texto, fontSize: fonte.corpo, fontWeight: '700' }}>
                 {serieSelecionada.nome}
@@ -391,6 +461,12 @@ export function AnalisesScreen() {
       </ScrollView>
     </Pagina>
   );
+}
+
+/** O nome na lista de produtos; se há o mesmo nome em outra unidade (Arroz em kg e em pacote), a unidade desempata. */
+function nomeNaLista(serie: SerieDePreco, todas: SerieDePreco[]): string {
+  const repetido = todas.some((o) => o !== serie && o.nome === serie.nome);
+  return repetido ? `${serie.nome} (${rotuloDaBase(serie.unidadeBase)})` : serie.nome;
 }
 
 function rotuloDaBase(base: string): string {

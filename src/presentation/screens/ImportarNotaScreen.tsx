@@ -37,6 +37,8 @@ interface Linha {
   item: ItemDaNota;
   escolha: Escolha;
   origem: Origem;
+  /** O par que o item tinha antes de ser ignorado (para "Desfazer"). */
+  antes?: { escolha: Escolha; origem: Origem };
 }
 
 type Fase = 'colar' | 'revisar' | 'pronto';
@@ -180,6 +182,28 @@ export function ImportarNotaScreen() {
       atual.map((l, i) => (i === indice ? { ...l, escolha, origem: 'manual' } : l)),
     );
     setEditando(null);
+  }
+
+  /** Liga/desliga "ignorar" direto na linha. Ao desfazer volta ao par que o item tinha (por código, por nome ou o que você escolheu). */
+  function alternarIgnorar(indice: number) {
+    setLinhas((atual) =>
+      atual.map((l, i) => {
+        if (i !== indice) return l;
+        if (l.escolha.tipo !== 'ignorar') {
+          return {
+            ...l,
+            antes: { escolha: l.escolha, origem: l.origem },
+            escolha: { tipo: 'ignorar' },
+          };
+        }
+        return {
+          ...l,
+          escolha: l.antes?.escolha ?? l.escolha,
+          origem: l.antes?.origem ?? l.origem,
+          antes: undefined,
+        };
+      }),
+    );
   }
 
   const usadas = linhas.filter((l) => l.escolha.tipo !== 'ignorar');
@@ -409,15 +433,32 @@ export function ImportarNotaScreen() {
                     {reais(linha.item.valorTotal)}
                   </Text>
                 </View>
-                <Text
-                  style={{
-                    color: p.textoSuave,
-                    fontSize: fonte.pequena,
-                    fontVariant: ['tabular-nums'],
-                  }}
-                >
-                  {formatarQuantidade(linha.item.quantidade)} × {reais(linha.item.valorUnitario)}
-                </Text>
+                <View style={estilos.entre}>
+                  <Text
+                    style={{
+                      color: p.textoSuave,
+                      fontSize: fonte.pequena,
+                      fontVariant: ['tabular-nums'],
+                    }}
+                  >
+                    {formatarQuantidade(linha.item.quantidade)} × {reais(linha.item.valorUnitario)}
+                  </Text>
+                  {/* Ignorar sem abrir a folha: um toque, e "Desfazer" devolve o par que o item tinha. */}
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${linha.escolha.tipo === 'ignorar' ? 'Desfazer ignorar' : 'Ignorar'} ${linha.item.nome}`}
+                    onPress={() => alternarIgnorar(indice)}
+                    hitSlop={6}
+                    style={[
+                      estilos.botaoIgnorar,
+                      { borderColor: p.linha, backgroundColor: p.superficie },
+                    ]}
+                  >
+                    <Text style={{ color: p.textoSuave, fontSize: 12, fontWeight: '700' }}>
+                      {linha.escolha.tipo === 'ignorar' ? 'Desfazer' : 'Ignorar'}
+                    </Text>
+                  </Pressable>
+                </View>
                 <View style={estilos.entre}>
                   {linha.escolha.tipo === 'item' ? (
                     <Text
@@ -602,6 +643,14 @@ const estilos = StyleSheet.create({
     gap: espaco.sm,
   },
   linha: { borderWidth: 1, borderRadius: raio.md, padding: espaco.md, gap: 2 },
+  botaoIgnorar: {
+    minHeight: 30,
+    paddingHorizontal: 12,
+    borderRadius: raio.pilula,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   opcao: {
     minHeight: 48,
     flexDirection: 'row',

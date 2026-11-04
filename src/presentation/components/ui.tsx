@@ -404,6 +404,8 @@ export function GatilhoDeSeletor({ rotulo, valor, aberto, aoPressionar }: Gatilh
 export interface OpcaoDoPainel {
   chave: string;
   rotulo: string;
+  /** Texto curto alinhado à direita da opção (ex.: a variação de preço). */
+  detalhe?: string;
   marcada: boolean;
   aoPressionar: () => void;
 }
@@ -440,6 +442,18 @@ export function PainelDeOpcoes({ titulo, opcoes }: { titulo: string; opcoes: Opc
               {o.marcada && <Icone nome="check" cor={p.textoSobreDestaque} tamanho={14} />}
             </View>
             <Text style={{ flex: 1, color: p.texto, fontSize: fonte.corpo }}>{o.rotulo}</Text>
+            {o.detalhe && (
+              <Text
+                style={{
+                  color: p.textoSuave,
+                  fontSize: fonte.corpo,
+                  fontVariant: ['tabular-nums'],
+                  textAlign: 'right',
+                }}
+              >
+                {o.detalhe}
+              </Text>
+            )}
           </Pressable>
         ))}
       </ScrollView>

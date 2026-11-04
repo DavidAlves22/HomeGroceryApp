@@ -18,6 +18,7 @@ import {
   type Produto,
   type Unidade,
 } from '../../domain/entities/tipos';
+import { useVoltarFecha } from '../hooks/useVoltarFecha';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Botao, Campo, MensagemDeErro } from './base';
 import { CampoNumerico } from './CampoNumerico';
@@ -33,6 +34,8 @@ export function Moldura({
   children: React.ReactNode;
 }) {
   const p = usePaleta();
+  // O voltar do celular/navegador fecha a folha em vez de sair da tela por baixo dela.
+  useVoltarFecha(visivel, aoFechar);
   return (
     <Modal visible={visivel} transparent animationType="slide" onRequestClose={aoFechar}>
       <KeyboardAvoidingView

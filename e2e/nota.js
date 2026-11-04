@@ -184,10 +184,29 @@ async function preparar() {
     await clicar('WMS Araras');
     await foto('conferir-pares');
 
+    console.log('2b) Ignorar direto na lista de pares, sem abrir a folha');
+    await clicarRotulo('Ignorar M.PIZZA M.LEVE FRIG.');
+    await esperarTexto('Importar 7 itens');
+    verificar((await texto()).includes('1 ignorados'), 'um toque em Ignorar tira o item da importação (7 itens)');
+    await foto('item-ignorado');
+    await clicarRotulo('Desfazer ignorar M.PIZZA M.LEVE FRIG.');
+    await esperarTexto('Importar 8 itens');
+    verificar((await texto()).includes('+ Novo item: M.Pizza M.Leve Frig.'), 'Desfazer devolve o item com o par que tinha');
+    await clicarRotulo('Ignorar BISC.PASSATEMPO');
+    await clicarRotulo('Desfazer ignorar BISC.PASSATEMPO');
+    verificar((await texto()).includes('→ Biscoito Passatempo'), 'um item que estava casado volta casado ao desfazer');
+
     console.log('3) Trocar um par: o queijo da nota é o "Queijo Tirolez" da lista');
     await clicarRotulo('Trocar o par de QJO.M.PADR.TIROLEZ');
     await esperarTexto('É UM ITEM DA SUA LISTA');
     await foto('trocar-par');
+    // O voltar do celular/navegador fecha só a folha: continua em "Importar nota", com os pares na tela.
+    await page.evaluate(() => history.back());
+    await pausa(600);
+    t = await texto();
+    verificar(!t.includes('É UM ITEM DA SUA LISTA') && t.includes('CONFIRA OS PARES'), 'o voltar do navegador fecha a folha do par e continua em Importar nota');
+    await clicarRotulo('Trocar o par de QJO.M.PADR.TIROLEZ');
+    await esperarTexto('É UM ITEM DA SUA LISTA');
     await clicarRotulo('Usar Queijo Tirolez');
     await esperarTexto('→ Queijo Tirolez');
     verificar(true, 'o queijo agora aponta para o item da lista');

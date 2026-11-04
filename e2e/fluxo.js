@@ -281,6 +281,34 @@ let passo = 0;
     const tA = await texto();
     verificar(tA.includes('Por categoria em'), 'gráfico por categoria exibido');
     verificar(tA.includes('Evolução de preços'), 'evolução de preços exibida');
+    // Produtos numa lista suspensa com busca (e não numa parede de pílulas).
+    const gatilhosDeProduto = await page.$$('[aria-label^="Produto:"]');
+    await gatilhosDeProduto[gatilhosDeProduto.length - 1].click();
+    await pausa(300);
+    await page.$eval('[aria-label^="Produto:"]', (el) => el.scrollIntoView({ block: 'start' }));
+    await pausa(300);
+    await foto('analises-combo-aberto');
+    // Maior variação: no teste, a carne (+20,6%) sobe mais que o arroz (+8,0%); aparece primeiro e com a variação escrita.
+    await clicar('Maior variação');
+    await pausa(300);
+    const primeiraOpcao = await page.$$eval('[aria-label="Escolher o produto"] [role="checkbox"]', (els) => els.map((e) => e.textContent.trim()));
+    verificar(
+      /^Carne moída · 3 meses\+\d+,\d%$/.test(primeiraOpcao[0]),
+      `ordenar por maior variação põe o que mais mudou primeiro e mostra a variação (${primeiraOpcao[0]})`,
+    );
+    await digitar('Filtrar produtos', 'zzz');
+    await esperarTexto('Nenhum produto encontrado');
+    await digitar('Filtrar produtos', 'carne');
+    await pausa(300);
+    const opcaoDaCarne = await page.$$('xpath/.//*[starts-with(normalize-space(text()), "Carne moída ·")]');
+    verificar(opcaoDaCarne.length >= 1, 'a busca na lista de produtos filtra pelo nome');
+    await opcaoDaCarne[opcaoDaCarne.length - 1].click();
+    await pausa(400);
+    verificar(
+      ((await page.$$eval('[aria-label^="Produto:"]', (els) => els[els.length - 1].getAttribute('aria-label'))) ?? '').startsWith('Produto: Carne moída'),
+      'escolher na lista mostra a evolução do produto escolhido',
+    );
+    await foto('analises-produto');
     verificar(tA.includes('Maiores aumentos de preço'), 'maiores aumentos exibidos');
     verificar(/\+\d+,\d%/.test(tA), 'variação percentual com sinal exibida');
     await page.evaluate(() => {

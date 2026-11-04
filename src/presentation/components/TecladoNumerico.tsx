@@ -17,6 +17,7 @@ import {
   type ModoNumerico,
   type Operacao,
 } from '../../domain/services/calculadora';
+import { useVoltarFecha } from '../hooks/useVoltarFecha';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 
 interface Props {
@@ -45,6 +46,8 @@ const OPERADOR_DA_FILA: readonly Operacao[] = ['/', '*', '-'];
 export function TecladoNumerico({ modo, titulo, inicial, sufixo, aoConcluir, aoCancelar }: Props) {
   const p = usePaleta();
   const margem = useSafeAreaInsets().bottom;
+  // O teclado só existe enquanto está aberto; o voltar do navegador o cancela (e não sai da tela).
+  useVoltarFecha(true, aoCancelar);
   const [calculo, setCalculo] = useState<EstadoCalculo>(() => calculoInicial(modo, inicial));
   const escala = ehEscala(calculo);
 
