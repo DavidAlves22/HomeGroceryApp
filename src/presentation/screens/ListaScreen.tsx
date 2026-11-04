@@ -1,5 +1,5 @@
 import { useRoute, type RouteProp } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
 import type {
@@ -125,6 +125,62 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
   const [confirmandoFim, setConfirmandoFim] = useState(false);
   const [atualizando, setAtualizando] = useState(false);
 
+  // Itens que OUTRA pessoa acabou de pedir (chegam por tempo real): avisa e marca com "Novo" até a pessoa mexer neles.
+  // Na primeira carga (ou ao trocar de lista) só memoriza o que já existe, sem avisar.
+  const [pedidosDeOutros, setPedidosDeOutros] = useState<Map<string, string>>(new Map());
+  const itensVistos = useRef<{ listaId: string; ids: Set<string>; status: string } | null>(null);
+  const euFinalizei = useRef(false);
+  const nomesRef = useRef(nomes);
+  nomesRef.current = nomes;
+  useEffect(() => {
+    if (!lista) return;
+    const vistos = itensVistos.current;
+    const status = lista.resumo.status;
+    if (!vistos || vistos.listaId !== lista.resumo.id) {
+      itensVistos.current = {
+        listaId: lista.resumo.id,
+        ids: new Set(lista.itens.map((i) => i.id)),
+        status,
+      };
+      setPedidosDeOutros(new Map());
+      return;
+    }
+
+    const meuId = sessao?.usuario.id;
+    const novos = lista.itens.filter(
+      (i) => !vistos.ids.has(i.id) && i.adicionadoPorUsuarioId !== meuId,
+    );
+    if (novos.length > 0) {
+      const quem = (id: string) => nomesRef.current.get(id)?.split(' ')[0] ?? 'Alguém';
+      setPedidosDeOutros((atual) => {
+        const proximo = new Map(atual);
+        for (const i of novos) proximo.set(i.id, quem(i.adicionadoPorUsuarioId));
+        return proximo;
+      });
+      toast(
+        novos.length === 1
+          ? `${quem(novos[0].adicionadoPorUsuarioId)} pediu: ${novos[0].nome}`
+          : `${quem(novos[0].adicionadoPorUsuarioId)} adicionou ${novos.length} itens`,
+      );
+    }
+    if (vistos.status === 'EmAndamento' && status === 'Finalizada' && !euFinalizei.current) {
+      toast('A compra foi finalizada por outra pessoa');
+    }
+    euFinalizei.current = false;
+    itensVistos.current = {
+      listaId: lista.resumo.id,
+      ids: new Set(lista.itens.map((i) => i.id)),
+      status,
+    };
+  }, [lista, sessao?.usuario.id, toast]);
+  const esquecerPedido = (itemId: string) =>
+    setPedidosDeOutros((atual) => {
+      if (!atual.has(itemId)) return atual;
+      const proximo = new Map(atual);
+      proximo.delete(itemId);
+      return proximo;
+    });
+
   if (carregando && !lista)
     return (
       <Pagina>
@@ -218,6 +274,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
   }
 
   async function marcar(item: ItemDaLista) {
+    esquecerPedido(item.id);
     const listaId = lista!.resumo.id;
     // Atualização otimista: a tela responde ao toque na hora e desfaz se o servidor recusar.
     const lojaId = !item.comprado ? (mercadoDeHoje?.id ?? null) : null;
@@ -290,6 +347,8 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
   }
 
   async function executarNaLista(acao: () => Promise<unknown>, aviso: string) {
+    // Quem finaliza aqui não precisa do aviso "finalizada por outra pessoa" que o recarregamento geraria.
+    euFinalizei.current = true;
     try {
       await acao();
       toast(aviso);
@@ -535,8 +594,12 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
                   nomeDeQuemMarcou={nomes.get(item.compradoPorUsuarioId ?? '')}
                   nomeDoMercado={item.comprado ? nomeDoMercado(item.compradoNaLojaId) : undefined}
                   comOutraPessoa={comQuemEsta(item)}
+                  pedidoPor={pedidosDeOutros.get(item.id)}
                   aoMarcar={(i) => void marcar(i)}
-                  aoEditar={(i) => setFolha({ tipo: 'editar', item: i })}
+                  aoEditar={(i) => {
+                    esquecerPedido(i.id);
+                    setFolha({ tipo: 'editar', item: i });
+                  }}
                   aoMover={
                     podeMover
                       ? {

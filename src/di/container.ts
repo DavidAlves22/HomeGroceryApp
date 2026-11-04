@@ -49,6 +49,11 @@ import {
   PlanejarRota,
   SalvarMapaDoMercado,
 } from '../application/useCases/mercados';
+import {
+  DesligarAvisos,
+  LigarAvisos,
+  ObterEstadoDosAvisos,
+} from '../application/useCases/notificacoes';
 import { MercadosApiGateway, RotasApiGateway } from '../infrastructure/gateways/mercadosGateways';
 import {
   CriarConvite,
@@ -65,6 +70,8 @@ import {
 } from '../infrastructure/gateways/catalogoGateways';
 import { AutenticacaoApiGateway, ServidorApiGateway } from '../infrastructure/gateways/gateways';
 import { GrupoApiGateway } from '../infrastructure/gateways/grupoGateway';
+import { NotificacoesApiGateway } from '../infrastructure/gateways/notificacoesGateway';
+import { AvisosDoNavegador } from '../infrastructure/push/AvisosDoNavegador';
 import { ClienteHttp } from '../infrastructure/http/ClienteHttp';
 import { TempoRealSignalR } from '../infrastructure/tempoReal/TempoRealSignalR';
 import { ArmazenamentoDeSessaoLocal } from '../infrastructure/sessao/ArmazenamentoDeSessaoLocal';
@@ -87,6 +94,8 @@ export function criarContainer(aoExpirarSessao: () => void) {
   const grupo = new GrupoApiGateway(http);
   const mercados = new MercadosApiGateway(http);
   const rotas = new RotasApiGateway(http);
+  const notificacoes = new NotificacoesApiGateway(http);
+  const avisosDoDispositivo = new AvisosDoNavegador();
 
   return {
     // Conta e sessão
@@ -138,6 +147,11 @@ export function criarContainer(aoExpirarSessao: () => void) {
     planejarRota: new PlanejarRota(rotas),
     marcarItemSemNoMercado: new MarcarItemSemNoMercado(rotas),
     definirLocalDoItem: new DefinirLocalDoItem(rotas),
+
+    // Avisos no celular (Web Push)
+    obterEstadoDosAvisos: new ObterEstadoDosAvisos(avisosDoDispositivo, notificacoes),
+    ligarAvisos: new LigarAvisos(avisosDoDispositivo, notificacoes),
+    desligarAvisos: new DesligarAvisos(avisosDoDispositivo, notificacoes),
 
     // Grupo familiar e tempo real
     obterGrupo: new ObterGrupo(grupo),

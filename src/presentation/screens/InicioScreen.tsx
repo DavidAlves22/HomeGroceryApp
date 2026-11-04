@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
+import type { DadosDoItem, Produto } from '../../domain/entities/tipos';
 import { calcularTotais } from '../../domain/services/financeiro';
 import { Competencia } from '../../domain/valueObjects/Competencia';
 import { Botao, Cartao, TextoSuave } from '../components/base';
+import { FolhaDeItem } from '../components/Folhas';
+import { FolhaPedirItem } from '../components/FolhaPedirItem';
 import { ResumoFinanceiro } from '../components/ResumoFinanceiro';
 import { BarraDeProgresso, Carregando, EstadoVazio, Pagina, Pilula } from '../components/ui';
 import { useContainer, useSessao } from '../hooks/AppProviders';
@@ -25,9 +28,40 @@ export function InicioScreen() {
     recarregar,
   } = useCarregar(() => container.obterListaAtual.executar(), 'atual');
   const toast = useToast();
+  const { dados: categorias } = useCarregar(
+    () => container.listarCategorias.executar(),
+    'categorias',
+  );
+  const { dados: sugestoes } = useCarregar(
+    () => container.obterSugestoesDeProdutos.executar(),
+    'sugestoes',
+  );
+  // "Pedir item": pedido rápido de quem está em casa; produto que ainda não existe abre o formulário completo.
+  const [pedindo, setPedindo] = useState(false);
+  const [novoPedido, setNovoPedido] = useState<string | null>(null);
   const [confirmandoCancelar, setConfirmandoCancelar] = useState(false);
   const [cancelando, setCancelando] = useState(false);
   const mesAtual = Competencia.daData(new Date());
+
+  async function pedir(produto: Produto) {
+    if (!lista) return;
+    await container.adicionarItemNaLista.executar(lista.resumo.id, {
+      nome: produto.nome,
+      categoriaId: produto.categoriaId,
+      unidade: produto.unidadePadrao,
+      quantidade: 1,
+    });
+    toast(`${produto.nome} entrou na lista`);
+    await recarregar();
+  }
+
+  async function pedirNovo(dados: DadosDoItem) {
+    if (!lista) return;
+    await container.adicionarItemNaLista.executar(lista.resumo.id, dados);
+    toast(`${dados.nome} entrou na lista`);
+    setNovoPedido(null);
+    await recarregar();
+  }
 
   async function cancelarCompra(listaId: string) {
     setCancelando(true);
@@ -167,6 +201,14 @@ export function InicioScreen() {
           </Cartao>
         )}
 
+        {resumo && resumo.status !== 'Finalizada' && (
+          <Botao
+            titulo="Pedir item (acabou em casa)"
+            variante="secundario"
+            aoPressionar={() => setPedindo(true)}
+          />
+        )}
+
         <View style={estilos.atalhos}>
           <Botao
             titulo="Nova lista"
@@ -187,6 +229,33 @@ export function InicioScreen() {
           aoPressionar={() => navegacao.navigate('Historico')}
         />
       </ScrollView>
+      {lista && (
+        <>
+          <FolhaPedirItem
+            visivel={pedindo}
+            itensDaLista={lista.itens}
+            categorias={categorias ?? []}
+            sugestoesIniciais={sugestoes ?? []}
+            buscar={(termo) => container.buscarProdutos.executar(termo)}
+            aoPedir={pedir}
+            aoCriarNovo={(nome) => {
+              setPedindo(false);
+              setNovoPedido(nome);
+            }}
+            aoFechar={() => setPedindo(false)}
+          />
+          <FolhaDeItem
+            visivel={novoPedido !== null}
+            titulo="Pedir produto novo"
+            categorias={categorias ?? []}
+            inicial={{ nome: novoPedido ?? '' }}
+            rotuloDoBotao="Pedir"
+            buscarSugestoes={(termo) => container.buscarProdutos.executar(termo)}
+            aoSalvar={pedirNovo}
+            aoFechar={() => setNovoPedido(null)}
+          />
+        </>
+      )}
     </Pagina>
   );
 }

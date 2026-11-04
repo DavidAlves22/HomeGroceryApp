@@ -26,7 +26,7 @@ async function preparar() {
   const token = sessao.tokenDeAcesso;
   const esposa = await api('POST', '/autenticacao/cadastro', { nome: 'Ana Souza', email: `ana_${email}`, senha: 'senha1234' });
   const convite = await api('POST', '/grupo/convites', null, token);
-  await api('POST', '/grupo/entrar', { codigo: convite.codigo }, esposa.tokenDeAcesso);
+  const entrou = await api('POST', '/grupo/entrar', { codigo: convite.codigo }, esposa.tokenDeAcesso);
 
   const categorias = await api('GET', '/categorias', null, token);
   const cat = (nome) => categorias.find((c) => c.nome === nome).id;
@@ -46,11 +46,11 @@ async function preparar() {
       { nome: 'Mercearia', dividida: false, area: area(8, 22, 14, 3), categoriasLadoA: [cat('Mercearia')], categoriasLadoB: [] },
     ],
   }, token);
-  return { token, esposaId: esposa.usuario.id, listaId: lista.resumo.id };
+  return { token, tokenDela: entrou.tokenDeAcesso, esposaId: esposa.usuario.id, listaId: lista.resumo.id, lojaId: loja.id };
 }
 
 (async () => {
-  const { token, esposaId, listaId } = await preparar();
+  const { token, tokenDela, esposaId, listaId, lojaId } = await preparar();
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',
     userDataDir: require('os').tmpdir() + '/e2e-divisao-' + Date.now(),
@@ -163,6 +163,15 @@ async function preparar() {
     let p = await paradas();
     verificar(p.arroz && p.pao, 'o arroz (de todos) e o pão (meu) estão na minha rota');
     await foto('minha-rota');
+
+    console.log('3b) A Ana aparece em cinza no mapa e o trajeto dela se atualiza ao vivo');
+    await esperarTexto('Ana (cinza no mapa)');
+    verificar((await texto()).includes('Ana (cinza no mapa) · faltam 2 itens'), 'a Ana ainda tem 2 itens para pegar (frango e o arroz de todos)');
+    const frango = lista.itens.find((i) => i.nome === 'Frango');
+    await api('PUT', `/listas/${listaId}/itens/${frango.id}/comprado`, { comprado: true, lojaId }, tokenDela);
+    await esperarTexto('faltam 1 item', 15000);
+    verificar((await texto()).includes('Ana (cinza no mapa) · faltam 1 item'), 'quando a Ana marca o frango, o mapa e o contador mudam sem recarregar');
+    await foto('rota-com-a-ana');
 
     console.log('4) Rota de "Todos" e rota da Ana');
     await clicar('Todos', -1);

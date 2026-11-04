@@ -36,3 +36,43 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(event.request)),
   );
 });
+
+// Avisos (Web Push): o servidor manda { titulo, corpo, url, tag } quando alguém da família pede um item ou finaliza a compra.
+// Com o app aberto e visível, quem avisa é o próprio app (toast), então aqui não repetimos.
+self.addEventListener('push', (event) => {
+  let dados = {};
+  try {
+    dados = event.data ? event.data.json() : {};
+  } catch {
+    dados = { corpo: event.data ? event.data.text() : '' };
+  }
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
+      if (janelas.some((j) => j.visibilityState === 'visible')) return undefined;
+      return self.registration.showNotification(dados.titulo || 'HomeGrocery', {
+        body: dados.corpo || '',
+        tag: dados.tag || undefined,
+        renotify: !!dados.tag,
+        icon: '/icon.png',
+        badge: '/icon.png',
+        data: { url: dados.url || '/' },
+      });
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
+      const aberta = janelas.find((j) => 'focus' in j);
+      if (aberta) {
+        if ('navigate' in aberta) aberta.navigate(url).catch(() => {});
+        return aberta.focus();
+      }
+      return self.clients.openWindow(url);
+    }),
+  );
+});

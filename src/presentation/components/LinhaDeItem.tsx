@@ -18,6 +18,8 @@ interface Props {
   nomeDoMercado?: string;
   /** Na compra dividida: quem vai pegar este item quando não sou eu. O fundo muda para ficar claro que não é meu. */
   comOutraPessoa?: string;
+  /** Item que outra pessoa acabou de pedir (aviso em tempo real): ganha o selo "Novo" até ser marcado ou editado. */
+  pedidoPor?: string;
   somenteLeitura: boolean;
   aoMarcar: (item: ItemDaLista) => void;
   aoEditar: (item: ItemDaLista) => void;
@@ -48,6 +50,7 @@ export function LinhaDeItem({
   nomeDeQuemMarcou,
   nomeDoMercado,
   comOutraPessoa,
+  pedidoPor,
   somenteLeitura,
   aoMarcar,
   aoEditar,
@@ -106,6 +109,11 @@ export function LinhaDeItem({
           {feito && nomeDoMercado ? ` · ${nomeDoMercado}` : ''}
           {feito && marcadoPorOutro ? ` · ${nomeDeQuemMarcou ?? 'outra pessoa'} marcou` : ''}
         </Text>
+        {pedidoPor && !feito && (
+          <Text style={{ color: p.destaque, fontSize: fonte.pequena, fontWeight: '700' }}>
+            Novo · pedido por {pedidoPor}
+          </Text>
+        )}
       </View>
 
       {!somenteLeitura && aoMover && (

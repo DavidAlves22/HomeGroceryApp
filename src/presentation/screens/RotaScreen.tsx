@@ -111,6 +111,11 @@ const metros = (m: number) => `${m} m`;
  * Rota dentro do mercado escolhido, só com o que ainda falta: o que já foi comprado em outro mercado
  * não entra. Sem GPS: sua posição é o lugar do último item marcado (ou a entrada).
  */
+/** Primeiro nome de um membro do grupo (ou "Outra pessoa" se já saiu). */
+function primeiroNome(usuarioId: string, membros: Membro[]) {
+  return membros.find((m) => m.usuarioId === usuarioId)?.nome.split(' ')[0] ?? 'Outra pessoa';
+}
+
 /** Agrupa os itens que ficaram com outras pessoas pelo primeiro nome de quem vai pegar. */
 function nomesDeQuemPega(itens: ItemDeOutraPessoa[], membros: Membro[]) {
   const porNome = new Map<string, string[]>();
@@ -343,7 +348,25 @@ export function RotaScreen() {
         ) : (
           <>
             <Cartao estilo={{ padding: espaco.md, gap: espaco.sm }}>
-              <MapaSvg mapa={mapa} modo="rota" rota={rotaAtual} />
+              <MapaSvg
+                mapa={mapa}
+                modo="rota"
+                rota={rotaAtual}
+                outras={rotaAtual.rotasDeOutrasPessoas.map((o) => ({
+                  inicial: primeiroNome(o.usuarioId, membros).charAt(0).toUpperCase(),
+                  posicao: o.posicao,
+                  trilha: o.trilha,
+                }))}
+              />
+              {rotaAtual.rotasDeOutrasPessoas.map((o) => (
+                <Text key={o.usuarioId} style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                  <Text style={{ fontWeight: '700' }}>{primeiroNome(o.usuarioId, membros)}</Text>{' '}
+                  (cinza no mapa) ·{' '}
+                  {o.itensRestantes === 0
+                    ? 'já pegou tudo'
+                    : `faltam ${o.itensRestantes} ${o.itensRestantes === 1 ? 'item' : 'itens'}`}
+                </Text>
+              ))}
               <View style={estilos.entre}>
                 <Text style={{ color: p.textoSuave, fontSize: fonte.pequena, flex: 1 }}>
                   {naEntrada ? 'Você está na entrada' : 'Você está onde marcou o último item'}

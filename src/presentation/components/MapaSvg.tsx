@@ -86,6 +86,8 @@ interface Props {
   modo: 'mini' | 'rota' | 'editar';
   selecionado?: AlvoDoMapa | null;
   rota?: { trilha: Ponto[]; paradas: ParadaDaRota[]; posicao: Ponto } | null;
+  /** Outras pessoas da compra: o trajeto que falta para elas (cinza, por baixo do meu) e onde estão. */
+  outras?: { inicial: string; posicao: Ponto; trilha: Ponto[] }[];
   /** Seções realçadas à força (ex.: onde o usuário marcou o produto). Sobrepõe o realce padrão. */
   destacadas?: string[];
   aoMedir?: (largura: number) => void;
@@ -102,6 +104,7 @@ export function MapaSvg({
   modo,
   selecionado = null,
   rota = null,
+  outras = [],
   destacadas,
   aoMedir,
   janela = JANELA_INICIAL,
@@ -258,6 +261,22 @@ export function MapaSvg({
           ENTRADA
         </TextoSvg>
 
+        {outras.map((o) => {
+          const caminho = o.trilha.map((t) => `${centro(t).x},${centro(t).y}`).join(' ');
+          return caminho.length === 0 ? null : (
+            <G key={`trilha-${o.inicial}-${o.posicao.x}-${o.posicao.y}`}>
+              <Polyline
+                points={caminho}
+                fill="none"
+                stroke={p.textoSuave}
+                strokeWidth={3}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.3}
+              />
+            </G>
+          );
+        })}
         {rota && pontos.length > 0 && (
           <>
             <Polyline
@@ -306,6 +325,30 @@ export function MapaSvg({
             </G>
           );
         })}
+        {outras.map((o) => (
+          <G key={`pessoa-${o.inicial}-${o.posicao.x}-${o.posicao.y}`}>
+            <Circle
+              cx={centro(o.posicao).x}
+              cy={centro(o.posicao).y}
+              r={9}
+              fill={p.textoSuave}
+              stroke={p.superficie}
+              strokeWidth={2}
+              opacity={0.9}
+            />
+            <TextoSvg
+              fontFamily={FONTE}
+              x={centro(o.posicao).x}
+              y={centro(o.posicao).y + 3.5}
+              fontSize={10}
+              fontWeight="800"
+              textAnchor="middle"
+              fill={p.superficie}
+            >
+              {o.inicial}
+            </TextoSvg>
+          </G>
+        ))}
         {rota && (
           <>
             <Circle

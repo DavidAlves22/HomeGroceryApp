@@ -93,6 +93,14 @@ export interface LocalDoItem {
   lado: LadoDaSecao;
 }
 
+/** Onde outra pessoa da divisão está e o trajeto que ainda falta para ela (aparece em cinza no mapa de quem acompanha). */
+export interface RotaDeOutraPessoa {
+  usuarioId: string;
+  posicao: Ponto;
+  trilha: Ponto[];
+  itensRestantes: number;
+}
+
 export interface Rota {
   lojaId: string;
   posicao: Ponto;
@@ -105,4 +113,5 @@ export interface Rota {
   jaCompradosEmOutrosMercados: number;
   locaisProprios: LocalDoItem[];
   comOutrasPessoas: ItemDeOutraPessoa[];
+  rotasDeOutrasPessoas: RotaDeOutraPessoa[];
 }

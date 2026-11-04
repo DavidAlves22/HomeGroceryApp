@@ -1,6 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Botao, Cartao } from '../components/base';
+import { CartaoDeAvisos } from '../components/CartaoDeAvisos';
 import { Icone, type NomeDoIcone } from '../components/Icone';
 import { Cabecalho, Pagina, Pilula } from '../components/ui';
 import { useContainer, useSessao } from '../hooks/AppProviders';
@@ -43,6 +44,8 @@ export function MaisScreen() {
     <Pagina>
       <Cabecalho titulo="Mais" />
       <ScrollView contentContainerStyle={estilos.conteudo}>
+        <CartaoDeAvisos />
+
         <Cartao estilo={{ paddingVertical: 4 }}>
           <Linha
             icone="pessoas"
