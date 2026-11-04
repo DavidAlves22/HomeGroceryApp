@@ -1,5 +1,5 @@
 import React, { useState, useSyncExternalStore } from 'react';
-import { Platform, Pressable, Text, View } from 'react-native';
+import { Platform, Pressable, Text, useWindowDimensions, View } from 'react-native';
 import { usePaleta } from '../theme';
 import { useLayoutLargo } from './useLayoutLargo';
 
@@ -14,7 +14,7 @@ export interface AjusteDoLayout {
   larguraMaxima: number;
 }
 
-export const AJUSTE_PADRAO: AjusteDoLayout = { painel: 500, larguraMaxima: 1740 };
+export const AJUSTE_PADRAO: AjusteDoLayout = { painel: 400, larguraMaxima: 2400 };
 
 const CHAVE_DO_ARMAZENAMENTO = 'hg-ajuste-do-layout';
 
@@ -81,13 +81,22 @@ export function PainelDeAjuste() {
   const p = usePaleta();
   const largo = useLayoutLargo();
   const valores = useAjusteDoLayout();
+  const { width: larguraDaJanela } = useWindowDimensions();
   const [aberto, setAberto] = useState(true);
   if (Platform.OS !== 'web' || !largo) return null;
+
+  // A largura da página não passa da largura da janela: acima disso o controle não mudaria nada.
+  const maximo = (c: (typeof CONTROLES)[number]) =>
+    c.chave === 'larguraMaxima'
+      ? Math.max(c.min + c.passo, Math.round(larguraDaJanela / c.passo) * c.passo)
+      : c.max;
 
   return (
     <View
       style={{
-        position: 'absolute',
+        // `fixed` prende a caixa na janela; `absolute` a prenderia à coluna da página, que muda de largura
+        // enquanto o controle é arrastado (a caixa fugiria de baixo do mouse).
+        position: 'fixed' as 'absolute',
         right: 16,
         bottom: 16,
         zIndex: 1000,
@@ -116,9 +125,9 @@ export function PainelDeAjuste() {
               {React.createElement('input', {
                 type: 'range',
                 min: c.min,
-                max: c.max,
+                max: maximo(c),
                 step: c.passo,
-                value: valores[c.chave],
+                value: Math.min(valores[c.chave], maximo(c)),
                 'aria-label': c.rotulo,
                 style: { width: '100%' },
                 onChange: (e: { target: { value: string } }) =>
