@@ -2,6 +2,7 @@
 // outra pessoa adiciona um item ou finaliza a compra. Prepara duas contas na mesma família pela API.
 // Rode também com DARK=1.
 const puppeteer = require('puppeteer-core');
+const { escolherNoCombo } = require('./campos');
 const path = require('path');
 
 const PASTA = path.join(__dirname, 'capturas');
@@ -123,7 +124,7 @@ async function preparar() {
     await foto('pedir-novo');
     await clicar('Pedir “Biscoito” como produto novo');
     await esperarTexto('Pedir produto novo');
-    await clicar('Mercearia', -1);
+    await escolherNoCombo(page, 'Categoria', 'Mercearia');
     await clicar('Pedir', -1);
     await pausa(800);
     verificar((await itens()).includes('Biscoito'), 'o produto novo entrou na lista com a categoria escolhida');

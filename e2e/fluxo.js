@@ -1,5 +1,6 @@
 // Fluxo ponta a ponta no navegador (Edge headless) contra a API real e a PWA compilada.
 const puppeteer = require('puppeteer-core');
+const { escolherNoCombo, preencherDinheiro, preencherQuantidade } = require('./campos');
 const path = require('path');
 
 const PASTA = path.join(__dirname, 'capturas');
@@ -77,15 +78,9 @@ let passo = 0;
 
   const adicionarProduto = async (nome, categoria, unidade, quantidade) => {
     await digitar('Nome do produto', nome);
-    await clicar(
-      categoria,
-      (await page.$$(`xpath/.//*[normalize-space(text())="${categoria}"]`)).length - 1,
-    );
-    await clicar(
-      unidade,
-      (await page.$$(`xpath/.//*[normalize-space(text())="${unidade}"]`)).length - 1,
-    );
-    await digitar('Quantidade', quantidade);
+    await escolherNoCombo(page, 'Categoria', categoria);
+    await escolherNoCombo(page, 'Unidade', unidade);
+    await preencherQuantidade(page, 'Quantidade', quantidade);
   };
 
   try {
@@ -182,8 +177,8 @@ let passo = 0;
 
     console.log('6b) Preços: estimado e pago pelo formulário do item');
     await clicarRotulo('Editar Arroz');
-    await digitar('Preço estimado', '24,00');
-    await digitar('Preço pago', '25,50');
+    await preencherDinheiro(page, 'Preço estimado', '24,00');
+    await preencherDinheiro(page, 'Preço pago', '25,50');
     await foto('folha-precos');
     await clicar('Salvar');
     await esperarTexto('R$ 51,00');

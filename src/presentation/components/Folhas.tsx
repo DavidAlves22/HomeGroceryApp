@@ -11,17 +11,17 @@ import {
 } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
 import {
+  rotuloDaUnidade,
   UNIDADES,
   type Categoria,
   type DadosDoItem,
   type Produto,
   type Unidade,
 } from '../../domain/entities/tipos';
-import { lerPreco, precoParaCampo } from '../../domain/services/financeiro';
-import { formatarQuantidade, lerQuantidade } from '../../domain/services/organizacao';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Botao, Campo, MensagemDeErro } from './base';
-import { Chip } from './ui';
+import { CampoNumerico } from './CampoNumerico';
+import { Chip, GatilhoDeSeletor, PainelDeOpcoes } from './ui';
 
 export function Moldura({
   visivel,
@@ -127,10 +127,12 @@ export function FolhaDeItem({
   const [nome, setNome] = useState('');
   const [categoriaId, setCategoriaId] = useState('');
   const [unidade, setUnidade] = useState<Unidade>('Unidade');
-  const [quantidade, setQuantidade] = useState('1');
-  const [precoEstimado, setPrecoEstimado] = useState('');
-  const [precoPago, setPrecoPago] = useState('');
-  const [quantidadeComprada, setQuantidadeComprada] = useState('');
+  const [quantidade, setQuantidade] = useState<number | null>(1);
+  const [precoEstimado, setPrecoEstimado] = useState<number | null>(null);
+  const [precoPago, setPrecoPago] = useState<number | null>(null);
+  const [quantidadeComprada, setQuantidadeComprada] = useState<number | null>(null);
+  // Lista suspensa aberta (unidade ou categoria): abre uma de cada vez, logo abaixo dos dois seletores.
+  const [painel, setPainel] = useState<'unidade' | 'categoria' | null>(null);
   const [sugestoes, setSugestoes] = useState<Produto[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -146,12 +148,11 @@ export function FolhaDeItem({
         '',
     );
     setUnidade(inicial?.unidade ?? 'Unidade');
-    setQuantidade(formatarQuantidade(inicial?.quantidade ?? 1));
-    setPrecoEstimado(precoParaCampo(inicial?.precoEstimado));
-    setPrecoPago(precoParaCampo(inicial?.precoUnitario));
-    setQuantidadeComprada(
-      inicial?.quantidadeComprada ? formatarQuantidade(inicial.quantidadeComprada) : '',
-    );
+    setQuantidade(inicial?.quantidade ?? 1);
+    setPrecoEstimado(inicial?.precoEstimado ?? null);
+    setPrecoPago(inicial?.precoUnitario ?? null);
+    setQuantidadeComprada(inicial?.quantidadeComprada ?? null);
+    setPainel(null);
     setSugestoes([]);
     setErro(null);
     // Reinicia o formulário só quando a folha abre (não a cada render do pai).
@@ -198,24 +199,14 @@ export function FolhaDeItem({
   }
 
   function salvar() {
-    const qtd = lerQuantidade(quantidade);
-    if (qtd === null) return setErro('Informe uma quantidade maior que zero.');
-    const dados: DadosDoItem = { nome, categoriaId, unidade, quantidade: qtd };
-
+    if (quantidade === null || quantidade <= 0)
+      return setErro('Informe uma quantidade maior que zero.');
+    const dados: DadosDoItem = { nome, categoriaId, unidade, quantidade };
     if (comPrecos) {
-      const estimado = lerPreco(precoEstimado);
-      const pago = lerPreco(precoPago);
-      const comprada = quantidadeComprada.trim() === '' ? null : lerQuantidade(quantidadeComprada);
-      if (estimado === undefined)
-        return setErro('Informe o preço estimado em reais, por exemplo 5,50.');
-      if (pago === undefined) return setErro('Informe o preço pago em reais, por exemplo 5,50.');
-      if (comprada === undefined || (quantidadeComprada.trim() !== '' && comprada === null)) {
-        return setErro('A quantidade comprada precisa ser maior que zero.');
-      }
       Object.assign(dados, {
-        precoEstimado: estimado,
-        precoUnitario: pago,
-        quantidadeComprada: comprada,
+        precoEstimado,
+        precoUnitario: precoPago,
+        quantidadeComprada,
       });
     }
     void executar(() => aoSalvar(dados));
@@ -252,66 +243,100 @@ export function FolhaDeItem({
           ))}
         </View>
       )}
-      <Campo
-        rotulo="Quantidade"
-        value={quantidade}
-        onChangeText={setQuantidade}
-        keyboardType="decimal-pad"
-      />
-      {comPrecos && (
-        <>
-          <RotuloDaFolha>Valores (por unidade, em reais)</RotuloDaFolha>
-          <View style={estilos.duas}>
-            <View style={{ flex: 1 }}>
-              <Campo
-                rotulo="Preço estimado"
-                value={precoEstimado}
-                onChangeText={setPrecoEstimado}
-                keyboardType="decimal-pad"
-                placeholder="0,00"
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Campo
-                rotulo="Preço pago"
-                value={precoPago}
-                onChangeText={setPrecoPago}
-                keyboardType="decimal-pad"
-                placeholder="0,00"
-              />
-            </View>
+      <View style={estilos.duas}>
+        <View style={{ flex: 1 }}>
+          <CampoNumerico
+            rotulo="Quantidade"
+            modo="quantidade"
+            valor={quantidade}
+            aoMudar={setQuantidade}
+            sufixo={rotuloDaUnidade(unidade)}
+          />
+        </View>
+        {comPrecos && (
+          <View style={{ flex: 1 }}>
+            <CampoNumerico
+              rotulo="Qtd. comprada"
+              modo="quantidade"
+              valor={quantidadeComprada}
+              aoMudar={setQuantidadeComprada}
+              placeholder={quantidade === null ? '0' : String(quantidade).replace('.', ',')}
+              sufixo={rotuloDaUnidade(unidade)}
+              zeroVazio
+            />
           </View>
-          <Campo
-            rotulo="Quantidade comprada (se diferente da planejada)"
-            value={quantidadeComprada}
-            onChangeText={setQuantidadeComprada}
-            keyboardType="decimal-pad"
-            placeholder={quantidade}
-          />
-        </>
+        )}
+      </View>
+      {comPrecos && (
+        <View style={estilos.duas}>
+          <View style={{ flex: 1 }}>
+            <CampoNumerico
+              rotulo="Preço estimado"
+              modo="dinheiro"
+              valor={precoEstimado}
+              aoMudar={setPrecoEstimado}
+              zeroVazio
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <CampoNumerico
+              rotulo="Preço pago"
+              modo="dinheiro"
+              valor={precoPago}
+              aoMudar={setPrecoPago}
+              zeroVazio
+            />
+          </View>
+        </View>
       )}
-      <RotuloDaFolha>Unidade</RotuloDaFolha>
-      <View style={estilos.linha}>
-        {UNIDADES.map((u) => (
-          <Chip
-            key={u.valor}
-            rotulo={u.rotulo}
-            ativo={unidade === u.valor}
-            aoPressionar={() => setUnidade(u.valor)}
+      <View style={estilos.duas}>
+        <View style={{ flex: 1, gap: espaco.xs }}>
+          <RotuloDaFolha>Unidade</RotuloDaFolha>
+          <GatilhoDeSeletor
+            rotulo="Unidade"
+            valor={rotuloDaUnidade(unidade)}
+            aberto={painel === 'unidade'}
+            aoPressionar={() => setPainel(painel === 'unidade' ? null : 'unidade')}
           />
-        ))}
-      </View>
-      <RotuloDaFolha>Categoria</RotuloDaFolha>
-      <View style={estilos.linha}>
-        {categorias.map((c) => (
-          <Chip
-            key={c.id}
-            rotulo={c.nome}
-            ativo={categoriaId === c.id}
-            aoPressionar={() => setCategoriaId(c.id)}
+        </View>
+        <View style={{ flex: 1, gap: espaco.xs }}>
+          <RotuloDaFolha>Categoria</RotuloDaFolha>
+          <GatilhoDeSeletor
+            rotulo="Categoria"
+            valor={categorias.find((c) => c.id === categoriaId)?.nome ?? 'Escolha'}
+            aberto={painel === 'categoria'}
+            aoPressionar={() => setPainel(painel === 'categoria' ? null : 'categoria')}
           />
-        ))}
+        </View>
       </View>
+      {painel === 'unidade' && (
+        <PainelDeOpcoes
+          titulo="Escolher a unidade"
+          opcoes={UNIDADES.map((u) => ({
+            chave: u.valor,
+            rotulo: u.rotulo,
+            marcada: unidade === u.valor,
+            aoPressionar: () => {
+              setUnidade(u.valor);
+              setPainel(null);
+            },
+          }))}
+        />
+      )}
+      {painel === 'categoria' && (
+        <PainelDeOpcoes
+          titulo="Escolher a categoria"
+          opcoes={categorias.map((c) => ({
+            chave: c.id,
+            rotulo: c.nome,
+            marcada: categoriaId === c.id,
+            aoPressionar: () => {
+              setCategoriaId(c.id);
+              setPainel(null);
+            },
+          }))}
+        />
+      )}
       <MensagemDeErro mensagem={erro} />
       <Botao titulo={rotuloDoBotao} aoPressionar={salvar} carregando={enviando} />
       {aoExcluir && (

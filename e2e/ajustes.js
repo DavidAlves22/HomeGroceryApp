@@ -1,6 +1,7 @@
 // Ajustes de uso da lista: filtros em listas suspensas, aviso "incluir na lista padrão" e cancelar compra.
 // Prepara a conta pela API e usa só a tela. Rode também com DARK=1.
 const puppeteer = require('puppeteer-core');
+const { escolherNoCombo } = require('./campos');
 const path = require('path');
 
 const PASTA = path.join(__dirname, 'capturas');
@@ -92,7 +93,7 @@ async function preparar() {
   const adicionarProduto = async (nome) => {
     await clicarRotulo('Adicionar produto');
     await digitar('Nome do produto', nome);
-    await clicar('Mercearia', -1);
+    await escolherNoCombo(page, 'Categoria', 'Mercearia');
     await clicar('Adicionar', -1);
   };
 
