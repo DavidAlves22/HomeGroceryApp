@@ -4,28 +4,38 @@ import { usePaleta } from '../theme';
 import { useLayoutLargo } from './useLayoutLargo';
 
 /**
- * Medidas do layout de computador que dá para mexer ao vivo (só para afinar o visual). Ficam só na memória:
- * recarregar a página volta aos valores padrão, então nada fica "preso" no navegador.
+ * Medidas do layout de computador que a pessoa pode ajustar no editor de mapa. Ficam guardadas neste navegador
+ * (`localStorage`); sem ele (janela privada, bloqueio) valem os padrões e nada quebra.
  */
 export interface AjusteDoLayout {
-  /** Largura do painel de edição à direita (mapa e rota). */
+  /** Largura do painel de edição à direita (editor de mapa e rota). */
   painel: number;
   /** Largura máxima da página no editor de mapa e na rota. */
   larguraMaxima: number;
-  /** Largura do menu lateral. */
-  menu: number;
 }
 
-export const AJUSTE_PADRAO: AjusteDoLayout = { painel: 400, larguraMaxima: 2400, menu: 220 };
+export const AJUSTE_PADRAO: AjusteDoLayout = { painel: 500, larguraMaxima: 1740 };
 
-let atual: AjusteDoLayout = { ...AJUSTE_PADRAO };
+const CHAVE_DO_ARMAZENAMENTO = 'hg-ajuste-do-layout';
+
+function lerGuardado(): AjusteDoLayout {
+  try {
+    const texto = globalThis.localStorage?.getItem(CHAVE_DO_ARMAZENAMENTO);
+    if (!texto) return { ...AJUSTE_PADRAO };
+    const lido = JSON.parse(texto) as Partial<AjusteDoLayout>;
+    return {
+      painel: Number.isFinite(lido.painel) ? Number(lido.painel) : AJUSTE_PADRAO.painel,
+      larguraMaxima: Number.isFinite(lido.larguraMaxima)
+        ? Number(lido.larguraMaxima)
+        : AJUSTE_PADRAO.larguraMaxima,
+    };
+  } catch {
+    return { ...AJUSTE_PADRAO };
+  }
+}
+
+let atual: AjusteDoLayout = Platform.OS === 'web' ? lerGuardado() : { ...AJUSTE_PADRAO };
 const ouvintes = new Set<() => void>();
-
-/** O painel de ajuste só aparece se o endereço trouxe `?ajuste` (ex.: .../mapa?ajuste=1). Lido uma vez ao abrir. */
-const ajusteAtivo =
-  Platform.OS === 'web' &&
-  typeof window !== 'undefined' &&
-  new URLSearchParams(window.location.search).has('ajuste');
 
 function assinar(ouvinte: () => void) {
   ouvintes.add(ouvinte);
@@ -36,6 +46,11 @@ function assinar(ouvinte: () => void) {
 
 function definir(parcial: Partial<AjusteDoLayout>) {
   atual = { ...atual, ...parcial };
+  try {
+    globalThis.localStorage?.setItem(CHAVE_DO_ARMAZENAMENTO, JSON.stringify(atual));
+  } catch {
+    // Sem armazenamento: o ajuste vale só até recarregar.
+  }
   ouvintes.forEach((o) => o());
 }
 
@@ -56,16 +71,18 @@ const CONTROLES: {
 }[] = [
   { chave: 'painel', rotulo: 'Painel da direita', min: 240, max: 800, passo: 10 },
   { chave: 'larguraMaxima', rotulo: 'Largura máxima da página', min: 1000, max: 2600, passo: 20 },
-  { chave: 'menu', rotulo: 'Menu lateral', min: 120, max: 360, passo: 10 },
 ];
 
-/** Caixinha flutuante com um controle deslizante por medida e os valores à vista. Só no computador, só com ?ajuste. */
+/**
+ * Caixinha flutuante com um controle deslizante por medida. Quem a coloca na tela é o editor de mapa, então ela
+ * some ao sair dele. Só na web e em janela larga: no celular (instalado ou não) o layout é outro e não aparece.
+ */
 export function PainelDeAjuste() {
   const p = usePaleta();
   const largo = useLayoutLargo();
   const valores = useAjusteDoLayout();
   const [aberto, setAberto] = useState(true);
-  if (!ajusteAtivo || !largo) return null;
+  if (Platform.OS !== 'web' || !largo) return null;
 
   return (
     <View

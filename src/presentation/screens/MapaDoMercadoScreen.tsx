@@ -62,7 +62,7 @@ import {
 } from '../components/ui';
 import { useContainer, useMercadoAtual } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
-import { useAjusteDoLayout } from '../hooks/ajusteDoLayout';
+import { PainelDeAjuste, useAjusteDoLayout } from '../hooks/ajusteDoLayout';
 import { useLayoutLargo } from '../hooks/useLayoutLargo';
 import { useToast } from '../hooks/Toast';
 import { useNavegacao, type RootStackParamList } from '../navigation/tipos';
@@ -847,6 +847,7 @@ export function MapaDoMercadoScreen() {
           aoFechar={() => setEscolhendoCategorias(null)}
         />
       )}
+      <PainelDeAjuste />
     </Pagina>
   );
 }
