@@ -256,6 +256,30 @@ export function categoriasSemLocal(mapa: MapaEmEdicao, categorias: Categoria[]):
   return categorias.filter((c) => !usadas.has(c.id));
 }
 
+/** Um lado de seção que ainda não tem nenhuma categoria (a rota nunca vai até ele). */
+export interface LadoSemCategoria {
+  secaoId: string;
+  lado: LadoDaSecao;
+  /** "Açougue" ou, em gôndola de dois lados, "Cervejas · lado esquerdo". */
+  rotulo: string;
+}
+
+/** Seções (ou lados de gôndola dividida) sem categoria, para a pessoa preencher. */
+export function ladosSemCategoria(mapa: MapaEmEdicao): LadoSemCategoria[] {
+  const faltando: LadoSemCategoria[] = [];
+  for (const s of mapa.secoes) {
+    if (s.categoriasLadoA.length === 0) {
+      const lado = textoDoLado(s, 'A');
+      faltando.push({ secaoId: s.id, lado: 'A', rotulo: lado ? `${s.nome} · ${lado}` : s.nome });
+    }
+    if (s.dividida && s.categoriasLadoB.length === 0) {
+      const lado = textoDoLado(s, 'B');
+      faltando.push({ secaoId: s.id, lado: 'B', rotulo: `${s.nomeLadoB ?? s.nome} · ${lado}` });
+    }
+  }
+  return faltando;
+}
+
 export const nomeDoLado = (secao: Secao, lado: LadoDaSecao) =>
   lado === 'B' ? (secao.nomeLadoB ?? 'Lado B') : secao.nome;
 

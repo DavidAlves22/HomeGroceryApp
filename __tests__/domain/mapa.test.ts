@@ -10,6 +10,7 @@ import {
   duplicarSecao,
   girarSecao,
   juntarSecao,
+  ladosSemCategoria,
   ladoNoPonto,
   moverAlvo,
   redimensionarMapa,
@@ -283,5 +284,24 @@ describe('redimensionarMapa (colunas x linhas)', () => {
     if (!r.ok) throw new Error(r.erro);
     expect(r.mapa.entrada).toEqual({ x: 2, y: 10 });
     expect(r.mapa.caixas).toMatchObject({ x: 14, y: 9 });
+  });
+});
+
+describe('ladosSemCategoria', () => {
+  it('lista seções sem categoria e, em gôndola dividida, só o lado que falta', () => {
+    const comCategoria = { ...secao('a', 2, 2, 6, 2), categoriasLadoA: ['m'] };
+    const semNada = { ...secao('b', 2, 6, 6, 2), nome: 'Açougue' };
+    const dividida = {
+      ...secao('c', 12, 2, 2, 6),
+      nome: 'Cervejas',
+      nomeLadoB: 'Refrigerantes',
+      dividida: true,
+      categoriasLadoA: ['k'],
+    };
+    expect(ladosSemCategoria(mapa([comCategoria, semNada, dividida]))).toEqual([
+      { secaoId: 'b', lado: 'A', rotulo: 'Açougue' },
+      { secaoId: 'c', lado: 'B', rotulo: 'Refrigerantes · lado direito' },
+    ]);
+    expect(ladosSemCategoria(mapa([comCategoria]))).toEqual([]);
   });
 });

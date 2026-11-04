@@ -24,6 +24,7 @@ import {
   duplicarSecao,
   girarSecao,
   juntarSecao,
+  ladosSemCategoria,
   mapaDoMercado,
   moverAlvo,
   novoIdLocal,
@@ -47,7 +48,16 @@ import {
 import { Botao, Campo, Cartao, TextoSuave } from '../components/base';
 import { Icone } from '../components/Icone';
 import { MapaSvg } from '../components/MapaSvg';
-import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina, Pilula } from '../components/ui';
+import { SeletorDeCategorias } from '../components/SeletorDeCategorias';
+import {
+  Cabecalho,
+  Carregando,
+  Chip,
+  EstadoVazio,
+  GatilhoDeSeletor,
+  Pagina,
+  Pilula,
+} from '../components/ui';
 import { useContainer, useMercadoAtual } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { useToast } from '../hooks/Toast';
@@ -99,6 +109,8 @@ export function MapaDoMercadoScreen() {
   // Colunas e linhas são digitadas como texto (não dá para validar a cada tecla) e só valem ao tocar em "Aplicar".
   const [colunas, setColunas] = useState('');
   const [linhas, setLinhas] = useState('');
+  // Lado da seção cuja lista de categorias está aberta em tela cheia.
+  const [escolhendoCategorias, setEscolhendoCategorias] = useState<'A' | 'B' | null>(null);
 
   // Mostra o tamanho atual da grade nos campos sempre que o mapa muda de tamanho (inclusive ao carregar).
   const larguraDoMapa = mapa?.largura;
@@ -329,6 +341,17 @@ export function MapaDoMercadoScreen() {
   const secao: Secao | undefined =
     selecionado?.tipo === 'secao' ? mapa.secoes.find((s) => s.id === selecionado.id) : undefined;
   const semLocal = categoriasSemLocal(mapa, categorias ?? []);
+  const semCategoria = ladosSemCategoria(mapa);
+
+  // Do aviso "Seções sem categorias": seleciona a seção e abre a lista do lado que falta (só com o mapa destravado).
+  function preencherCategorias(secaoId: string, lado: 'A' | 'B') {
+    if (travado) {
+      toast('Toque no cadeado para destravar a edição e escolher as categorias.');
+      return;
+    }
+    setSelecionado({ tipo: 'secao', id: secaoId });
+    setEscolhendoCategorias(lado);
+  }
   const nomeDaCategoria = (id: string) => categorias?.find((c) => c.id === id)?.nome ?? id;
 
   function aplicarTamanho() {
@@ -423,17 +446,20 @@ export function MapaDoMercadoScreen() {
     navegacao.goBack();
   }
 
-  const chipsDeCategorias = (lado: 'A' | 'B', ligadas: string[]) => (
-    <View style={estilos.chips}>
-      {(categorias ?? []).map((c) => (
-        <Chip
-          key={c.id}
-          rotulo={c.nome}
-          ativo={ligadas.includes(c.id)}
-          aoPressionar={() => setMapa(alternarCategoria(mapa!, secao!.id, lado, c.id))}
-        />
-      ))}
-    </View>
+  // Resumo do que está marcado, no lugar das pílulas: os nomes (ou a quantidade quando não cabem).
+  const resumoDasCategorias = (ligadas: string[]) => {
+    if (ligadas.length === 0) return 'Escolher categorias';
+    const nomes = ligadas.map(nomeDaCategoria);
+    return nomes.length <= 2 ? nomes.join(', ') : `${nomes.length} categorias: ${nomes.join(', ')}`;
+  };
+
+  const gatilhoDeCategorias = (lado: 'A' | 'B', ligadas: string[]) => (
+    <GatilhoDeSeletor
+      rotulo="Categorias"
+      valor={resumoDasCategorias(ligadas)}
+      aberto={escolhendoCategorias === lado}
+      aoPressionar={() => setEscolhendoCategorias(lado)}
+    />
   );
 
   return (
@@ -675,7 +701,7 @@ export function MapaDoMercadoScreen() {
                   onChangeText={(t) => setMapa(renomearSecao(mapa, secao.id, 'A', t))}
                   maxLength={40}
                 />
-                {chipsDeCategorias('A', secao.categoriasLadoA)}
+                {gatilhoDeCategorias('A', secao.categoriasLadoA)}
                 {secao.dividida && (
                   <>
                     <Campo
@@ -684,7 +710,7 @@ export function MapaDoMercadoScreen() {
                       onChangeText={(t) => setMapa(renomearSecao(mapa, secao.id, 'B', t))}
                       maxLength={40}
                     />
-                    {chipsDeCategorias('B', secao.categoriasLadoB)}
+                    {gatilhoDeCategorias('B', secao.categoriasLadoB)}
                   </>
                 )}
                 <TextoSuave estilo={{ fontSize: fonte.pequena }}>
@@ -716,6 +742,24 @@ export function MapaDoMercadoScreen() {
           </>
         )}
 
+        {semCategoria.length > 0 && (
+          <Cartao estilo={{ gap: espaco.sm }}>
+            <Pilula texto={`Seções sem categorias: ${semCategoria.length}`} tom="alerta" />
+            <TextoSuave>
+              A rota não passa por elas até você escolher as categorias. Toque para preencher.
+            </TextoSuave>
+            <View style={estilos.chips}>
+              {semCategoria.map((l) => (
+                <Chip
+                  key={`${l.secaoId}-${l.lado}`}
+                  rotulo={l.rotulo}
+                  ativo={selecionado?.tipo === 'secao' && selecionado.id === l.secaoId}
+                  aoPressionar={() => preencherCategorias(l.secaoId, l.lado)}
+                />
+              ))}
+            </View>
+          </Cartao>
+        )}
         {semLocal.length > 0 ? (
           <Cartao estilo={{ gap: espaco.sm }}>
             <Pilula texto={`Sem local neste mercado: ${semLocal.length}`} tom="alerta" />
@@ -749,6 +793,26 @@ export function MapaDoMercadoScreen() {
           }}
         />
       </ScrollView>
+      {secao && (
+        <SeletorDeCategorias
+          visivel={escolhendoCategorias !== null}
+          titulo={
+            escolhendoCategorias === 'B'
+              ? `Categorias · ${secao.nomeLadoB ?? 'lado B'}`
+              : `Categorias · ${secao.nome}`
+          }
+          categorias={categorias ?? []}
+          selecionadas={
+            escolhendoCategorias === 'B' ? secao.categoriasLadoB : secao.categoriasLadoA
+          }
+          aoAlternar={(id) => {
+            if (escolhendoCategorias) {
+              setMapa(alternarCategoria(mapa, secao.id, escolhendoCategorias, id));
+            }
+          }}
+          aoFechar={() => setEscolhendoCategorias(null)}
+        />
+      )}
     </Pagina>
   );
 }
