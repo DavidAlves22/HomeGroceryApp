@@ -85,6 +85,17 @@ export function MaisScreen() {
           />
         </Cartao>
 
+        {sessao?.ehAdmin && (
+          <Cartao estilo={{ paddingVertical: 4 }}>
+            <Linha
+              icone="grafico"
+              titulo="Painel do administrador"
+              detalhe="Usuários, uso e números do app"
+              aoPressionar={() => navegacao.navigate('Admin')}
+            />
+          </Cartao>
+        )}
+
         <Cartao estilo={{ gap: espaco.sm }}>
           <View style={estilos.nomeELinha}>
             <Text

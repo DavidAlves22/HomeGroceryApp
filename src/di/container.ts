@@ -49,6 +49,12 @@ import {
 } from '../application/useCases/autenticacao';
 import { ObterAnaliseDeGastos, ObterAnaliseDePrecos } from '../application/useCases/analises';
 import {
+  ListarUsuariosDoPainel,
+  ObterResumoDoPainel,
+  ObterSeriesDoPainel,
+} from '../application/useCases/admin';
+import { AdminApiGateway } from '../infrastructure/gateways/adminGateway';
+import {
   CriarMercado,
   ExcluirMercado,
   CopiarMapaCompartilhado,
@@ -109,6 +115,7 @@ export function criarContainer(aoExpirarSessao: () => void) {
   const catalogo = new CatalogoApiGateway(http);
   const listas = new ListasApiGateway(http);
   const analises = new AnalisesApiGateway(http);
+  const admin = new AdminApiGateway(http);
   const grupo = new GrupoApiGateway(http);
   const mercados = new MercadosApiGateway(http);
   const mapasCompartilhados = new MapasCompartilhadosApiGateway(http);
@@ -199,6 +206,11 @@ export function criarContainer(aoExpirarSessao: () => void) {
     // Análises
     obterAnaliseDeGastos: new ObterAnaliseDeGastos(analises),
     obterAnaliseDePrecos: new ObterAnaliseDePrecos(analises),
+
+    // Painel de administração (a API só responde a quem é admin)
+    obterResumoDoPainel: new ObterResumoDoPainel(admin),
+    obterSeriesDoPainel: new ObterSeriesDoPainel(admin),
+    listarUsuariosDoPainel: new ListarUsuariosDoPainel(admin),
   };
 }
 

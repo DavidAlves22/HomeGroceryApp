@@ -9,6 +9,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { Platform } from 'react-native';
 import { Icone, type NomeDoIcone } from '../components/Icone';
+import { AdminScreen } from '../screens/AdminScreen';
 import { AnalisesScreen } from '../screens/AnalisesScreen';
 import { CategoriasScreen } from '../screens/CategoriasScreen';
 import { HistoricoScreen } from '../screens/HistoricoScreen';
@@ -65,6 +66,7 @@ const LINKING: LinkingOptions<RootStackParamList> | undefined =
             CatalogoDeMapas: 'mercados/catalogo',
             MapaDoMercado: 'mercados/:mercadoId/mapa',
             Rota: 'rota',
+            Admin: 'admin',
           },
         },
       }
@@ -149,6 +151,7 @@ export function NavegacaoApp() {
         <Pilha.Screen name="CatalogoDeMapas" component={CatalogoDeMapasScreen} />
         <Pilha.Screen name="MapaDoMercado" component={MapaDoMercadoScreen} />
         <Pilha.Screen name="Rota" component={RotaScreen} />
+        <Pilha.Screen name="Admin" component={AdminScreen} />
       </Pilha.Navigator>
     </NavigationContainer>
   );

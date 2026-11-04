@@ -250,6 +250,77 @@ export function GraficoDeLinha({
   );
 }
 
+interface ColunasPorDiaProps {
+  pontos: { rotulo: string; valor: number }[];
+  /** "cadastro", "compra"...: vai depois do número na legenda do dia tocado. */
+  unidade: (quantidade: number) => string;
+  descricao: string;
+  altura?: number;
+}
+
+/**
+ * Uma coluna por dia (7 a 90). Com tantas colunas não cabe rótulo em todas: só o primeiro e o último dia ficam
+ * escritos, e o dia tocado (por padrão o último) aparece na legenda acima com o número exato.
+ */
+export function ColunasPorDia({ pontos, unidade, descricao, altura = 120 }: ColunasPorDiaProps) {
+  const p = usePaleta();
+  const [escolhida, setEscolhida] = useState(pontos.length - 1);
+  const indice = Math.min(escolhida, pontos.length - 1);
+  const maximo = Math.max(...pontos.map((pt) => pt.valor), 1);
+  const atual = pontos[indice];
+
+  return (
+    <View accessibilityLabel={descricao} style={{ gap: espaco.xs }}>
+      <Text
+        style={{
+          color: p.texto,
+          fontSize: fonte.pequena,
+          fontWeight: '700',
+          fontVariant: ['tabular-nums'],
+        }}
+      >
+        {atual.rotulo}: {atual.valor} {unidade(atual.valor)}
+      </Text>
+      <View style={{ height: altura }}>
+        {[0, 0.5, 1].map((posicao) => (
+          <View
+            key={posicao}
+            style={[estilos.grade, { top: posicao * altura, backgroundColor: p.linha }]}
+          />
+        ))}
+        <View style={[estilos.colunas, { gap: pontos.length > 40 ? 1 : 2 }]}>
+          {pontos.map((ponto, i) => (
+            <Pressable
+              key={ponto.rotulo}
+              accessibilityRole="button"
+              accessibilityLabel={`${ponto.rotulo}: ${ponto.valor} ${unidade(ponto.valor)}`}
+              accessibilityState={{ selected: i === indice }}
+              onPress={() => setEscolhida(i)}
+              style={estilos.coluna}
+            >
+              <View
+                style={{
+                  width: '100%',
+                  height: Math.max((ponto.valor / maximo) * altura, ponto.valor > 0 ? 3 : 1),
+                  backgroundColor: i === indice ? p.destaque : p.destaqueSuave,
+                  borderTopLeftRadius: 3,
+                  borderTopRightRadius: 3,
+                }}
+              />
+            </Pressable>
+          ))}
+        </View>
+      </View>
+      <View style={estilos.rotulos}>
+        <Text style={{ color: p.textoSuave, fontSize: 11 }}>{pontos[0].rotulo}</Text>
+        <Text style={{ color: p.textoSuave, fontSize: 11 }}>
+          {pontos[pontos.length - 1].rotulo}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
 const estilos = StyleSheet.create({
   grade: { position: 'absolute', left: 0, right: 0, height: 1 },
   colunas: { flex: 1, flexDirection: 'row', alignItems: 'flex-end' },

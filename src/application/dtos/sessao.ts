@@ -11,6 +11,8 @@ export interface Sessao {
   tokenDeRenovacao: string;
   usuario: Usuario;
   grupoId: string;
+  /** Só mostra o atalho do painel; quem protege as rotas é a API. Sessões guardadas antes do painel não têm o campo. */
+  ehAdmin?: boolean;
 }
 
 export interface DadosDeCadastro {
