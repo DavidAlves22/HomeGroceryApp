@@ -16,6 +16,7 @@ export type RootStackParamList = {
   Produtos: undefined;
   Grupo: undefined;
   Mercados: undefined;
+  CatalogoDeMapas: undefined;
   MapaDoMercado: { mercadoId: string };
   Rota: undefined;
 };

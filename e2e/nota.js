@@ -88,8 +88,8 @@ async function preparar() {
   // Compra feita no mercado: marca o arroz e finaliza (a nota só é importada depois, em casa).
   await api('PUT', `/listas/${lista.resumo.id}/itens/${ids.Arroz}/comprado`, { comprado: true }, token);
   await api('POST', `/listas/${lista.resumo.id}/finalizar`, null, token);
-  const lojaWms = await api('POST', '/lojas', { nome: 'WMS Araras' }, token);
-  await api('POST', '/lojas', { nome: 'Super Econômico' }, token);
+  const lojaWms = await api('POST', '/lojas', { nome: 'WMS Araras', cidade: 'Araras' }, token);
+  await api('POST', '/lojas', { nome: 'Super Econômico', cidade: 'Araras' }, token);
   return { token, listaId: lista.resumo.id, lojaWms: lojaWms.id };
 }
 

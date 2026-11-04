@@ -12,8 +12,10 @@ import {
   juntarSecao,
   ladoNoPonto,
   moverAlvo,
+  redimensionarMapa,
   redimensionarSecao,
   secaoNoPonto,
+  TAMANHO_MAXIMO_DO_MAPA,
   textoDoLado,
   validarMapa,
 } from '../../src/domain/services/mapa';
@@ -30,6 +32,7 @@ const secao = (id: string, x: number, y: number, largura: number, altura: number
 
 const mapa = (secoes: Secao[] = []): MapaEmEdicao => ({
   nome: 'Teste',
+  cidade: 'Araras',
   largura: 30,
   altura: 20,
   entrada: { x: 2, y: 18 },
@@ -247,5 +250,38 @@ describe('validarMapa', () => {
     ],
   ])('recusa: %s', (_nome, m) => {
     expect(validarMapa(m)).not.toBeNull();
+  });
+});
+
+describe('redimensionarMapa (colunas x linhas)', () => {
+  it('o limite da grade é de 10 a 120 células em cada lado', () => {
+    expect(TAMANHO_MAXIMO_DO_MAPA).toBe(120);
+    expect(redimensionarMapa(mapa(), 120, 120).ok).toBe(true);
+    expect(redimensionarMapa(mapa(), 121, 20)).toMatchObject({ ok: false });
+    expect(redimensionarMapa(mapa(), 30, 121)).toMatchObject({ ok: false });
+    expect(redimensionarMapa(mapa(), 9, 20)).toMatchObject({ ok: false });
+    expect(redimensionarMapa(mapa(), 30.5, 20)).toMatchObject({ ok: false });
+  });
+
+  it('aumentar mantém as seções e leva a entrada e os caixas junto da borda de baixo', () => {
+    const r = redimensionarMapa(mapa([secao('a', 5, 5, 6, 2)]), 49, 29);
+    if (!r.ok) throw new Error(r.erro);
+    expect(r.mapa.largura).toBe(49);
+    expect(r.mapa.altura).toBe(29);
+    expect(r.mapa.secoes[0].area).toMatchObject({ x: 5, y: 5 });
+    expect(r.mapa.entrada).toEqual({ x: 2, y: 27 });
+    expect(r.mapa.caixas).toMatchObject({ x: 24 + 19, y: 26 });
+  });
+
+  it('diminuir recusa quando uma seção ficaria para fora e diz qual', () => {
+    const r = redimensionarMapa(mapa([secao('Açougue', 20, 5, 6, 2)]), 22, 20);
+    expect(r).toEqual({ ok: false, erro: 'A seção "Açougue" precisa estar dentro do mapa.' });
+  });
+
+  it('diminuir acompanha a entrada e os caixas quando as seções cabem', () => {
+    const r = redimensionarMapa(mapa([secao('a', 2, 2, 6, 2)]), 20, 12);
+    if (!r.ok) throw new Error(r.erro);
+    expect(r.mapa.entrada).toEqual({ x: 2, y: 10 });
+    expect(r.mapa.caixas).toMatchObject({ x: 14, y: 9 });
   });
 });

@@ -23,7 +23,7 @@ async function api(metodo, caminho, corpo, token) {
   const token = sessao.tokenDeAcesso;
   const agora = new Date();
   await api('POST', '/listas', { competencia: `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`, origem: 'Zero' }, token);
-  const loja = await api('POST', '/lojas', { nome: 'Mercado A' }, token);
+  const loja = await api('POST', '/lojas', { nome: 'Mercado A', cidade: 'Araras' }, token);
 
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe',

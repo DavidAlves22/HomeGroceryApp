@@ -1,7 +1,13 @@
-import type { MercadosGateway, RotasGateway } from '../../application/ports/mercados';
+import type {
+  MapasCompartilhadosGateway,
+  MercadosGateway,
+  RotasGateway,
+} from '../../application/ports/mercados';
 import type {
   LadoDaSecao,
   LocalDoItem,
+  MapaCompartilhado,
+  MapaCompartilhadoDetalhe,
   MapaEmEdicao,
   Mercado,
   MercadoResumo,
@@ -23,9 +29,9 @@ export class MercadosApiGateway implements MercadosGateway {
     return this.http.get<Mercado>(`/lojas/${id}`);
   }
 
-  criar(nome: string, copiarDeMercadoId?: string) {
+  criar(nome: string, cidade: string, copiarDeMercadoId?: string) {
     return this.http.post<Mercado>('/lojas', {
-      corpo: { nome, copiarDeLojaId: copiarDeMercadoId },
+      corpo: { nome, cidade, copiarDeLojaId: copiarDeMercadoId },
     });
   }
 
@@ -41,6 +47,34 @@ export class MercadosApiGateway implements MercadosGateway {
 
   async excluir(id: string) {
     await this.http.delete<void>(`/lojas/${id}`);
+  }
+
+  compartilhar(id: string, compartilhada: boolean) {
+    return this.http.put<MercadoResumo>(`/lojas/${id}/compartilhamento`, {
+      corpo: { compartilhada },
+    });
+  }
+}
+
+export class MapasCompartilhadosApiGateway implements MapasCompartilhadosGateway {
+  constructor(private readonly http: ClienteHttp) {}
+
+  listar(busca: string, cidade: string) {
+    const filtros = new URLSearchParams();
+    if (busca) filtros.set('busca', busca);
+    if (cidade) filtros.set('cidade', cidade);
+    const consulta = filtros.toString();
+    return this.http.get<MapaCompartilhado[]>(
+      `/catalogo/mercados${consulta ? `?${consulta}` : ''}`,
+    );
+  }
+
+  obter(id: string) {
+    return this.http.get<MapaCompartilhadoDetalhe>(`/catalogo/mercados/${id}`);
+  }
+
+  copiar(id: string) {
+    return this.http.post<Mercado>(`/catalogo/mercados/${id}/copiar`);
   }
 }
 

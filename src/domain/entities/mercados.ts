@@ -41,6 +41,10 @@ export interface Mercado {
   caixas: Area;
   secoes: Secao[];
   versao: number;
+  /** Aparece no catálogo para outros grupos copiarem (padrão: sim). */
+  compartilhada?: boolean;
+  /** Obrigatória em mercados novos; mercados antigos podem vir sem (o editor pede para preencher). */
+  cidade?: string | null;
 }
 
 export interface MercadoResumo {
@@ -52,11 +56,47 @@ export interface MercadoResumo {
   versao: number;
   /** CNPJ (só dígitos) aprendido ao importar notas: a próxima nota desse mercado já abre nele. */
   cnpj?: string | null;
+  compartilhada?: boolean;
+  cidade?: string | null;
+}
+
+/** Um mapa do catálogo (de outro grupo). Nada diz quem o criou. */
+export interface MapaCompartilhado {
+  id: string;
+  nome: string;
+  largura: number;
+  altura: number;
+  secoes: number;
+  /** Quantos grupos já copiaram. */
+  copias: number;
+  cidade?: string | null;
+}
+
+/** O desenho de um mapa do catálogo; as categorias vêm pelo NOME (cada grupo tem as suas ids). */
+export interface MapaCompartilhadoDetalhe {
+  id: string;
+  nome: string;
+  largura: number;
+  altura: number;
+  entrada: Ponto;
+  caixas: Area;
+  secoes: {
+    nome: string;
+    nomeLadoB: string | null;
+    dividida: boolean;
+    area: Area;
+    categoriasLadoA: string[];
+    categoriasLadoB: string[];
+  }[];
+  copias: number;
+  cidade?: string | null;
 }
 
 /** O desenho do mercado como o editor o manipula (sem id nem versão do servidor). */
 export interface MapaEmEdicao {
   nome: string;
+  /** Texto livre da cidade; vazio até a pessoa preencher (mercado antigo). */
+  cidade: string;
   largura: number;
   altura: number;
   entrada: Ponto;

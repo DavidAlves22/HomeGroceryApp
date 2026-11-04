@@ -36,7 +36,7 @@ async function preparar() {
 
   const area = (x, y, largura, altura) => ({ x, y, largura, altura });
   const novaLoja = async (nome, secoes) => {
-    const loja = await api('POST', '/lojas', { nome }, token);
+    const loja = await api('POST', '/lojas', { nome, cidade: 'Araras' }, token);
     return api('PUT', `/lojas/${loja.id}/mapa`, { nome, largura: 34, altura: 40, entrada: { x: 16, y: 37 }, caixas: area(24, 34, 7, 2), secoes, versao: loja.versao }, token);
   };
   const lojaA = await novaLoja('Mercado A', [
@@ -87,6 +87,9 @@ async function preparar() {
   };
   const digitar = async (rotulo, valor) => {
     await page.click(`[aria-label="${rotulo}"]`, { clickCount: 3 });
+    await page.keyboard.down('Control');
+    await page.keyboard.press('KeyA');
+    await page.keyboard.up('Control');
     await page.type(`[aria-label="${rotulo}"]`, valor);
   };
   const verificar = (cond, msg) => {
@@ -195,17 +198,32 @@ async function preparar() {
     verificar((await texto()).includes('Mercado A') && (await texto()).includes('Mercado B'), 'lista os dois mercados');
     await foto('mercados');
     await clicar('Editar mapa', true);
-    await esperarTexto('Arraste uma seção para mover');
+    await esperarTexto('Mapa travado');
     await foto('editor');
 
     // Arrasta a "Padaria" do Mercado B (x 3..14, y 3..5) para baixo, com o mouse, e confere no servidor.
-    const caixa = await page.evaluate(() => {
+    const medirMapa = () => page.evaluate(() => {
       const svgs = [...document.querySelectorAll('svg[viewBox="0 0 340 400"]')];
       const r = svgs[svgs.length - 1].getBoundingClientRect();
       return { x: r.x, y: r.y, w: r.width };
     });
+    let caixa = await medirMapa();
     const px = caixa.w / 34;
-    const de = { x: caixa.x + 8 * px, y: caixa.y + 4 * px };
+    let de = { x: caixa.x + 8 * px, y: caixa.y + 4 * px };
+
+    // Travado (padrão): arrastar não muda nada, nem aparece "Salvar mapa".
+    await page.mouse.move(de.x, de.y);
+    await page.mouse.down();
+    await page.mouse.move(de.x, de.y + 8 * px, { steps: 6 });
+    await page.mouse.up();
+    await pausa(400);
+    verificar(!(await texto()).includes('Salvar mapa'), 'com o cadeado fechado, arrastar a seção não altera o mapa');
+    verificar(!(await texto()).includes('Adicionar seção'), 'com o cadeado fechado, os botões de edição ficam escondidos');
+    await page.evaluate(() => document.querySelector('[aria-label="Destravar a edição do mapa"]').click());
+    await esperarTexto('Arraste uma seção para mover');
+    await esperarTexto('Adicionar seção');
+    caixa = await medirMapa();
+    de = { x: caixa.x + 8 * px, y: caixa.y + 4 * px };
     await page.mouse.move(de.x, de.y);
     await page.mouse.down();
     await page.mouse.move(de.x, de.y + 3 * px, { steps: 4 });
@@ -219,6 +237,32 @@ async function preparar() {
     const salvo = await api('GET', `/lojas/${lojaB.id}`, null, token);
     const padaria = salvo.secoes.find((s) => s.nome === 'Padaria');
     verificar(padaria.area.y === 11 && padaria.area.x === 3, `a Padaria foi para y=${padaria.area.y} (esperado 11) e o servidor guardou`);
+
+    console.log('6b) Tamanho da grade pelo editor (colunas x linhas, até 120)');
+    await digitar('Colunas', '60');
+    await digitar('Linhas', '50');
+    await clicar('Aplicar tamanho');
+    await esperarTexto('Tamanho atualizado');
+    await clicar('Salvar mapa');
+    await esperarTexto('Mapa salvo');
+    let maior = await api('GET', `/lojas/${lojaB.id}`, null, token);
+    verificar(maior.largura === 60 && maior.altura === 50, `a grade passou para 60 x 50 (veio ${maior.largura} x ${maior.altura})`);
+    await digitar('Colunas', '121');
+    await clicar('Aplicar tamanho');
+    await esperarTexto('de 10 a 120');
+    await digitar('Colunas', '10');
+    await clicar('Aplicar tamanho');
+    await esperarTexto('precisa estar dentro do mapa');
+    maior = await api('GET', `/lojas/${lojaB.id}`, null, token);
+    verificar(maior.largura === 60, 'diminuir com seção para fora é recusado e nada muda');
+    await digitar('Colunas', '34');
+    await digitar('Linhas', '40');
+    await clicar('Aplicar tamanho');
+    await esperarTexto('Tamanho atualizado');
+    await clicar('Salvar mapa');
+    await esperarTexto('Mapa salvo');
+    maior = await api('GET', `/lojas/${lojaB.id}`, null, token);
+    verificar(maior.largura === 34 && maior.altura === 40, 'voltou ao tamanho original');
 
     console.log('7) Dividir em dois lados no editor');
     await clicar('Dividir em dois lados');

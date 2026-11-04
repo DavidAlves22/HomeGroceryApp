@@ -25,6 +25,8 @@ const CAMINHOS = {
   fechar: ['M6 6l12 12M18 6L6 18'],
   mapa: ['M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z', 'M9 4v14M15 6v14'],
   rota: ['M8.5 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5'],
+  cadeado: ['M6 11h12v9H6z', 'M8 11V8a4 4 0 0 1 8 0v3'],
+  cadeado_aberto: ['M6 11h12v9H6z', 'M8 11V8a4 4 0 0 1 7.4-2'],
 } as const;
 
 export type NomeDoIcone = keyof typeof CAMINHOS;

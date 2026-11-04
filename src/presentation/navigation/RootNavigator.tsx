@@ -17,6 +17,7 @@ import { ImportarNotaScreen } from '../screens/ImportarNotaScreen';
 import { DetalheDaListaScreen, ListaScreen } from '../screens/ListaScreen';
 import { ListaPadraoScreen } from '../screens/ListaPadraoScreen';
 import { MaisScreen } from '../screens/MaisScreen';
+import { CatalogoDeMapasScreen } from '../screens/CatalogoDeMapasScreen';
 import { MapaDoMercadoScreen } from '../screens/MapaDoMercadoScreen';
 import { MercadosScreen } from '../screens/MercadosScreen';
 import { RotaScreen } from '../screens/RotaScreen';
@@ -60,6 +61,7 @@ const LINKING: LinkingOptions<RootStackParamList> | undefined =
             Produtos: 'produtos',
             Grupo: 'grupo',
             Mercados: 'mercados',
+            CatalogoDeMapas: 'mercados/catalogo',
             MapaDoMercado: 'mercados/:mercadoId/mapa',
             Rota: 'rota',
           },
@@ -131,6 +133,7 @@ export function NavegacaoApp() {
         <Pilha.Screen name="Produtos" component={ProdutosScreen} />
         <Pilha.Screen name="Grupo" component={GrupoScreen} />
         <Pilha.Screen name="Mercados" component={MercadosScreen} />
+        <Pilha.Screen name="CatalogoDeMapas" component={CatalogoDeMapasScreen} />
         <Pilha.Screen name="MapaDoMercado" component={MapaDoMercadoScreen} />
         <Pilha.Screen name="Rota" component={RotaScreen} />
       </Pilha.Navigator>

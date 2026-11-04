@@ -48,7 +48,7 @@ async function preparar() {
   const arroz = await api('POST', `/listas/${lista.resumo.id}/itens`, { nome: 'Arroz', categoriaId: cat('Mercearia'), unidade: 'Unidade', quantidade: 1 }, token);
   await api('PUT', `/listas/${lista.resumo.id}/itens/${arroz.id}/comprado`, { comprado: true }, token);
   await api('POST', `/listas/${lista.resumo.id}/finalizar`, null, token);
-  const loja = await api('POST', '/lojas', { nome: 'WMS Araras' }, token);
+  const loja = await api('POST', '/lojas', { nome: 'WMS Araras', cidade: 'Araras' }, token);
   // Uma nota anterior (outra chave) ensina o CNPJ ao mercado: é assim que o app o reconhece depois.
   await api('POST', `/listas/${lista.resumo.id}/nota`, { cnpj: '93.209.765/0509-98', lojaId: loja.id, itens: [{ codigo: 'AR000001', nome: 'Item de uma nota anterior', quantidade: 1, precoUnitario: 2, itemId: null, categoriaId: cat('Mercearia'), unidade: 'Unidade' }] }, token);
   return { token, listaId: lista.resumo.id, passatempo: passatempo.id };

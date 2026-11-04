@@ -2,7 +2,7 @@ import type { Area, LadoDaSecao, MapaEmEdicao, Mercado, Ponto, Secao } from '../
 import type { Categoria } from '../entities/tipos';
 
 export const TAMANHO_MINIMO_DO_MAPA = 10;
-export const TAMANHO_MAXIMO_DO_MAPA = 80;
+export const TAMANHO_MAXIMO_DO_MAPA = 120;
 export const MAXIMO_DE_SECOES = 150;
 export const METROS_POR_CELULA = 1.5;
 
@@ -41,6 +41,7 @@ export function cabeNoMapa(mapa: Pick<MapaEmEdicao, 'largura' | 'altura'>, a: Ar
 export function mapaDoMercado(m: Mercado): MapaEmEdicao {
   return {
     nome: m.nome,
+    cidade: m.cidade ?? '',
     largura: m.largura,
     altura: m.altura,
     entrada: m.entrada,
@@ -292,6 +293,40 @@ export function ladoNoPonto(secao: Secao, fx: number, fy: number): LadoDaSecao {
   return segundaMetade ? 'B' : 'A';
 }
 
+/**
+ * Muda a grade do mapa (colunas x linhas). A entrada e os caixas que estão na metade de baixo/direita
+ * acompanham a borda nova; as seções ficam onde estão, e se alguma ficar para fora (ou o tamanho não for válido)
+ * o mapa NÃO muda e o motivo volta em \`erro\`: a pessoa precisa mover a seção antes de diminuir.
+ */
+export function redimensionarMapa(
+  mapa: MapaEmEdicao,
+  largura: number,
+  altura: number,
+): { ok: true; mapa: MapaEmEdicao } | { ok: false; erro: string } {
+  if (!Number.isInteger(largura) || !Number.isInteger(altura)) {
+    return { ok: false, erro: 'Use números inteiros para colunas e linhas.' };
+  }
+  const dx = largura - mapa.largura;
+  const dy = altura - mapa.altura;
+  // Entrada e caixas ficam presos à borda do lado em que estão (metade de baixo/direita acompanha a borda nova).
+  const seguir = (a: Area): Area => ({
+    ...a,
+    x: a.x + a.largura / 2 >= mapa.largura / 2 ? a.x + dx : a.x,
+    y: a.y + a.altura / 2 >= mapa.altura / 2 ? a.y + dy : a.y,
+  });
+  const caixas = seguir(mapa.caixas);
+  const ponto = seguir({ ...celula(mapa.entrada) });
+  const novo: MapaEmEdicao = {
+    ...mapa,
+    largura,
+    altura,
+    caixas,
+    entrada: { x: ponto.x, y: ponto.y },
+  };
+  const problema = validarMapa(novo);
+  return problema ? { ok: false, erro: problema } : { ok: true, mapa: novo };
+}
+
 /** "6 x 2 células, cerca de 9 m x 3 m". */
 export function descreverTamanho(area: Area): string {
   const m = (c: number) => String(Math.round(c * METROS_POR_CELULA * 10) / 10).replace('.', ',');
@@ -343,6 +378,8 @@ export function acharAlvo(
 /** Confere o mapa antes de enviar (a API confere de novo). Devolve a primeira mensagem de erro, ou null. */
 export function validarMapa(mapa: MapaEmEdicao): string | null {
   if (!mapa.nome.trim()) return 'Informe o nome do mercado.';
+  if (!mapa.cidade.trim()) return 'Informe a cidade do mercado.';
+  if (mapa.cidade.trim().length > 80) return 'A cidade pode ter no máximo 80 caracteres.';
   if (
     mapa.largura < TAMANHO_MINIMO_DO_MAPA ||
     mapa.largura > TAMANHO_MAXIMO_DO_MAPA ||

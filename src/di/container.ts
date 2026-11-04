@@ -51,7 +51,11 @@ import { ObterAnaliseDeGastos, ObterAnaliseDePrecos } from '../application/useCa
 import {
   CriarMercado,
   ExcluirMercado,
+  CompartilharMercado,
+  CopiarMapaCompartilhado,
+  ListarMapasCompartilhados,
   ListarMercados,
+  ObterMapaCompartilhado,
   DefinirLocalDoItem,
   MarcarItemSemNoMercado,
   ObterMercado,
@@ -63,7 +67,11 @@ import {
   LigarAvisos,
   ObterEstadoDosAvisos,
 } from '../application/useCases/notificacoes';
-import { MercadosApiGateway, RotasApiGateway } from '../infrastructure/gateways/mercadosGateways';
+import {
+  MapasCompartilhadosApiGateway,
+  MercadosApiGateway,
+  RotasApiGateway,
+} from '../infrastructure/gateways/mercadosGateways';
 import {
   CriarConvite,
   EntrarEmGrupo,
@@ -104,6 +112,7 @@ export function criarContainer(aoExpirarSessao: () => void) {
   const analises = new AnalisesApiGateway(http);
   const grupo = new GrupoApiGateway(http);
   const mercados = new MercadosApiGateway(http);
+  const mapasCompartilhados = new MapasCompartilhadosApiGateway(http);
   const rotas = new RotasApiGateway(http);
   const notificacoes = new NotificacoesApiGateway(http);
   const avisosDoDispositivo = new AvisosDoNavegador();
@@ -165,6 +174,10 @@ export function criarContainer(aoExpirarSessao: () => void) {
     listarMercados: new ListarMercados(mercados),
     obterMercado: new ObterMercado(mercados),
     criarMercado: new CriarMercado(mercados),
+    compartilharMercado: new CompartilharMercado(mercados),
+    listarMapasCompartilhados: new ListarMapasCompartilhados(mapasCompartilhados),
+    obterMapaCompartilhado: new ObterMapaCompartilhado(mapasCompartilhados),
+    copiarMapaCompartilhado: new CopiarMapaCompartilhado(mapasCompartilhados),
     salvarMapaDoMercado: new SalvarMapaDoMercado(mercados),
     excluirMercado: new ExcluirMercado(mercados),
     planejarRota: new PlanejarRota(rotas),

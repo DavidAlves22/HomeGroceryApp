@@ -10,6 +10,7 @@ import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina, Pilula } from '../com
 import { useContainer, useMercadoAtual } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { useToast } from '../hooks/Toast';
+import { aguardarFolhasFecharem } from '../hooks/useVoltarFecha';
 import { useNavegacao } from '../navigation/tipos';
 import { espaco, fonte, usePaleta } from '../theme';
 
@@ -22,6 +23,7 @@ function CartaoDoMercado({
   aoComprar,
   aoEditar,
   aoExcluir,
+  aoCompartilhar,
 }: {
   mercado: MercadoResumo;
   emUso: boolean;
@@ -31,6 +33,7 @@ function CartaoDoMercado({
   aoComprar: () => void;
   aoEditar: () => void;
   aoExcluir: () => void;
+  aoCompartilhar: () => void;
 }) {
   const p = usePaleta();
   const container = useContainer();
@@ -69,6 +72,7 @@ function CartaoDoMercado({
           <Text
             style={{ color: p.textoSuave, fontSize: fonte.pequena, fontVariant: ['tabular-nums'] }}
           >
+            {mercado.cidade ? `${mercado.cidade} · ` : ''}
             {mercado.secoes} {mercado.secoes === 1 ? 'seção' : 'seções'} · cobre {cobre} dos{' '}
             {pendentes.length} itens que faltam
           </Text>
@@ -81,6 +85,19 @@ function CartaoDoMercado({
           variante="secundario"
           aoPressionar={aoEditar}
           estilo={{ flex: 1, minHeight: 44 }}
+        />
+      </View>
+      <View style={estilos.compartilhar}>
+        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena, flex: 1 }}>
+          {mercado.compartilhada === false
+            ? 'Mapa só seu: não aparece em Mapas existentes.'
+            : 'Outras pessoas podem copiar este mapa (sem alterar o seu).'}
+        </Text>
+        <Botao
+          titulo={mercado.compartilhada === false ? 'Compartilhar' : 'Parar de compartilhar'}
+          variante="texto"
+          aoPressionar={aoCompartilhar}
+          estilo={{ minHeight: 36, paddingHorizontal: espaco.sm }}
         />
       </View>
       {podeExcluir && (
@@ -102,10 +119,11 @@ function FolhaDeNovoMercado({
 }: {
   visivel: boolean;
   mercados: MercadoResumo[];
-  aoCriar: (nome: string, copiarDe?: string) => Promise<void>;
+  aoCriar: (nome: string, cidade: string, copiarDe?: string) => Promise<void>;
   aoFechar: () => void;
 }) {
   const [nome, setNome] = useState('');
+  const [cidade, setCidade] = useState('');
   const [copiarDe, setCopiarDe] = useState<string | undefined>(undefined);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -114,8 +132,9 @@ function FolhaDeNovoMercado({
     setEnviando(true);
     setErro(null);
     try {
-      await aoCriar(nome, copiarDe);
+      await aoCriar(nome, cidade, copiarDe);
       setNome('');
+      setCidade('');
       setCopiarDe(undefined);
     } catch (e) {
       setErro(mensagemParaUsuario(e));
@@ -134,6 +153,17 @@ function FolhaDeNovoMercado({
         placeholder="Ex.: Supermercado da Praça"
         maxLength={120}
       />
+      <Campo
+        rotulo="Cidade"
+        value={cidade}
+        onChangeText={setCidade}
+        placeholder="Ex.: Araras"
+        autoCapitalize="words"
+        maxLength={80}
+      />
+      <TextoSuave>
+        A cidade ajuda outras pessoas a encontrar este mapa em Mapas existentes.
+      </TextoSuave>
       <RotuloDaFolha>Ponto de partida do mapa</RotuloDaFolha>
       <View style={estilos.chips}>
         <Chip
@@ -146,7 +176,11 @@ function FolhaDeNovoMercado({
             key={m.id}
             rotulo={`Copiar de ${m.nome}`}
             ativo={copiarDe === m.id}
-            aoPressionar={() => setCopiarDe(m.id)}
+            aoPressionar={() => {
+              setCopiarDe(m.id);
+              // Mesmo mercado em outro bairro costuma ser da mesma cidade: já sugere a do mapa copiado.
+              if (!cidade.trim() && m.cidade) setCidade(m.cidade);
+            }}
           />
         ))}
       </View>
@@ -196,6 +230,21 @@ export function MercadosScreen() {
     }
   }
 
+  async function alternarCompartilhamento(m: MercadoResumo) {
+    const compartilhar = m.compartilhada === false;
+    try {
+      await container.compartilharMercado.executar(m.id, compartilhar);
+      toast(
+        compartilhar
+          ? 'Mapa compartilhado: outras pessoas podem copiá-lo.'
+          : 'Mapa deixou de aparecer para os outros. Quem já copiou continua com a cópia.',
+      );
+      await recarregar();
+    } catch (e) {
+      toast(mensagemParaUsuario(e));
+    }
+  }
+
   return (
     <Pagina>
       <Cabecalho titulo="Mercados" aoVoltar={() => navegacao.goBack()} />
@@ -236,21 +285,29 @@ export function MercadosScreen() {
               }}
               aoEditar={() => navegacao.navigate('MapaDoMercado', { mercadoId: m.id })}
               aoExcluir={() => void excluir(m)}
+              aoCompartilhar={() => void alternarCompartilhamento(m)}
             />
           ))
         )}
         {mercados && mercados.length > 0 && (
           <Botao titulo="Novo mercado" aoPressionar={() => setNovo(true)} />
         )}
+        <Botao
+          titulo="Carregar mapas existentes"
+          variante="secundario"
+          aoPressionar={() => navegacao.navigate('CatalogoDeMapas')}
+        />
       </ScrollView>
 
       <FolhaDeNovoMercado
         visivel={novo}
         mercados={mercados ?? []}
         aoFechar={() => setNovo(false)}
-        aoCriar={async (nome, copiarDe) => {
-          const criado = await container.criarMercado.executar(nome, copiarDe);
+        aoCriar={async (nome, cidade, copiarDe) => {
+          const criado = await container.criarMercado.executar(nome, cidade, copiarDe);
           setNovo(false);
+          // A folha desfaz uma entrada do histórico ao fechar; navegar antes disso a desfaria junto com a tela nova.
+          await aguardarFolhasFecharem();
           toast('Mercado criado. Ajuste o mapa e as categorias.');
           navegacao.navigate('MapaDoMercado', { mercadoId: criado.id });
         }}
@@ -263,5 +320,6 @@ const estilos = StyleSheet.create({
   conteudo: { padding: espaco.lg, paddingBottom: 40, gap: espaco.lg },
   linha: { flexDirection: 'row', gap: espaco.md, alignItems: 'flex-start' },
   acoes: { flexDirection: 'row', gap: espaco.sm },
+  compartilhar: { flexDirection: 'row', alignItems: 'center', gap: espaco.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
 });

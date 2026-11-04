@@ -79,3 +79,17 @@ export function useVoltarFecha(aberto: boolean, aoFechar: () => void) {
     };
   }, [aberto]);
 }
+
+/**
+ * Quem fecha uma folha e em seguida navega para outra tela precisa esperar: o `history.back()` que desfaz a entrada da
+ * folha é assíncrono e, se a navegação empilhar a tela nova antes dele acontecer, ele a desfaz (a URL volta e a tela
+ * nova some). Chame depois de fechar a folha e antes de navegar.
+ */
+export async function aguardarFolhasFecharem() {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+  await new Promise((resolver) => setTimeout(resolver, 30));
+  const limite = Date.now() + 800;
+  while (aIgnorar > 0 && Date.now() < limite) {
+    await new Promise((resolver) => setTimeout(resolver, 20));
+  }
+}

@@ -37,7 +37,7 @@ async function preparar() {
     await api('POST', `/listas/${lista.resumo.id}/itens`, { nome, categoriaId: cat(categoria), unidade: 'Unidade', quantidade: 1 }, token);
   }
   const area = (x, y, largura, altura) => ({ x, y, largura, altura });
-  const loja = await api('POST', '/lojas', { nome: 'Mercado A' }, token);
+  const loja = await api('POST', '/lojas', { nome: 'Mercado A', cidade: 'Araras' }, token);
   await api('PUT', `/lojas/${loja.id}/mapa`, {
     nome: 'Mercado A', largura: 34, altura: 40, entrada: { x: 16, y: 37 }, caixas: area(24, 34, 7, 2), versao: loja.versao,
     secoes: [

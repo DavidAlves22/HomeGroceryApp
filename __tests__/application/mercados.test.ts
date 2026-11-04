@@ -10,6 +10,7 @@ import type { MapaEmEdicao } from '../../src/domain/entities/mercados';
 
 const mapaValido: MapaEmEdicao = {
   nome: ' Central ',
+  cidade: ' Araras ',
   largura: 30,
   altura: 20,
   entrada: { x: 2, y: 18 },
@@ -27,11 +28,19 @@ describe('CriarMercado', () => {
   it('exige nome e limpa os espaços das pontas', async () => {
     const g = gateway();
 
-    await expect(new CriarMercado(g).executar('   ')).rejects.toBeInstanceOf(ErroDeApi);
-    await new CriarMercado(g).executar('  Mercado A ', 'origem');
+    await expect(new CriarMercado(g).executar('   ', 'Araras')).rejects.toBeInstanceOf(ErroDeApi);
+    await new CriarMercado(g).executar('  Mercado A ', ' Araras ', 'origem');
 
-    expect(g.criar).toHaveBeenCalledWith('Mercado A', 'origem');
+    expect(g.criar).toHaveBeenCalledWith('Mercado A', 'Araras', 'origem');
     expect(g.criar).toHaveBeenCalledTimes(1);
+  });
+
+  it('exige a cidade (e recusa uma grande demais) antes de chamar a API', async () => {
+    const g = gateway();
+
+    await expect(new CriarMercado(g).executar('Mercado A', '   ')).rejects.toThrow('cidade');
+    await expect(new CriarMercado(g).executar('Mercado A', 'x'.repeat(81))).rejects.toThrow('80');
+    expect(g.criar).not.toHaveBeenCalled();
   });
 });
 
@@ -63,7 +72,11 @@ describe('SalvarMapaDoMercado', () => {
 
     await new SalvarMapaDoMercado(g).executar('m1', mapaValido, 3);
 
-    expect(g.salvarMapa).toHaveBeenCalledWith('m1', { ...mapaValido, nome: 'Central' }, 3);
+    expect(g.salvarMapa).toHaveBeenCalledWith(
+      'm1',
+      { ...mapaValido, nome: 'Central', cidade: 'Araras' },
+      3,
+    );
   });
 });
 

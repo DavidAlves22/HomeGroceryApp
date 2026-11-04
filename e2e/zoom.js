@@ -27,7 +27,7 @@ async function preparar() {
   const categorias = await api('GET', '/categorias', null, token);
   const cat = (nome) => categorias.find((c) => c.nome === nome).id;
   const area = (x, y, largura, altura) => ({ x, y, largura, altura });
-  const loja = await api('POST', '/lojas', { nome: 'Mercado A' }, token);
+  const loja = await api('POST', '/lojas', { nome: 'Mercado A', cidade: 'Araras' }, token);
   const salvo = await api('PUT', `/lojas/${loja.id}/mapa`, {
     nome: 'Mercado A', largura: 34, altura: 40, entrada: { x: 16, y: 37 }, caixas: area(24, 34, 7, 2), versao: loja.versao,
     secoes: [
@@ -138,7 +138,7 @@ async function preparar() {
     await clicar('Mercados');
     await esperarTexto('Cada mercado tem o seu próprio mapa');
     await clicar('Editar mapa', true);
-    await esperarTexto('Com dois dedos você aproxima');
+    await esperarTexto('Mapa travado');
     await page.evaluate(() => window.scrollTo(0, 0));
     let j = await janela();
     verificar(j.escala === 1, 'abre com o mapa inteiro (sem zoom)');
@@ -173,7 +173,9 @@ async function preparar() {
     j = await janela();
     verificar(j.x > antes.x || j.y > antes.y, 'um dedo no vazio moveu a visão');
 
-    console.log('5) Arrastar uma seção com zoom funciona e acerta a célula');
+    console.log('5) Arrastar uma seção com zoom funciona e acerta a célula (depois de destravar)');
+    await page.evaluate(() => document.querySelector('[aria-label="Destravar a edição do mapa"]').click());
+    await esperarTexto('Arraste uma seção para mover');
     await clicarComeco('Ver tudo');
     for (let i = 0; i < 3; i++) await clicar('Aproximar', true);
     j = await janela();
