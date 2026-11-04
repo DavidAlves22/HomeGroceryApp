@@ -15,6 +15,7 @@ import { MapaSvg } from '../components/MapaSvg';
 import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina, Pilula } from '../components/ui';
 import { useContainer, useMercadoAtual, useSessao } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
+import { useAjusteDoLayout } from '../hooks/ajusteDoLayout';
 import { useLayoutLargo } from '../hooks/useLayoutLargo';
 import { useToast } from '../hooks/Toast';
 import { useNavegacao } from '../navigation/tipos';
@@ -134,6 +135,7 @@ export function RotaScreen() {
   const navegacao = useNavegacao();
   const toast = useToast();
   const largo = useLayoutLargo();
+  const ajuste = useAjusteDoLayout();
   const { mercadoId, definirMercado } = useMercadoAtual();
 
   const {
@@ -342,7 +344,11 @@ export function RotaScreen() {
           </ScrollView>
         )}
         <ScrollView
-          style={largo ? estilos.colunaDoPainel : undefined}
+          style={
+            largo
+              ? [estilos.colunaDoPainel, { flexBasis: ajuste.painel, width: ajuste.painel }]
+              : undefined
+          }
           contentContainerStyle={estilos.conteudo}
         >
           {divisao.length > 0 && (

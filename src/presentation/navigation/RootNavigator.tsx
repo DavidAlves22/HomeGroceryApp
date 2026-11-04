@@ -7,7 +7,7 @@ import {
 } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Icone, type NomeDoIcone } from '../components/Icone';
 import { AdminScreen } from '../screens/AdminScreen';
 import { AnalisesScreen } from '../screens/AnalisesScreen';
@@ -25,6 +25,7 @@ import { RotaScreen } from '../screens/RotaScreen';
 import { GrupoScreen } from '../screens/GrupoScreen';
 import { ProdutosScreen } from '../screens/ProdutosScreen';
 import { NovaListaScreen } from '../screens/NovaListaScreen';
+import { PainelDeAjuste, useAjusteDoLayout } from '../hooks/ajusteDoLayout';
 import { useLayoutLargo } from '../hooks/useLayoutLargo';
 import { usePaleta } from '../theme';
 import type { AbasParamList, RootStackParamList } from './tipos';
@@ -84,6 +85,7 @@ function NavegacaoPorAbas() {
   const p = usePaleta();
   // No computador o menu vira uma coluna na lateral; no celular continua embaixo.
   const largo = useLayoutLargo();
+  const ajuste = useAjusteDoLayout();
   return (
     <Abas.Navigator
       screenOptions={({ route }) => ({
@@ -97,8 +99,8 @@ function NavegacaoPorAbas() {
               backgroundColor: p.superficie,
               borderRightColor: p.linha,
               paddingTop: 12,
-              width: 220,
-              minWidth: 220,
+              width: ajuste.menu,
+              minWidth: ajuste.menu,
             }
           : {
               backgroundColor: p.superficie,
@@ -137,22 +139,25 @@ export function NavegacaoApp() {
   };
 
   return (
-    <NavigationContainer theme={tema} linking={LINKING} documentTitle={{ enabled: false }}>
-      <Pilha.Navigator screenOptions={{ headerShown: false }}>
-        <Pilha.Screen name="Abas" component={NavegacaoPorAbas} />
-        <Pilha.Screen name="NovaLista" component={NovaListaScreen} />
-        <Pilha.Screen name="ListaPadrao" component={ListaPadraoScreen} />
-        <Pilha.Screen name="DetalheDaLista" component={DetalheDaListaScreen} />
-        <Pilha.Screen name="ImportarNota" component={ImportarNotaScreen} />
-        <Pilha.Screen name="Categorias" component={CategoriasScreen} />
-        <Pilha.Screen name="Produtos" component={ProdutosScreen} />
-        <Pilha.Screen name="Grupo" component={GrupoScreen} />
-        <Pilha.Screen name="Mercados" component={MercadosScreen} />
-        <Pilha.Screen name="CatalogoDeMapas" component={CatalogoDeMapasScreen} />
-        <Pilha.Screen name="MapaDoMercado" component={MapaDoMercadoScreen} />
-        <Pilha.Screen name="Rota" component={RotaScreen} />
-        <Pilha.Screen name="Admin" component={AdminScreen} />
-      </Pilha.Navigator>
-    </NavigationContainer>
+    <View style={{ flex: 1 }}>
+      <NavigationContainer theme={tema} linking={LINKING} documentTitle={{ enabled: false }}>
+        <Pilha.Navigator screenOptions={{ headerShown: false }}>
+          <Pilha.Screen name="Abas" component={NavegacaoPorAbas} />
+          <Pilha.Screen name="NovaLista" component={NovaListaScreen} />
+          <Pilha.Screen name="ListaPadrao" component={ListaPadraoScreen} />
+          <Pilha.Screen name="DetalheDaLista" component={DetalheDaListaScreen} />
+          <Pilha.Screen name="ImportarNota" component={ImportarNotaScreen} />
+          <Pilha.Screen name="Categorias" component={CategoriasScreen} />
+          <Pilha.Screen name="Produtos" component={ProdutosScreen} />
+          <Pilha.Screen name="Grupo" component={GrupoScreen} />
+          <Pilha.Screen name="Mercados" component={MercadosScreen} />
+          <Pilha.Screen name="CatalogoDeMapas" component={CatalogoDeMapasScreen} />
+          <Pilha.Screen name="MapaDoMercado" component={MapaDoMercadoScreen} />
+          <Pilha.Screen name="Rota" component={RotaScreen} />
+          <Pilha.Screen name="Admin" component={AdminScreen} />
+        </Pilha.Navigator>
+      </NavigationContainer>
+      <PainelDeAjuste />
+    </View>
   );
 }

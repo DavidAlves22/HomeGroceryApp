@@ -62,6 +62,7 @@ import {
 } from '../components/ui';
 import { useContainer, useMercadoAtual } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
+import { useAjusteDoLayout } from '../hooks/ajusteDoLayout';
 import { useLayoutLargo } from '../hooks/useLayoutLargo';
 import { useToast } from '../hooks/Toast';
 import { useNavegacao, type RootStackParamList } from '../navigation/tipos';
@@ -86,6 +87,7 @@ export function MapaDoMercadoScreen() {
   const navegacao = useNavegacao();
   const toast = useToast();
   const largo = useLayoutLargo();
+  const ajuste = useAjusteDoLayout();
   const { definirMercado } = useMercadoAtual();
   const { params } = useRoute<RouteProp<RootStackParamList, 'MapaDoMercado'>>();
   const {
@@ -528,7 +530,11 @@ export function MapaDoMercadoScreen() {
           </ScrollView>
         )}
         <ScrollView
-          style={largo ? estilos.colunaDoPainel : undefined}
+          style={
+            largo
+              ? [estilos.colunaDoPainel, { flexBasis: ajuste.painel, width: ajuste.painel }]
+              : undefined
+          }
           contentContainerStyle={estilos.conteudo}
           keyboardShouldPersistTaps="handled"
         >

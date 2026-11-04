@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Botao, Titulo } from './base';
 import { Icone, type NomeDoIcone } from './Icone';
+import { useAjusteDoLayout } from '../hooks/ajusteDoLayout';
 import { LARGURA_MAXIMA_LARGA, useLayoutLargo } from '../hooks/useLayoutLargo';
 
 /**
@@ -27,12 +28,14 @@ export function Pagina({
 }) {
   const p = usePaleta();
   const largo = useLayoutLargo();
+  const ajuste = useAjusteDoLayout();
   return (
     <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: p.fundo }}>
       <View
         style={[
           estilos.coluna,
-          larga && largo && { maxWidth: larga === 'total' ? 2400 : LARGURA_MAXIMA_LARGA },
+          larga &&
+            largo && { maxWidth: larga === 'total' ? ajuste.larguraMaxima : LARGURA_MAXIMA_LARGA },
         ]}
       >
         {children}
