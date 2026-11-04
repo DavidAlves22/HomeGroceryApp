@@ -333,7 +333,7 @@ export function RotaScreen() {
     ) : null;
 
   return (
-    <Pagina larga>
+    <Pagina larga="total">
       {cabecalho}
       <View style={largo ? estilos.duasColunas : estilos.umaColuna}>
         {largo && !!cartaoDoMapa && (
@@ -625,8 +625,8 @@ export function RotaScreen() {
 const estilos = StyleSheet.create({
   umaColuna: { flex: 1 },
   duasColunas: { flex: 1, flexDirection: 'row' },
-  colunaDoMapa: { flex: 3 },
-  colunaDoPainel: { flex: 2 },
+  colunaDoMapa: { flex: 1 },
+  colunaDoPainel: { flex: 0, width: 400, flexShrink: 0 },
   conteudo: { padding: espaco.lg, paddingBottom: 48, gap: espaco.md },
   chipsLinha: {
     flexDirection: 'row',

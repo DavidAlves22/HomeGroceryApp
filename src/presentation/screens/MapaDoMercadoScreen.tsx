@@ -519,7 +519,7 @@ export function MapaDoMercadoScreen() {
   );
 
   return (
-    <Pagina larga>
+    <Pagina larga="total">
       <Cabecalho titulo={mapa.nome || 'Mapa do mercado'} aoVoltar={voltar} />
       <View style={largo ? estilos.duasColunas : estilos.umaColuna}>
         {largo && (
@@ -848,8 +848,8 @@ export function MapaDoMercadoScreen() {
 const estilos = StyleSheet.create({
   umaColuna: { flex: 1 },
   duasColunas: { flex: 1, flexDirection: 'row' },
-  colunaDoMapa: { flex: 3 },
-  colunaDoPainel: { flex: 2 },
+  colunaDoMapa: { flex: 1 },
+  colunaDoPainel: { flex: 0, width: 400, flexShrink: 0 },
   conteudo: { padding: espaco.lg, paddingBottom: 48, gap: espaco.md },
   acoes: { flexDirection: 'row', gap: espaco.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
