@@ -22,7 +22,8 @@ import { useVoltarFecha } from '../hooks/useVoltarFecha';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Botao, Campo, MensagemDeErro } from './base';
 import { CampoNumerico } from './CampoNumerico';
-import { Chip, GatilhoDeSeletor, PainelDeOpcoes } from './ui';
+import { SeletorDeOpcao } from './SeletorDeOpcao';
+import { Chip, GatilhoDeSeletor } from './ui';
 
 export function Moldura({
   visivel,
@@ -134,7 +135,7 @@ export function FolhaDeItem({
   const [precoEstimado, setPrecoEstimado] = useState<number | null>(null);
   const [precoPago, setPrecoPago] = useState<number | null>(null);
   const [quantidadeComprada, setQuantidadeComprada] = useState<number | null>(null);
-  // Lista suspensa aberta (unidade ou categoria): abre uma de cada vez, logo abaixo dos dois seletores.
+  // Lista de escolha aberta (unidade ou categoria): modal em tela cheia sobre a folha, uma de cada vez.
   const [painel, setPainel] = useState<'unidade' | 'categoria' | null>(null);
   const [sugestoes, setSugestoes] = useState<Produto[]>([]);
   const [erro, setErro] = useState<string | null>(null);
@@ -313,34 +314,30 @@ export function FolhaDeItem({
           />
         </View>
       </View>
-      {painel === 'unidade' && (
-        <PainelDeOpcoes
-          titulo="Escolher a unidade"
-          opcoes={UNIDADES.map((u) => ({
-            chave: u.valor,
-            rotulo: u.rotulo,
-            marcada: unidade === u.valor,
-            aoPressionar: () => {
-              setUnidade(u.valor);
-              setPainel(null);
-            },
-          }))}
-        />
-      )}
-      {painel === 'categoria' && (
-        <PainelDeOpcoes
-          titulo="Escolher a categoria"
-          opcoes={categorias.map((c) => ({
-            chave: c.id,
-            rotulo: c.nome,
-            marcada: categoriaId === c.id,
-            aoPressionar: () => {
-              setCategoriaId(c.id);
-              setPainel(null);
-            },
-          }))}
-        />
-      )}
+      <SeletorDeOpcao
+        visivel={painel === 'unidade'}
+        titulo="Escolher a unidade"
+        opcoes={UNIDADES.map((u) => ({ chave: u.valor, rotulo: u.rotulo }))}
+        escolhida={unidade}
+        aoEscolher={(chave) => {
+          setUnidade(chave as Unidade);
+          setPainel(null);
+        }}
+        aoFechar={() => setPainel(null)}
+      />
+      <SeletorDeOpcao
+        visivel={painel === 'categoria'}
+        titulo="Escolher a categoria"
+        opcoes={categorias.map((c) => ({ chave: c.id, rotulo: c.nome }))}
+        escolhida={categoriaId}
+        comBuscaEOrdem
+        placeholderDaBusca="Buscar categoria"
+        aoEscolher={(chave) => {
+          setCategoriaId(chave);
+          setPainel(null);
+        }}
+        aoFechar={() => setPainel(null)}
+      />
       <MensagemDeErro mensagem={erro} />
       <Botao titulo={rotuloDoBotao} aoPressionar={salvar} carregando={enviando} />
       {aoExcluir && (

@@ -8,7 +8,9 @@ import {
   BotaoDeIcone,
   BotaoFlutuante,
   Cabecalho,
+  CampoDeBusca,
   Carregando,
+  Chip,
   EstadoVazio,
   Pagina,
 } from '../components/ui';
@@ -18,6 +20,7 @@ import { useToast } from '../hooks/Toast';
 import { useNavegacao } from '../navigation/tipos';
 import { espaco, fonte, usePaleta } from '../theme';
 
+type ModoDeOrdem = 'ordem' | 'az' | 'za';
 type Folha = { tipo: 'nova' } | { tipo: 'editar'; categoria: Categoria } | null;
 
 /**
@@ -37,6 +40,8 @@ export function CategoriasScreen() {
     recarregar,
   } = useCarregar(() => container.listarCategorias.executar(), 'categorias');
   const [folha, setFolha] = useState<Folha>(null);
+  const [busca, setBusca] = useState('');
+  const [modo, setModo] = useState<ModoDeOrdem>('ordem');
 
   if (carregando && !categorias)
     return (
@@ -58,6 +63,22 @@ export function CategoriasScreen() {
   }
 
   const lista = categorias ?? [];
+  const termo = busca.trim().toLocaleLowerCase('pt-BR');
+  // Subir/descer só faz sentido com a lista inteira na ordem do usuário (sem busca nem A → Z).
+  const podeReordenar = modo === 'ordem' && termo === '';
+  const visiveis = (
+    termo ? lista.filter((c) => c.nome.toLocaleLowerCase('pt-BR').includes(termo)) : [...lista]
+  ).sort((a, b) =>
+    modo === 'ordem'
+      ? 0
+      : (modo === 'az' ? 1 : -1) * a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }),
+  );
+  const proximoModo: Record<ModoDeOrdem, ModoDeOrdem> = { ordem: 'az', az: 'za', za: 'ordem' };
+  const rotuloDoModo: Record<ModoDeOrdem, string> = {
+    ordem: 'Minha ordem',
+    az: 'A → Z',
+    za: 'Z → A',
+  };
 
   async function salvar(texto: string) {
     if (folha?.tipo === 'editar') {
@@ -100,8 +121,24 @@ export function CategoriasScreen() {
           A ordem das categorias define como os produtos aparecem na lista de compras. Coloque
           primeiro as seções que você visita primeiro no mercado.
         </TextoSuave>
+        <View style={estilos.barra}>
+          <View style={{ flex: 1 }}>
+            <CampoDeBusca valor={busca} aoMudar={setBusca} placeholder="Buscar categoria" />
+          </View>
+          <Chip
+            rotulo={rotuloDoModo[modo]}
+            ativo={modo !== 'ordem'}
+            aoPressionar={() => setModo(proximoModo[modo])}
+          />
+        </View>
+        {!podeReordenar && lista.length > 1 && (
+          <TextoSuave>Para subir ou descer categorias, use a ordem “Minha ordem”, sem busca.</TextoSuave>
+        )}
+        {visiveis.length === 0 && termo !== '' && (
+          <TextoSuave>Nenhuma categoria com esse nome.</TextoSuave>
+        )}
         <Cartao estilo={{ paddingVertical: 4 }}>
-          {lista.map((categoria, indice) => (
+          {visiveis.map((categoria, indice) => (
             <View
               key={categoria.id}
               style={[
@@ -112,18 +149,22 @@ export function CategoriasScreen() {
               <Text style={{ flex: 1, color: p.texto, fontWeight: '600', fontSize: fonte.corpo }}>
                 {categoria.nome}
               </Text>
-              <BotaoDeIcone
-                icone="cima"
-                rotulo={`Subir ${categoria.nome}`}
-                desabilitado={indice === 0}
-                aoPressionar={() => void mover(indice, -1)}
-              />
-              <BotaoDeIcone
-                icone="baixo"
-                rotulo={`Descer ${categoria.nome}`}
-                desabilitado={indice === lista.length - 1}
-                aoPressionar={() => void mover(indice, 1)}
-              />
+              {podeReordenar && (
+                <>
+                  <BotaoDeIcone
+                    icone="cima"
+                    rotulo={`Subir ${categoria.nome}`}
+                    desabilitado={indice === 0}
+                    aoPressionar={() => void mover(indice, -1)}
+                  />
+                  <BotaoDeIcone
+                    icone="baixo"
+                    rotulo={`Descer ${categoria.nome}`}
+                    desabilitado={indice === lista.length - 1}
+                    aoPressionar={() => void mover(indice, 1)}
+                  />
+                </>
+              )}
               <BotaoDeIcone
                 icone="editar"
                 rotulo={`Editar ${categoria.nome}`}
@@ -151,6 +192,7 @@ export function CategoriasScreen() {
 }
 
 const estilos = StyleSheet.create({
+  barra: { flexDirection: 'row', alignItems: 'center', gap: espaco.sm },
   conteudo: { padding: espaco.lg, gap: espaco.md, paddingBottom: 120 },
   linha: {
     flexDirection: 'row',
