@@ -482,14 +482,25 @@ export function MapaDoMercadoScreen() {
         />
       </View>
       <View style={estilos.zoom}>
-        <Chip rotulo="Afastar" ativo={false} aoPressionar={() => zoomPelosBotoes(1 / 1.5)} />
-        <Chip rotulo="Aproximar" ativo={false} aoPressionar={() => zoomPelosBotoes(1.5)} />
+        <Chip
+          rotulo="Afastar"
+          ativo={false}
+          estilo={estilos.botaoDoZoom}
+          aoPressionar={() => zoomPelosBotoes(1 / 1.5)}
+        />
+        <Chip
+          rotulo="Aproximar"
+          ativo={false}
+          estilo={estilos.botaoDoZoom}
+          aoPressionar={() => zoomPelosBotoes(1.5)}
+        />
         <Chip
           rotulo={
             janela.escala > 1
-              ? `Ver tudo · ${janela.escala.toFixed(1).replace('.', ',')}×`
+              ? `Tudo · ${janela.escala.toFixed(1).replace('.', ',')}×`
               : 'Ver tudo'
           }
+          estilo={estilos.botaoDoZoom}
           ativo={janela.escala > 1}
           aoPressionar={() => setJanela(JANELA_INICIAL)}
         />
@@ -620,7 +631,7 @@ export function MapaDoMercadoScreen() {
           )}
           <TextoSuave>
             {travado
-              ? 'Mapa travado: você só aproxima e anda pelo mapa (dois dedos, ou um dedo com zoom). Toque no cadeado para editar.'
+              ? 'Mapa travado: só zoom e deslocar. Toque no cadeado para editar.'
               : 'Arraste uma seção para mover. A bolinha do canto muda o tamanho. A entrada e os caixas também se arrastam. Com dois dedos você aproxima e move o mapa. Cada quadradinho vale cerca de 1,5 m.'}
           </TextoSuave>
 
@@ -861,7 +872,8 @@ const estilos = StyleSheet.create({
   conteudo: { padding: espaco.lg, paddingBottom: 48, gap: espaco.md },
   acoes: { flexDirection: 'row', gap: espaco.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
-  zoom: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm, marginTop: espaco.md },
+  zoom: { flexDirection: 'row', alignItems: 'center', gap: espaco.sm, marginTop: espaco.md },
+  botaoDoZoom: { flex: 1, minWidth: 0, paddingHorizontal: 4 },
   cadeado: {
     width: 44,
     minHeight: 36,

@@ -4,10 +4,12 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleProp,
   StyleSheet,
   Text,
   TextInput,
   View,
+  ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { espaco, fonte, raio, usePaleta } from '../theme';
@@ -86,9 +88,10 @@ interface ChipProps {
   rotulo: string;
   ativo: boolean;
   aoPressionar: () => void;
+  estilo?: StyleProp<ViewStyle>;
 }
 
-export function Chip({ rotulo, ativo, aoPressionar }: ChipProps) {
+export function Chip({ rotulo, ativo, aoPressionar, estilo }: ChipProps) {
   const p = usePaleta();
   return (
     <Pressable
@@ -101,9 +104,11 @@ export function Chip({ rotulo, ativo, aoPressionar }: ChipProps) {
           backgroundColor: ativo ? p.destaque : p.superficie,
           borderColor: ativo ? p.destaque : p.bordaCampo,
         },
+        estilo,
       ]}
     >
       <Text
+        numberOfLines={estilo ? 1 : undefined}
         style={{ color: ativo ? p.textoSobreDestaque : p.texto, fontWeight: '600', fontSize: 13 }}
       >
         {rotulo}

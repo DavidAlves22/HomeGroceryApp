@@ -70,7 +70,7 @@ async function preparar() {
     await alvos[ultimo ? alvos.length - 1 : 0].click();
     await pausa(400);
   };
-  // Com zoom o botão vira "Ver tudo · 4,0×": procura pelo começo do texto.
+  // Com zoom o botão vira "Tudo · 4,0×": procura pelo começo do texto.
   const clicarComeco = async (t) => {
     await esperarTexto(t);
     const alvos = await page.$$(`xpath/.//*[starts-with(normalize-space(text()), "${t}")]`);
@@ -153,7 +153,7 @@ async function preparar() {
     );
     j = await janela();
     verificar(j.escala > 2.5 && j.escala <= 4, `o pinça aproximou (escala ${j.escala.toFixed(2)}x)`);
-    verificar((await texto()).includes('Ver tudo ·'), 'o botão "Ver tudo" mostra o zoom atual');
+    verificar((await texto()).includes('Tudo ·'), 'o botão "Ver tudo" mostra o zoom atual');
     await foto('editor-com-zoom');
     const aposPinca = j;
 
@@ -176,12 +176,12 @@ async function preparar() {
     console.log('5) Arrastar uma seção com zoom funciona e acerta a célula (depois de destravar)');
     await page.evaluate(() => document.querySelector('[aria-label="Destravar a edição do mapa"]').click());
     await esperarTexto('Arraste uma seção para mover');
-    await clicarComeco('Ver tudo');
+    await clicarComeco('Tudo');
     for (let i = 0; i < 3; i++) await clicar('Aproximar', true);
     j = await janela();
     verificar(j.escala > 2.5, `os botões aproximam (${j.escala.toFixed(2)}x)`);
     await foto('editor-botoes');
-    await clicarComeco('Ver tudo');
+    await clicarComeco('Tudo');
     j = await janela();
     verificar(j.escala === 1 && j.x === 0 && j.y === 0, '"Ver tudo" volta ao mapa inteiro');
     // Com zoom ~2x perto do canto superior esquerdo, a Padaria (x 16..25) ainda cabe; arrasta 2 células para baixo.

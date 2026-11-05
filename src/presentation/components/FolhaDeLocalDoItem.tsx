@@ -1,7 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, Text, View, type ViewStyle } from 'react-native';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  PanResponder,
+  Platform,
+  Pressable,
+  Text,
+  View,
+  type GestureResponderEvent,
+  type ViewStyle,
+} from 'react-native';
 import type { LadoDaSecao, Mercado } from '../../domain/entities/mercados';
 import { ladoNoPonto, nomeDoLado, secaoNoPonto, textoDoLado } from '../../domain/services/mapa';
+import {
+  JANELA_INICIAL,
+  celulaNoPonto,
+  deslocarJanela,
+  zoomEmTorno,
+  type Janela,
+} from '../../domain/services/zoomDoMapa';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Botao, TextoSuave } from './base';
 import { Moldura, RotuloDaFolha, TituloDaFolha } from './Folhas';
@@ -42,20 +57,27 @@ export function FolhaDeLocalDoItem({
   const p = usePaleta();
   const [escolhidos, setEscolhidos] = useState<LocalEscolhido[]>(locaisAtuais);
   const larguraPx = useRef(0);
+  const [janela, setJanela] = useState<Janela>(JANELA_INICIAL);
+  const janelaRef = useRef<Janela>(JANELA_INICIAL);
+  janelaRef.current = janela;
 
   // Cada vez que a folha abre, parte do que já está salvo.
   useEffect(() => {
     if (visivel) {
       setEscolhidos(locaisAtuais.slice(0, 1));
+      setJanela(JANELA_INICIAL);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visivel]);
 
   function tocar(x: number, y: number) {
     if (larguraPx.current === 0) return;
-    const px = larguraPx.current / mercado.largura;
-    const fx = x / px;
-    const fy = y / px;
+    const { x: fx, y: fy } = celulaNoPonto(
+      janelaRef.current,
+      larguraPx.current / mercado.largura,
+      x,
+      y,
+    );
     const secao = secaoNoPonto(mercado, fx, fy);
     if (!secao) return;
 
@@ -64,6 +86,80 @@ export function FolhaDeLocalDoItem({
     const jaTem = escolhidos.some((e) => e.secaoId === secao.id && e.lado === lado);
     setEscolhidos(jaTem ? [] : [{ secaoId: secao.id, lado }]);
   }
+
+  // Toque curto escolhe a seção; um dedo move a visão (com zoom); dois dedos aproximam e afastam.
+  const tocarRef = useRef(tocar);
+  tocarRef.current = tocar;
+  const gestos = useMemo(() => {
+    const m = mercado;
+    let modo: 'nenhum' | 'mover' | 'pinca' = 'nenhum';
+    let inicio = { x: 0, y: 0 };
+    let visao: Janela = JANELA_INICIAL;
+    let pinca: { d0: number; escala0: number; focal: { x: number; y: number } } | null = null;
+    let moveu = false;
+
+    const medidas = (e: GestureResponderEvent) => {
+      const [a, b] = e.nativeEvent.touches;
+      return {
+        d: Math.hypot(b.pageX - a.pageX, b.pageY - a.pageY),
+        meio: { x: (a.locationX + b.locationX) / 2, y: (a.locationY + b.locationY) / 2 },
+      };
+    };
+    const comecarPinca = (e: GestureResponderEvent) => {
+      const { d, meio } = medidas(e);
+      pinca = {
+        d0: Math.max(d, 1),
+        escala0: janelaRef.current.escala,
+        focal: celulaNoPonto(janelaRef.current, larguraPx.current / m.largura, meio.x, meio.y),
+      };
+      modo = 'pinca';
+    };
+
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => larguraPx.current > 0,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: (e) => {
+        moveu = false;
+        inicio = { x: e.nativeEvent.locationX, y: e.nativeEvent.locationY };
+        visao = janelaRef.current;
+        if (e.nativeEvent.touches.length >= 2) comecarPinca(e);
+        else modo = 'mover';
+      },
+      onPanResponderMove: (e, g) => {
+        const pxBase = larguraPx.current / m.largura;
+        if (e.nativeEvent.touches.length >= 2) {
+          if (modo !== 'pinca') comecarPinca(e);
+          if (!pinca) return;
+          moveu = true;
+          const { d, meio } = medidas(e);
+          setJanela(
+            zoomEmTorno(
+              janelaRef.current,
+              (pinca.escala0 * d) / pinca.d0,
+              pinca.focal,
+              meio,
+              pxBase,
+              m.largura,
+              m.altura,
+            ),
+          );
+          return;
+        }
+        if (modo !== 'mover') return;
+        if (Math.hypot(g.dx, g.dy) > 8) moveu = true;
+        if (moveu) setJanela(deslocarJanela(visao, g.dx, g.dy, pxBase, m.largura, m.altura));
+      },
+      onPanResponderRelease: () => {
+        if (!moveu && modo === 'mover') tocarRef.current(inicio.x, inicio.y);
+        modo = 'nenhum';
+        pinca = null;
+      },
+      onPanResponderTerminate: () => {
+        modo = 'nenhum';
+        pinca = null;
+      },
+    });
+  }, [mercado]);
 
   const rotuloDe = (e: LocalEscolhido) => {
     const secao = mercado.secoes.find((s) => s.id === e.secaoId);
@@ -81,19 +177,15 @@ export function FolhaDeLocalDoItem({
       <TituloDaFolha>Onde você achou {nomeDoItem}?</TituloDaFolha>
       <TextoSuave>
         Toque no mapa de {mercado.nome} na prateleira onde ele estava. Em gôndola de dois lados,
-        toque na metade do lado certo. Se já havia outro lugar marcado, ele é trocado. A rota deste
-        e dos próximos meses passa a ir para lá.
+        toque na metade do lado certo.
       </TextoSuave>
 
-      <View
-        style={SEM_ROLAGEM}
-        onStartShouldSetResponder={() => true}
-        onResponderRelease={(e) => tocar(e.nativeEvent.locationX, e.nativeEvent.locationY)}
-      >
+      <View style={SEM_ROLAGEM} {...gestos.panHandlers}>
         <MapaSvg
           mapa={mercado}
           modo="mini"
           destacadas={escolhidos.map((e) => e.secaoId)}
+          janela={janela}
           aoMedir={(largura) => {
             larguraPx.current = largura;
           }}
