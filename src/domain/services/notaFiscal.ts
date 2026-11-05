@@ -181,11 +181,44 @@ const ABREVIACOES: Record<string, string> = {
   mucar: 'mucarela',
 };
 
+/** Unidades escritas soltas na nota ("PAD BISNAGUINHA kg"): não dizem qual é o produto. */
+const UNIDADES = new Set([
+  'kg',
+  'kgs',
+  'quilo',
+  'quilos',
+  'kilo',
+  'kilos',
+  'g',
+  'gr',
+  'grs',
+  'grama',
+  'gramas',
+  'l',
+  'lt',
+  'lts',
+  'litro',
+  'litros',
+  'ml',
+  'mililitro',
+  'mililitros',
+  'un',
+  'und',
+  'unid',
+  'unidade',
+  'unidades',
+  'pct',
+  'cx',
+]);
+
 function palavras(nome: string): string[] {
-  return normalizar(nome)
-    .split(/[^a-z0-9]+/)
-    .filter((t) => t.length >= 2)
-    .map((t) => ABREVIACOES[t] ?? t);
+  return (
+    normalizar(nome)
+      .split(/[^a-z0-9]+/)
+      // Fora o que é medida ("100G", "1LT", "kg"): a nota põe tamanho no nome e a lista normalmente não.
+      .filter((t) => t.length >= 2 && !/\d/.test(t) && !UNIDADES.has(t))
+      .map((t) => ABREVIACOES[t] ?? t)
+  );
 }
 
 const casam = (a: string, b: string) =>
@@ -205,7 +238,11 @@ export function semelhanca(nomeDaNota: string, nomeDoItem: string): number {
       iguais++;
     }
   }
-  return iguais / Math.max(a.length, b.length);
+  const base = iguais / Math.max(a.length, b.length);
+  // Item da lista com duas palavras ou mais inteiro dentro do nome da nota ("Batata Palha" em "BATATA PALHA CROQUES
+  // CEBOLA E SALSA"): a nota só acrescenta marca e sabor. Uma palavra só ("Biscoito") continua exigindo mais.
+  if (b.length >= 2 && iguais === b.length) return 0.5 + base / 2;
+  return base;
 }
 
 export const SEMELHANCA_MINIMA = 0.5;

@@ -135,6 +135,46 @@ describe('semelhança e pares', () => {
     expect(semelhanca('BISC.GAROTO CHOCO', 'Biscoito')).toBeLessThan(0.5);
   });
 
+  it('o nome da lista inteiro dentro do nome da nota casa, mesmo com marca, sabor e tamanho a mais', () => {
+    expect(
+      semelhanca('BATATA PALHA CROQUES 100G CEBOLA E SALSA', 'Batata Palha'),
+    ).toBeGreaterThanOrEqual(0.5);
+    expect(semelhanca('PAD BISNAGUINHA kg', 'Bisnaguinha')).toBeGreaterThanOrEqual(0.5);
+    // Só uma palavra em comum não basta quando falta outra do nome da lista.
+    expect(semelhanca('LEITE SERRANIA 1LT INTEGRAL HOMOGE', 'Leite condensado')).toBeLessThan(0.5);
+    expect(semelhanca('LEITE SERRANIA 1LT INTEGRAL HOMOGE', 'Creme de Leite')).toBeLessThan(0.5);
+  });
+
+  it('ignora unidades de medida e números com unidade ao comparar os nomes', () => {
+    expect(semelhanca('LEITE 1L', 'Leite')).toBe(1);
+    expect(semelhanca('LEITE 1,5 LITROS', 'Leite')).toBe(1);
+    expect(semelhanca('ARROZ 5KG TIPO 1', 'Arroz Tipo')).toBe(1);
+    expect(semelhanca('FEIJAO 1 QUILO', 'Feijão')).toBe(1);
+    expect(semelhanca('CAFE 500G', 'Café')).toBe(1);
+    expect(semelhanca('MACARRAO 500 GRAMAS', 'Macarrão')).toBe(1);
+    expect(semelhanca('REFRIGERANTE 2L', 'Refrigerante 2 litros')).toBe(1);
+    // Palavras com a letra "d" não podem ser confundidas com número.
+    expect(semelhanca('LEITE CONDENSADO MOCOCA 395G', 'Leite condensado')).toBeGreaterThanOrEqual(
+      0.5,
+    );
+  });
+
+  it('sugere Batata Palha e Bisnaguinha da lista para os itens da nota de Minas', () => {
+    const itens = [
+      itemDaLista('i1', 'Leite condensado'),
+      itemDaLista('i2', 'Batata Palha'),
+      itemDaLista('i3', 'Bisnaguinha'),
+      itemDaLista('i4', 'Creme de Leite'),
+    ];
+    const nota = lerNotaFiscal(NOTA_MG).itens;
+    const pares = sugerirPares(nota, itens, new Map());
+    const idDo = (nome: string) =>
+      pares.get(nota.findIndex((n) => n.nome.startsWith(nome)))?.itemId;
+    expect(idDo('BATATA PALHA')).toBe('i2');
+    expect(idDo('PAD BISNAGUINHA')).toBe('i3');
+    expect(idDo('LEITE SERRANIA')).toBeUndefined();
+  });
+
   it('sugere por código já ensinado primeiro e por nome depois, sem repetir o item da lista', () => {
     const itens = [
       itemDaLista('i1', 'Biscoito Passatempo'),
