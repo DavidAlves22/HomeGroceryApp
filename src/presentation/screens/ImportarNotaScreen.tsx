@@ -1,5 +1,5 @@
 import { useRoute, type RouteProp } from '@react-navigation/native';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
 import type { ItemDaLista } from '../../domain/entities/tipos';
@@ -13,13 +13,22 @@ import {
   type NotaLida,
 } from '../../domain/services/notaFiscal';
 import { rotuloDaUnidade } from '../../domain/entities/tipos';
-import { formatarQuantidade } from '../../domain/services/organizacao';
+import { formatarQuantidade, normalizar } from '../../domain/services/organizacao';
 import { formatarCnpj, lerLinkDaNota, type LinkDaNota } from '../../domain/services/qrDaNota';
 import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
 import { Botao, Campo, Cartao, MensagemDeErro, TextoSuave } from '../components/base';
 import { CameraDoQr } from '../components/CameraDoQr';
 import { Moldura, RotuloDaFolha, TituloDaFolha } from '../components/Folhas';
-import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina, Pilula } from '../components/ui';
+import {
+  Cabecalho,
+  Carregando,
+  Chip,
+  EstadoVazio,
+  GatilhoDeSeletor,
+  Pagina,
+  PainelDeOpcoes,
+  Pilula,
+} from '../components/ui';
 import { useContainer } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { useToast } from '../hooks/Toast';
@@ -82,7 +91,15 @@ export function ImportarNotaScreen() {
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [mercadoId, setMercadoId] = useState<string | null>(null);
   const [editando, setEditando] = useState<number | null>(null);
+  // Cada vez que uma linha é aberta, a busca e a lista de categorias recomeçam.
+  useEffect(() => {
+    setBuscaNaLista('');
+    setEscolhendoCategoria(false);
+  }, [editando]);
   const [nomeNovo, setNomeNovo] = useState('');
+  // Folha de escolha do par: busca na lista e categoria do item novo (lista suspensa). Recomeçam a cada abertura.
+  const [buscaNaLista, setBuscaNaLista] = useState('');
+  const [escolhendoCategoria, setEscolhendoCategoria] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<{
     itens: number;
@@ -259,6 +276,13 @@ export function ImportarNotaScreen() {
   }
 
   const linhaEmEdicao = editando !== null ? linhas[editando] : null;
+  const termoDaBusca = normalizar(buscaNaLista.trim());
+  const itensParaEscolher = [...itensDaLista]
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }))
+    .filter((item) => !termoDaBusca || normalizar(item.nome).includes(termoDaBusca));
+  const categoriasEmOrdem = [...(categorias ?? [])].sort((a, b) =>
+    a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }),
+  );
 
   return (
     <Pagina>
@@ -565,34 +589,53 @@ export function ImportarNotaScreen() {
             </TextoSuave>
 
             <RotuloDaFolha>É UM ITEM DA SUA LISTA</RotuloDaFolha>
-            {itensDaLista.map((item) => {
-              const marcado =
-                linhaEmEdicao.escolha.tipo === 'item' && linhaEmEdicao.escolha.itemId === item.id;
-              return (
-                <Pressable
-                  key={item.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Usar ${item.nome}`}
-                  onPress={() => escolher(editando, { tipo: 'item', itemId: item.id })}
-                  style={[
-                    estilos.opcao,
-                    {
-                      borderColor: marcado ? p.destaque : p.linha,
-                      backgroundColor: marcado ? p.destaqueSuave : p.superficie,
-                    },
-                  ]}
-                >
-                  <Text
-                    style={{ flex: 1, color: p.texto, fontSize: fonte.corpo, fontWeight: '600' }}
+            <Campo
+              rotulo="Buscar produto"
+              value={buscaNaLista}
+              onChangeText={setBuscaNaLista}
+              placeholder="Digite parte do nome"
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={60}
+            />
+            {itensParaEscolher.length === 0 && (
+              <TextoSuave>Nenhum item da sua lista com esse nome.</TextoSuave>
+            )}
+            <ScrollView
+              style={{ maxHeight: 320 }}
+              contentContainerStyle={{ gap: espaco.sm }}
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+            >
+              {itensParaEscolher.map((item) => {
+                const marcado =
+                  linhaEmEdicao.escolha.tipo === 'item' && linhaEmEdicao.escolha.itemId === item.id;
+                return (
+                  <Pressable
+                    key={item.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Usar ${item.nome}`}
+                    onPress={() => escolher(editando, { tipo: 'item', itemId: item.id })}
+                    style={[
+                      estilos.opcao,
+                      {
+                        borderColor: marcado ? p.destaque : p.linha,
+                        backgroundColor: marcado ? p.destaqueSuave : p.superficie,
+                      },
+                    ]}
                   >
-                    {item.nome}
-                  </Text>
-                  <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                    {item.comprado ? 'comprado' : 'pendente'}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      style={{ flex: 1, color: p.texto, fontSize: fonte.corpo, fontWeight: '600' }}
+                    >
+                      {item.nome}
+                    </Text>
+                    <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                      {item.comprado ? 'comprado' : 'pendente'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
 
             <RotuloDaFolha>OU ADICIONAR COMO ITEM NOVO</RotuloDaFolha>
             <Campo
@@ -601,25 +644,37 @@ export function ImportarNotaScreen() {
               onChangeText={setNomeNovo}
               maxLength={120}
             />
-            <View style={estilos.chips}>
-              {(categorias ?? []).map((c) => (
-                <Chip
-                  key={c.id}
-                  rotulo={c.nome}
-                  ativo={
+            <RotuloDaFolha>Categoria do item novo</RotuloDaFolha>
+            <GatilhoDeSeletor
+              rotulo="Categoria"
+              valor={
+                (linhaEmEdicao.escolha.tipo === 'novo' &&
+                  nomeDaCategoria(linhaEmEdicao.escolha.categoriaId)) ||
+                'Escolha a categoria'
+              }
+              aberto={escolhendoCategoria}
+              aoPressionar={() => setEscolhendoCategoria(!escolhendoCategoria)}
+            />
+            {escolhendoCategoria && (
+              <PainelDeOpcoes
+                titulo="Escolher a categoria"
+                opcoes={categoriasEmOrdem.map((c) => ({
+                  chave: c.id,
+                  rotulo: c.nome,
+                  marcada:
                     linhaEmEdicao.escolha.tipo === 'novo' &&
-                    linhaEmEdicao.escolha.categoriaId === c.id
-                  }
-                  aoPressionar={() =>
+                    linhaEmEdicao.escolha.categoriaId === c.id,
+                  aoPressionar: () => {
                     escolher(editando, {
                       tipo: 'novo',
                       categoriaId: c.id,
                       nome: nomeNovo.trim() || linhaEmEdicao.item.nome,
-                    })
-                  }
-                />
-              ))}
-            </View>
+                    });
+                    setEscolhendoCategoria(false);
+                  },
+                }))}
+              />
+            )}
             <Botao
               titulo="Ignorar este item da nota"
               variante="secundario"
