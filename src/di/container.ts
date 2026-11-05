@@ -49,7 +49,9 @@ import {
 } from '../application/useCases/autenticacao';
 import { ObterAnaliseDeGastos, ObterAnaliseDePrecos } from '../application/useCases/analises';
 import {
+  DefinirBloqueioDeConta,
   ListarUsuariosDoPainel,
+  ObterInsightsDoPainel,
   ObterResumoDoPainel,
   ObterSeriesDoPainel,
 } from '../application/useCases/admin';
@@ -210,7 +212,9 @@ export function criarContainer(aoExpirarSessao: () => void) {
     // Painel de administração (a API só responde a quem é admin)
     obterResumoDoPainel: new ObterResumoDoPainel(admin),
     obterSeriesDoPainel: new ObterSeriesDoPainel(admin),
+    obterInsightsDoPainel: new ObterInsightsDoPainel(admin),
     listarUsuariosDoPainel: new ListarUsuariosDoPainel(admin),
+    definirBloqueioDeConta: new DefinirBloqueioDeConta(admin),
   };
 }
 

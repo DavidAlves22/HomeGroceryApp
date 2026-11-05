@@ -39,6 +39,10 @@ export interface AdminUsuario {
   membrosDoGrupo: number;
   listasCriadas: number;
   itensComprados: number;
+  /** Quando o administrador bloqueou a conta; nulo = liberada. */
+  bloqueadoEm: string | null;
+  /** Administrador (papel da configuração do servidor): o painel não oferece bloqueio. */
+  ehAdmin: boolean;
 }
 
 export interface AdminUsuarios {
@@ -46,4 +50,53 @@ export interface AdminUsuarios {
   pagina: number;
   tamanho: number;
   itens: AdminUsuario[];
+}
+
+export interface AdminRetencao {
+  dias: number;
+  /** Contas criadas há pelo menos `dias` dias. */
+  elegiveis: number;
+  /** Dessas, as que ainda abriam o app `dias` dias depois de criar a conta. */
+  voltaram: number;
+}
+
+export interface AdminFunil {
+  contas: number;
+  criaramLista: number;
+  compraram: number;
+  finalizaram: number;
+  semAtividade: number;
+}
+
+export interface AdminGastoDoMes {
+  competencia: string;
+  total: number;
+  compras: number;
+}
+
+export interface AdminItemDeRanking {
+  nome: string;
+  quantidade: number;
+  /** Segundo número opcional (nos produtos: em quantas casas aparece). */
+  detalhe: number | null;
+}
+
+export type RecursoDoApp = 'familia' | 'divisao' | 'mercado' | 'nota' | 'avisos';
+
+export interface AdminAdocao {
+  recurso: RecursoDoApp;
+  quantidade: number;
+  de: number;
+  base: 'grupos' | 'contas';
+}
+
+export interface AdminInsights {
+  retencao: AdminRetencao[];
+  funil: AdminFunil;
+  gasto: { compras: number; medio: number; porMes: AdminGastoDoMes[] };
+  produtosMaisComprados: AdminItemDeRanking[];
+  categoriasMaisCompradas: AdminItemDeRanking[];
+  cidadesComMercados: AdminItemDeRanking[];
+  mapasMaisCopiados: AdminItemDeRanking[];
+  adocao: AdminAdocao[];
 }

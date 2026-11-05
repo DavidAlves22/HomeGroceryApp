@@ -1,7 +1,9 @@
 import { ErroDeApi } from '../../src/application/errors';
 import type { AdminGateway } from '../../src/application/ports/admin';
 import {
+  DefinirBloqueioDeConta,
   ListarUsuariosDoPainel,
+  ObterInsightsDoPainel,
   ObterResumoDoPainel,
   ObterSeriesDoPainel,
 } from '../../src/application/useCases/admin';
@@ -10,7 +12,9 @@ function gateway(parcial: Partial<AdminGateway> = {}): AdminGateway {
   return {
     resumo: jest.fn(),
     series: jest.fn().mockResolvedValue({ dias: 30 }),
+    insights: jest.fn().mockResolvedValue({}),
     usuarios: jest.fn().mockResolvedValue({ itens: [] }),
+    definirBloqueio: jest.fn().mockResolvedValue(undefined),
     ...parcial,
   };
 }
@@ -53,5 +57,37 @@ describe('casos de uso do painel', () => {
     const g = gateway({ resumo: jest.fn().mockRejectedValue(new ErroDeApi('Sem conexão.', 0)) });
 
     await expect(new ObterResumoDoPainel(g).executar()).rejects.toMatchObject({ status: 0 });
+  });
+
+  it('bloqueia e libera uma conta pelo servidor', async () => {
+    const g = gateway();
+    const caso = new DefinirBloqueioDeConta(g);
+
+    await caso.executar('u1', true);
+    await caso.executar('u1', false);
+
+    expect((g.definirBloqueio as jest.Mock).mock.calls).toEqual([
+      ['u1', true],
+      ['u1', false],
+    ]);
+  });
+
+  it('mostra a recusa do servidor ao bloquear (ex.: administrador)', async () => {
+    const g = gateway({
+      definirBloqueio: jest
+        .fn()
+        .mockRejectedValue(new ErroDeApi('Contas de administrador não podem ser bloqueadas.', 400)),
+    });
+
+    await expect(new DefinirBloqueioDeConta(g).executar('u1', true)).rejects.toMatchObject({
+      status: 400,
+      message: 'Contas de administrador não podem ser bloqueadas.',
+    });
+  });
+
+  it('o 403 também vira acesso negado nos insights', async () => {
+    const g = gateway({ insights: jest.fn().mockRejectedValue(new ErroDeApi('x', 403)) });
+
+    await expect(new ObterInsightsDoPainel(g).executar()).rejects.toMatchObject({ status: 403 });
   });
 });

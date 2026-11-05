@@ -1,6 +1,10 @@
 import {
+  dataDoDia,
   melhorDia,
+  percentual,
+  rotuloDeDias,
   rotuloDoDia,
+  rotuloDoRecurso,
   somarPontos,
   totalDePaginas,
   vistoPorUltimo,
@@ -52,9 +56,36 @@ describe('painelAdmin', () => {
     });
   });
 
+  describe('dataDoDia', () => {
+    it('escreve dia/mês/ano no horário de Brasília', () => {
+      expect(dataDoDia('2026-11-04T15:00:00Z')).toBe('04/11/2026');
+      // 01:00 UTC ainda é a noite do dia anterior em Brasília.
+      expect(dataDoDia('2026-11-05T01:00:00Z')).toBe('04/11/2026');
+      expect(dataDoDia('2027-01-01T02:59:00Z')).toBe('31/12/2026');
+    });
+
+    it('sem data ou com data inválida diz que não há registro', () => {
+      expect(dataDoDia(null)).toBe('sem registro');
+      expect(dataDoDia('ontem')).toBe('sem registro');
+    });
+  });
+
   it('calcula as páginas da lista de contas (mínimo 1)', () => {
     expect(totalDePaginas({ total: 0, tamanho: 50 })).toBe(1);
     expect(totalDePaginas({ total: 50, tamanho: 50 })).toBe(1);
     expect(totalDePaginas({ total: 51, tamanho: 50 })).toBe(2);
+  });
+
+  it('calcula porcentagem inteira e trata total zero', () => {
+    expect(percentual(1, 3)).toBe(33);
+    expect(percentual(2, 3)).toBe(67);
+    expect(percentual(5, 5)).toBe(100);
+    expect(percentual(0, 0)).toBe(0);
+  });
+
+  it('escreve os rótulos de dias e de recursos', () => {
+    expect(rotuloDeDias(1)).toBe('1 dia');
+    expect(rotuloDeDias(30)).toBe('30 dias');
+    expect(rotuloDoRecurso('divisao')).toBe('Já dividiram uma compra');
   });
 });

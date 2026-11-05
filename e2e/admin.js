@@ -44,7 +44,8 @@ async function sessaoDe(nome, email) {
   const sufixo = Date.now();
   const admin = await sessaoDe('Dono do App', EMAIL_ADMIN);
   const ana = await sessaoDe('Ana', `ana_${sufixo}@teste.com`);
-  const bruno = await sessaoDe('Bruno', `bruno_${sufixo}@teste.com`);
+  const emailDeBruno = `bruno_${sufixo}@teste.com`;
+  const bruno = await sessaoDe('Bruno', emailDeBruno);
 
   // Ana cria uma lista e compra um item, para o painel ter o que contar.
   const categorias = await api('/categorias', { token: ana.tokenDeAcesso });
@@ -76,7 +77,7 @@ async function sessaoDe(nome, email) {
   });
   const erros = [];
 
-  async function abrirComo(sessao, caminho, largura = 390, altura = 1500) {
+  async function abrirComo(sessao, caminho, largura = 390, altura = 4600) {
     const page = await browser.newPage();
     await page.setViewport({ width: largura, height: altura, deviceScaleFactor: 2 });
     if (process.env.DARK)
@@ -117,6 +118,7 @@ async function sessaoDe(nome, email) {
   await esperar(pagAdmin, 'contas no total');
   await esperar(pagAdmin, 'Atividade por dia');
   await esperar(pagAdmin, 'Bruno');
+  await esperar(pagAdmin, 'Uso dos recursos');
   const t = await texto(pagAdmin);
   for (const esperado of [
     'Usuários',
@@ -127,6 +129,14 @@ async function sessaoDe(nome, email) {
     'Ana',
     'Dono do App',
     'Sozinho(a)',
+    'Retenção',
+    'Funil de uso',
+    'Criaram uma lista',
+    'Gasto nas compras finalizadas',
+    'Mais comprados',
+    'Arroz',
+    'Uso dos recursos',
+    'Mapearam um mercado',
   ])
     if (!t.includes(esperado)) throw new Error(`Painel sem "${esperado}":\n${t.slice(0, 1500)}`);
   await pagAdmin.screenshot({
@@ -142,6 +152,100 @@ async function sessaoDe(nome, email) {
     path: path.join(PASTA, `${prefixo}admin-03-7dias.png`),
     fullPage: true,
   });
+
+  // 2b) "Usuário desde" aparece em cada conta; o administrador não tem botão de bloqueio.
+  const hoje = new Date(Date.now() - 3 * 3_600_000);
+  const dataDeHoje = [
+    String(hoje.getUTCDate()).padStart(2, '0'),
+    String(hoje.getUTCMonth() + 1).padStart(2, '0'),
+    hoje.getUTCFullYear(),
+  ].join('/');
+  const apos2b = await texto(pagAdmin);
+  if (!apos2b.includes(`Usuário desde ${dataDeHoje}`))
+    throw new Error(`Faltou "Usuário desde ${dataDeHoje}":\n${apos2b.slice(0, 1500)}`);
+  if (!apos2b.includes('Administrador (não pode ser bloqueado)'))
+    throw new Error('A conta do administrador deveria avisar que não pode ser bloqueada');
+
+  // 2c) Bloquear Bruno: primeiro toque pede confirmação, segundo bloqueia na hora.
+  // Acha o botão da linha cujo e-mail é o de Bruno e o marca para o clique de verdade do mouse.
+  async function clicarNoBotaoDaConta(page, email, prefixoDoRotulo) {
+    const achou = await page.evaluate(
+      (mail, inicio) => {
+        document.querySelectorAll('[data-alvo]').forEach((e) => e.removeAttribute('data-alvo'));
+        const botoes = [...document.querySelectorAll('[aria-label]')].filter((b) =>
+          b.getAttribute('aria-label').startsWith(inicio),
+        );
+        for (const botao of botoes) {
+          let no = botao.parentElement;
+          for (let i = 0; i < 5 && no; i++, no = no.parentElement) {
+            if (no.innerText && no.innerText.includes(mail)) {
+              botao.setAttribute('data-alvo', '1');
+              return true;
+            }
+          }
+        }
+        return false;
+      },
+      email,
+      prefixoDoRotulo,
+    );
+    if (!achou) throw new Error(`Sem botão "${prefixoDoRotulo}" para ${email}`);
+    await page.click('[data-alvo="1"]');
+  }
+  const chamar = async (caminho, token) => {
+    try {
+      await api(caminho, { token });
+      return { status: 200, mensagem: '' };
+    } catch (e) {
+      return { status: Number(/-> (\d+)/.exec(e.message)?.[1]), mensagem: e.message };
+    }
+  };
+
+  if ((await chamar('/categorias', bruno.tokenDeAcesso)).status !== 200)
+    throw new Error('Bruno deveria acessar antes do bloqueio');
+  await clicarNoBotaoDaConta(pagAdmin, emailDeBruno, 'Bloquear ');
+  await esperar(pagAdmin, 'Confirmar bloqueio');
+  await pagAdmin.screenshot({
+    path: path.join(PASTA, `${prefixo}admin-03b-confirmar.png`),
+    fullPage: true,
+  });
+  if ((await chamar('/categorias', bruno.tokenDeAcesso)).status !== 200)
+    throw new Error('O primeiro toque não pode bloquear (só pede confirmação)');
+  await clicarNoBotaoDaConta(pagAdmin, emailDeBruno, 'Bloquear ');
+  await esperar(pagAdmin, 'foi bloqueada');
+  await esperar(pagAdmin, 'bloqueada em');
+  await pagAdmin.screenshot({
+    path: path.join(PASTA, `${prefixo}admin-03c-bloqueada.png`),
+    fullPage: true,
+  });
+
+  // O token que Bruno já tinha cai na hora, a renovação é recusada e o login explica o motivo.
+  if ((await chamar('/categorias', bruno.tokenDeAcesso)).status !== 401)
+    throw new Error('O token antigo de Bruno deveria dar 401 depois do bloqueio');
+  const renovar = await fetch(API + '/autenticacao/renovar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ tokenDeRenovacao: bruno.tokenDeRenovacao }),
+  });
+  if (renovar.status !== 401) throw new Error(`Renovar deveria dar 401, deu ${renovar.status}`);
+  const loginBloqueado = await fetch(API + '/autenticacao/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: emailDeBruno, senha: 'senha1234' }),
+  });
+  const corpoDoLogin = await loginBloqueado.text();
+  if (loginBloqueado.status !== 401 || !corpoDoLogin.includes('bloqueada'))
+    throw new Error(`Login de conta bloqueada: ${loginBloqueado.status} ${corpoDoLogin}`);
+
+  // Desbloquear vale no primeiro toque.
+  await clicarNoBotaoDaConta(pagAdmin, emailDeBruno, 'Desbloquear ');
+  await esperar(pagAdmin, 'foi liberada');
+  const loginLiberado = await fetch(API + '/autenticacao/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: emailDeBruno, senha: 'senha1234' }),
+  });
+  if (loginLiberado.status !== 200) throw new Error(`Login liberado deu ${loginLiberado.status}`);
 
   // 3) Conta comum: sem atalho; /admin mostra acesso negado.
   const pagAna = await abrirComo(ana, '/mais', 390, 900);

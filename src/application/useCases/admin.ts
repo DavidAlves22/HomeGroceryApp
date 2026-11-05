@@ -32,6 +32,21 @@ export class ObterSeriesDoPainel {
   }
 }
 
+export class ObterInsightsDoPainel {
+  constructor(private readonly gateway: AdminGateway) {}
+  executar() {
+    return comAvisoDeAcessoNegado(() => this.gateway.insights());
+  }
+}
+
+/** Bloqueia (a conta é desconectada na hora e não entra mais) ou libera uma conta. O servidor recusa bloquear administradores. */
+export class DefinirBloqueioDeConta {
+  constructor(private readonly gateway: AdminGateway) {}
+  executar(usuarioId: string, bloqueado: boolean) {
+    return comAvisoDeAcessoNegado(() => this.gateway.definirBloqueio(usuarioId, bloqueado));
+  }
+}
+
 export class ListarUsuariosDoPainel {
   constructor(private readonly gateway: AdminGateway) {}
   executar(pagina = 1) {

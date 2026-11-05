@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { mensagemParaUsuario } from '../../application/errors';
 import { JANELAS_DO_PAINEL } from '../../application/useCases/admin';
 import type { AdminUsuario, PontoDoDia } from '../../domain/entities/admin';
 import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
 import {
+  dataDoDia,
   melhorDia,
   rotuloDoDia,
   somarPontos,
@@ -12,11 +14,14 @@ import {
 } from '../../domain/services/painelAdmin';
 import { Botao, Cartao, TextoSuave } from '../components/base';
 import { ColunasPorDia } from '../components/graficos';
+import { InsightsDoPainel } from '../components/InsightsDoPainel';
+import { GradeDeMetricas, Metrica, TituloDoCartao } from '../components/painel';
 import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina } from '../components/ui';
 import { useContainer } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
+import { useToast } from '../hooks/Toast';
 import { useNavegacao } from '../navigation/tipos';
-import { espaco, fonte, raio, usePaleta } from '../theme';
+import { espaco, fonte, usePaleta } from '../theme';
 
 type SerieEscolhida = 'cadastros' | 'listasCriadas' | 'itensComprados';
 
@@ -26,35 +31,26 @@ const SERIES: { chave: SerieEscolhida; rotulo: string; unidade: [string, string]
   { chave: 'itensComprados', rotulo: 'Itens comprados', unidade: ['item', 'itens'] },
 ];
 
-function Titulo2({ children }: { children: React.ReactNode }) {
-  const p = usePaleta();
-  return (
-    <Text style={{ color: p.texto, fontSize: fonte.titulo, fontWeight: '800' }}>{children}</Text>
-  );
+interface LinhaDeContaProps {
+  conta: AdminUsuario;
+  agora: Date;
+  /** Esta conta está esperando o segundo toque para ser bloqueada. */
+  confirmando: boolean;
+  ocupada: boolean;
+  aoAlternarBloqueio: () => void;
 }
 
-/** Um número grande com a legenda embaixo. Duas por linha no celular. */
-function Metrica({ valor, rotulo }: { valor: string; rotulo: string }) {
+function LinhaDeConta({
+  conta,
+  agora,
+  confirmando,
+  ocupada,
+  aoAlternarBloqueio,
+}: LinhaDeContaProps) {
   const p = usePaleta();
-  return (
-    <View style={[estilos.metrica, { backgroundColor: p.superficie2 }]}>
-      <Text
-        style={{
-          color: p.texto,
-          fontSize: fonte.grande,
-          fontWeight: '800',
-          fontVariant: ['tabular-nums'],
-        }}
-      >
-        {valor}
-      </Text>
-      <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>{rotulo}</Text>
-    </View>
-  );
-}
+  const bloqueada = conta.bloqueadoEm !== null;
+  const rotuloDoBotao = bloqueada ? 'Desbloquear' : confirmando ? 'Confirmar bloqueio' : 'Bloquear';
 
-function LinhaDeConta({ conta, agora }: { conta: AdminUsuario; agora: Date }) {
-  const p = usePaleta();
   return (
     <View style={[estilos.conta, { borderBottomColor: p.linha }]}>
       <View style={estilos.entre}>
@@ -64,6 +60,11 @@ function LinhaDeConta({ conta, agora }: { conta: AdminUsuario; agora: Date }) {
         >
           {conta.nome}
         </Text>
+        {bloqueada && (
+          <Text style={{ color: p.alerta, fontSize: fonte.pequena, fontWeight: '700' }}>
+            Bloqueada
+          </Text>
+        )}
         <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
           {vistoPorUltimo(conta.ultimoAcessoEm, agora)}
         </Text>
@@ -72,10 +73,46 @@ function LinhaDeConta({ conta, agora }: { conta: AdminUsuario; agora: Date }) {
         {conta.email}
       </Text>
       <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+        Usuário desde {dataDoDia(conta.criadoEm)}
+        {bloqueada ? ` · bloqueada em ${dataDoDia(conta.bloqueadoEm)}` : ''}
+      </Text>
+      <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
         {conta.membrosDoGrupo > 1 ? `Família de ${conta.membrosDoGrupo}` : 'Sozinho(a)'} ·{' '}
         {conta.listasCriadas} {conta.listasCriadas === 1 ? 'lista' : 'listas'} ·{' '}
         {conta.itensComprados} {conta.itensComprados === 1 ? 'item comprado' : 'itens comprados'}
       </Text>
+      {conta.ehAdmin ? (
+        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+          Administrador (não pode ser bloqueado)
+        </Text>
+      ) : (
+        <View style={estilos.acoes}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${bloqueada ? 'Desbloquear' : 'Bloquear'} ${conta.nome}`}
+            disabled={ocupada}
+            onPress={aoAlternarBloqueio}
+            style={[
+              estilos.botaoDaConta,
+              {
+                borderColor: bloqueada ? p.destaque : p.alerta,
+                backgroundColor: confirmando ? p.alerta : 'transparent',
+                opacity: ocupada ? 0.5 : 1,
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color: confirmando ? p.textoSobreDestaque : bloqueada ? p.destaque : p.alerta,
+                fontWeight: '700',
+                fontSize: fonte.pequena,
+              }}
+            >
+              {rotuloDoBotao}
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -95,6 +132,9 @@ export function AdminScreen() {
   const [dias, setDias] = useState<number>(30);
   const [serie, setSerie] = useState<SerieEscolhida>('cadastros');
   const [pagina, setPagina] = useState(1);
+  const toast = useToast();
+  const [confirmando, setConfirmando] = useState<string | null>(null);
+  const [ocupada, setOcupada] = useState<string | null>(null);
 
   const resumo = useCarregar(() => container.obterResumoDoPainel.executar(), 'admin-resumo');
   const series = useCarregar(
@@ -106,10 +146,38 @@ export function AdminScreen() {
     `admin-contas-${pagina}`,
   );
 
+  const insights = useCarregar(() => container.obterInsightsDoPainel.executar(), 'admin-insights');
+
+  /** Liberar vale no primeiro toque; bloquear pede um segundo toque, porque desconecta a pessoa na hora. */
+  async function alternarBloqueio(conta: AdminUsuario) {
+    const bloquear = conta.bloqueadoEm === null;
+    if (bloquear && confirmando !== conta.id) {
+      setConfirmando(conta.id);
+      return;
+    }
+
+    setOcupada(conta.id);
+    try {
+      await container.definirBloqueioDeConta.executar(conta.id, bloquear);
+      toast(
+        bloquear
+          ? `A conta de ${conta.nome} foi bloqueada.`
+          : `A conta de ${conta.nome} foi liberada.`,
+      );
+      await contas.recarregar();
+    } catch (e) {
+      toast(mensagemParaUsuario(e));
+    } finally {
+      setConfirmando(null);
+      setOcupada(null);
+    }
+  }
+
   const voltar = () => navegacao.goBack();
   const recarregarTudo = () => {
     void resumo.recarregar();
     void series.recarregar();
+    void insights.recarregar();
     void contas.recarregar();
   };
 
@@ -152,23 +220,23 @@ export function AdminScreen() {
         }
       >
         <Cartao estilo={{ gap: espaco.md }}>
-          <Titulo2>Usuários</Titulo2>
-          <View style={estilos.grade}>
+          <TituloDoCartao>Usuários</TituloDoCartao>
+          <GradeDeMetricas>
             <Metrica valor={String(r.usuarios.total)} rotulo="contas no total" />
             <Metrica valor={String(r.usuarios.ativos24Horas)} rotulo="ativas nas últimas 24 h" />
             <Metrica valor={String(r.usuarios.ativos7Dias)} rotulo="ativas em 7 dias" />
             <Metrica valor={String(r.usuarios.ativos30Dias)} rotulo="ativas em 30 dias" />
             <Metrica valor={String(r.usuarios.novos7Dias)} rotulo="novas em 7 dias" />
             <Metrica valor={String(r.usuarios.novos30Dias)} rotulo="novas em 30 dias" />
-          </View>
+          </GradeDeMetricas>
           <TextoSuave estilo={{ fontSize: fonte.pequena }}>
             Ativa = entrou ou renovou a sessão no período (o app renova a cada 30 minutos de uso).
           </TextoSuave>
         </Cartao>
 
         <Cartao estilo={{ gap: espaco.md }}>
-          <Titulo2>Uso do app</Titulo2>
-          <View style={estilos.grade}>
+          <TituloDoCartao>Uso do app</TituloDoCartao>
+          <GradeDeMetricas>
             <Metrica valor={String(r.grupos.familias)} rotulo="famílias (2+ pessoas)" />
             <Metrica valor={String(r.listas.emAndamento)} rotulo="listas em andamento" />
             <Metrica valor={String(r.listas.finalizadas)} rotulo="compras finalizadas" />
@@ -183,11 +251,11 @@ export function AdminScreen() {
             <Metrica valor={String(r.mercados)} rotulo="mercados mapeados" />
             <Metrica valor={String(r.notasImportadas)} rotulo="notas fiscais importadas" />
             <Metrica valor={String(r.aparelhosComAvisos)} rotulo="aparelhos com avisos" />
-          </View>
+          </GradeDeMetricas>
         </Cartao>
 
         <Cartao estilo={{ gap: espaco.md }}>
-          <Titulo2>Atividade por dia</Titulo2>
+          <TituloDoCartao>Atividade por dia</TituloDoCartao>
           <View style={estilos.chips}>
             {SERIES.map((s) => (
               <Chip
@@ -229,9 +297,17 @@ export function AdminScreen() {
           )}
         </Cartao>
 
+        {insights.dados ? (
+          <InsightsDoPainel dados={insights.dados} />
+        ) : (
+          <Cartao>
+            {insights.erro ? <TextoSuave>{insights.erro}</TextoSuave> : <Carregando />}
+          </Cartao>
+        )}
+
         <Cartao estilo={{ gap: espaco.sm }}>
           <View style={estilos.entre}>
-            <Titulo2>Contas</Titulo2>
+            <TituloDoCartao>Contas</TituloDoCartao>
             {contas.dados && (
               <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
                 {contas.dados.total} no total
@@ -241,7 +317,14 @@ export function AdminScreen() {
           {contas.dados ? (
             <>
               {contas.dados.itens.map((conta) => (
-                <LinhaDeConta key={conta.id} conta={conta} agora={agora} />
+                <LinhaDeConta
+                  key={conta.id}
+                  conta={conta}
+                  agora={agora}
+                  confirmando={confirmando === conta.id}
+                  ocupada={ocupada === conta.id}
+                  aoAlternarBloqueio={() => void alternarBloqueio(conta)}
+                />
               ))}
               {paginas > 1 && (
                 <View style={estilos.paginacao}>
@@ -287,15 +370,6 @@ const estilos = StyleSheet.create({
     maxWidth: 960,
     alignSelf: 'center',
   },
-  grade: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
-  metrica: {
-    flexGrow: 1,
-    // Largura mínima em vez de porcentagem: 2 colunas no celular e mais delas no computador.
-    flexBasis: 150,
-    borderRadius: raio.sm,
-    padding: espaco.md,
-    gap: 2,
-  },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm },
   entre: {
     flexDirection: 'row',
@@ -304,5 +378,14 @@ const estilos = StyleSheet.create({
     gap: espaco.sm,
   },
   conta: { paddingVertical: espaco.md, borderBottomWidth: 1, gap: 2 },
+  acoes: { flexDirection: 'row', paddingTop: espaco.sm },
+  botaoDaConta: {
+    minHeight: 36,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   paginacao: { flexDirection: 'row', alignItems: 'center', gap: espaco.md, paddingTop: espaco.sm },
 });
