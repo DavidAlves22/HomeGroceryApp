@@ -158,3 +158,82 @@ describe('semelhança e pares', () => {
     expect(nomeLegivel('BISC.GAROTO CHOCO')).toBe('Bisc.Garoto Choco');
   });
 });
+
+// Nota real de Minas Gerais: uma linha por produto, sem valor unitário, e o mesmo produto repetido (bipado várias vezes).
+const LEITE =
+  'LEITE SERRANIA 1LT INTEGRAL HOMOGE (Código: 182333)\tQtde total de ítens: 1.0000\tUN: UN\tValor total R$: R$ 5,89';
+const NOTA_MG = `FULIARO SUPERMERCADOS LTDA
+CNPJ: 13827783000123 -, Inscrição Estadual: 0017911870071
+AVENIDA DOUTOR DOMINGOS CONDE, 314, PARQUE DOS PINHEIROS, 3147204 - PARAGUACU, MG
+
+Filtar ítens...
+
+${LEITE}
+${LEITE}
+${LEITE}
+PAD BISNAGUINHA kg (Código: 208869)\tQtde total de ítens: 0.1500\tUN: KG\tValor total R$: R$ 3,30
+PAD BISNAGUINHA kg (Código: 208869)\tQtde total de ítens: 0.1520\tUN: KG\tValor total R$: R$ 3,34
+${LEITE}
+${LEITE}
+MAIONESE HEINZ 390G (Código: 172893)\tQtde total de ítens: 1.0000\tUN: UN\tValor total R$: R$ 14,95
+BATATA PALHA CROQUES 100G CEBOLA E SALSA (Código: 227617)\tQtde total de ítens: 1.0000\tUN: UN\tValor total R$: R$ 6,98
+${LEITE}
+
+Qtde total de ítens
+10
+Valor total R$
+63.91
+`;
+
+describe('lerNotaFiscal (Minas Gerais)', () => {
+  it('com "Valor pago" no rodapé, o total da nota é o que foi pago (já com desconto)', () => {
+    const completa = lerNotaFiscal(
+      `${NOTA_MG}Valor pago R$\n63.63\nForma de Pagamento\n03 - Cartão de Crédito\n`,
+    );
+    expect(completa.totalDaNota).toBe(63.63);
+    expect(completa.itens).toHaveLength(4);
+  });
+
+  const nota = lerNotaFiscal(NOTA_MG);
+
+  it('lê o mercado e o CNPJ', () => {
+    expect(nota.mercado.nome).toBe('FULIARO SUPERMERCADOS LTDA');
+    expect(nota.mercado.cnpj).toBe('13827783000123');
+  });
+
+  it('lê sem avisos e junta o mesmo produto (mesmo código) num item só', () => {
+    expect(nota.avisos).toEqual([]);
+    expect(nota.itens.map((i) => i.nome)).toEqual([
+      'LEITE SERRANIA 1LT INTEGRAL HOMOGE',
+      'PAD BISNAGUINHA kg',
+      'MAIONESE HEINZ 390G',
+      'BATATA PALHA CROQUES 100G CEBOLA E SALSA',
+    ]);
+  });
+
+  it('soma quantidade e total, e o unitário vira total ÷ quantidade', () => {
+    const leite = nota.itens[0];
+    expect(leite).toMatchObject({
+      codigo: '182333',
+      quantidade: 6,
+      unidadeNaNota: 'UN',
+      valorTotal: 35.34,
+    });
+    expect(leite.valorUnitario).toBe(5.89);
+    const pao = nota.itens[1];
+    expect(pao).toMatchObject({
+      codigo: '208869',
+      quantidade: 0.302,
+      unidadeNaNota: 'KG',
+      valorTotal: 6.64,
+    });
+    expect(unidadeDaNota(pao.unidadeNaNota)).toBe('Kg');
+    expect(nota.itens[2]).toMatchObject({ quantidade: 1, valorUnitario: 14.95, valorTotal: 14.95 });
+  });
+
+  it('o total do rodapé fecha com a soma dos itens', () => {
+    expect(nota.totalDaNota).toBe(63.91);
+    const soma = nota.itens.reduce((s, i) => s + i.valorTotal, 0);
+    expect(Math.round(soma * 100) / 100).toBe(63.91);
+  });
+});

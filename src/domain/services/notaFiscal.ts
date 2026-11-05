@@ -39,6 +39,12 @@ const arredondar2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
  *
  * O leitor é tolerante à ordem e a quebras de linha: acha cada "(Código: ...)" e procura quantidade, unidade,
  * valor unitário e total no trecho até o próximo produto.
+ *
+ * Minas Gerais usa outro desenho, uma linha por produto e sem valor unitário:
+ *
+ *   LEITE SERRANIA 1LT (Código: 182333)<TAB>Qtde total de ítens: 1.0000<TAB>UN: UN<TAB>Valor total R$: R$ 5,89
+ *
+ * Nele o unitário sai de total ÷ quantidade, e o mesmo produto bipado várias vezes (mesmo código) vira um item só.
  */
 export function lerNotaFiscal(texto: string): NotaLida {
   const bruto = texto.replace(/\r/g, '').replace(/ /g, ' ');
@@ -76,17 +82,21 @@ export function lerNotaFiscal(texto: string): NotaLida {
       i + 1 < ancoras.length ? comecos[i + 1] : bruto.length,
     );
 
-    const quantidade = /Qtde\.?:?\s*([\d.,]+)/i.exec(trecho)?.[1];
+    const quantidade =
+      /Qtde\.?:?\s*([\d.,]+)/i.exec(trecho)?.[1] ??
+      /Qtde\s+total\s+de\s+[íi]tens:?\s*([\d.,]+)/i.exec(trecho)?.[1];
     const unidade = /\bUN:?\s*([A-Za-z0-9]+)/i.exec(trecho)?.[1];
     const unitario = /Vl\.?\s*Unit\.?:?\s*([\d.,]+)/i.exec(trecho)?.[1];
-    const total = /Vl\.?\s*Total:?\s*([\d.,]+)/i.exec(trecho)?.[1];
-    if (!quantidade || !unitario) {
+    const total =
+      /Vl\.?\s*Total:?\s*([\d.,]+)/i.exec(trecho)?.[1] ??
+      /Valor\s+total\s*R?\$?:?\s*R?\$?\s*([\d.,]+)/i.exec(trecho)?.[1];
+    if (!quantidade || (!unitario && !total)) {
       avisos.push(`Não consegui ler a quantidade ou o valor de "${nome}".`);
       return;
     }
 
     const q = lerNumero(quantidade);
-    const u = lerNumero(unitario);
+    const u = unitario ? lerNumero(unitario) : arredondar2(lerNumero(total ?? '0') / q);
     itens.push({
       nome,
       codigo: ancora[1].trim(),
@@ -98,19 +108,44 @@ export function lerNotaFiscal(texto: string): NotaLida {
     });
   });
 
-  const totalDaNota = /Valor\s+a\s+pagar\s*R?\$?:?\s*([\d.,]+)/i.exec(bruto)?.[1];
-  const quantosDizAhNota = /Qtd\.?\s*total\s*de\s*itens:?\s*(\d+)/i.exec(bruto)?.[1];
-  if (itens.length === 0) avisos.push('Não encontrei nenhum item. Cole o texto da nota inteira.');
-  else if (quantosDizAhNota && Number(quantosDizAhNota) !== itens.length) {
-    avisos.push(`A nota diz ${quantosDizAhNota} itens e consegui ler ${itens.length}. Confira.`);
+  // No rodapé de Minas o total vem em "Valor total R$" e a contagem em "Qtde total de ítens", cada um com o número
+  // na linha de baixo (as linhas dos produtos têm esses mesmos rótulos, mas com o valor na mesma linha).
+  const totalDaNota =
+    /Valor\s+a\s+pagar\s*R?\$?:?\s*([\d.,]+)/i.exec(bruto)?.[1] ??
+    // "Valor pago" já desconta promoções; "Valor total" é a soma dos itens (63,91 contra 63,63 na nota de teste).
+    /Valor\s+pago\s*R\$\s*\n\s*([\d.,]+)/i.exec(bruto)?.[1] ??
+    /Valor\s+total\s*R\$\s*\n\s*([\d.,]+)/i.exec(bruto)?.[1];
+  const quantosDizAhNota =
+    /Qtd\.?\s*total\s*de\s*itens:?\s*(\d+)/i.exec(bruto)?.[1] ??
+    /Qtde\s+total\s+de\s+[íi]tens\s*\n\s*(\d+)/i.exec(bruto)?.[1];
+  const linhasLidas = itens.length;
+  if (linhasLidas === 0) avisos.push('Não encontrei nenhum item. Cole o texto da nota inteira.');
+  else if (quantosDizAhNota && Number(quantosDizAhNota) !== linhasLidas) {
+    avisos.push(`A nota diz ${quantosDizAhNota} itens e consegui ler ${linhasLidas}. Confira.`);
   }
 
   return {
     mercado: { nome: primeiraLinha ?? null, cnpj: cnpjAchado },
-    itens,
+    itens: /Vl\.?\s*Unit/i.test(bruto) ? itens : juntarMesmoCodigo(itens),
     totalDaNota: totalDaNota ? lerNumero(totalDaNota) : null,
     avisos,
   };
+}
+
+/** Junta as linhas de um mesmo produto (mesmo código): soma quantidade e total; o unitário vira total ÷ quantidade. */
+function juntarMesmoCodigo(itens: ItemDaNota[]): ItemDaNota[] {
+  const porCodigo = new Map<string, ItemDaNota>();
+  for (const item of itens) {
+    const existente = porCodigo.get(item.codigo);
+    if (!existente) {
+      porCodigo.set(item.codigo, { ...item });
+      continue;
+    }
+    existente.quantidade = Math.round((existente.quantidade + item.quantidade) * 1000) / 1000;
+    existente.valorTotal = arredondar2(existente.valorTotal + item.valorTotal);
+    existente.valorUnitario = arredondar2(existente.valorTotal / existente.quantidade);
+  }
+  return [...porCodigo.values()];
 }
 
 /** O preço unitário que vai para o app (2 casas). Se a nota usa mais casas, usa total ÷ quantidade para o total fechar. */
