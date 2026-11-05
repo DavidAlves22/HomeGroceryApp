@@ -25,7 +25,7 @@ function Estatistica({ rotulo, valor }: { rotulo: string; valor: string }) {
   const p = usePaleta();
   return (
     <View style={[estilos.estatistica, { backgroundColor: p.superficie2 }]}>
-      <Text style={{ color: p.textoSuave, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 }}>
+      <Text style={{ color: p.textoSuave, fontSize: 12, fontWeight: '700', letterSpacing: 0.8 }}>
         {rotulo.toUpperCase()}
       </Text>
       <Text
@@ -354,7 +354,7 @@ export function RotaScreen() {
           {divisao.length > 0 && (
             <Cartao estilo={{ gap: espaco.sm }}>
               <Text
-                style={{ color: p.textoSuave, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 }}
+                style={{ color: p.textoSuave, fontSize: 12, fontWeight: '700', letterSpacing: 0.8 }}
               >
                 ROTA DE
               </Text>
@@ -384,7 +384,7 @@ export function RotaScreen() {
 
           <Cartao estilo={{ gap: espaco.sm }}>
             <Text
-              style={{ color: p.textoSuave, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 }}
+              style={{ color: p.textoSuave, fontSize: 12, fontWeight: '700', letterSpacing: 0.8 }}
             >
               DIVISÃO DA COMPRA
             </Text>
@@ -452,7 +452,7 @@ export function RotaScreen() {
                     />
                   )}
 
-                  <Cartao estilo={{ gap: espaco.md }}>
+                  <Cartao heroi estilo={{ gap: espaco.md }}>
                     <View style={estilos.entre}>
                       <Pilula texto="Próxima parada" />
                       <Text
@@ -607,6 +607,7 @@ export function RotaScreen() {
             Sua posição é estimada pelo último item marcado. O app não usa GPS dentro do mercado.
           </Text>
           <Botao
+            icone="mapa"
             titulo="Editar mapa deste mercado"
             variante="secundario"
             aoPressionar={() => navegacao.navigate('MapaDoMercado', { mercadoId: atual.id })}

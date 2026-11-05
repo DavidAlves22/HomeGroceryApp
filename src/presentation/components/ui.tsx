@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -98,7 +99,7 @@ export function Chip({ rotulo, ativo, aoPressionar }: ChipProps) {
         estilos.chip,
         {
           backgroundColor: ativo ? p.destaque : p.superficie,
-          borderColor: ativo ? p.destaque : p.linha,
+          borderColor: ativo ? p.destaque : p.bordaCampo,
         },
       ]}
     >
@@ -141,7 +142,7 @@ export function Pilula({
   const p = usePaleta();
   const fundo =
     tom === 'destaque' ? p.destaqueSuave : tom === 'alerta' ? p.alertaSuave : p.superficie2;
-  const cor = tom === 'destaque' ? p.destaque : tom === 'alerta' ? p.alerta : p.textoSuave;
+  const cor = tom === 'destaque' ? p.destaqueTexto : tom === 'alerta' ? p.alerta : p.textoSuave;
   return (
     <View style={[estilos.pilula, { backgroundColor: fundo }]}>
       <Text style={{ color: cor, fontSize: 12, fontWeight: '700' }}>{texto}</Text>
@@ -185,20 +186,37 @@ interface CampoDeBuscaProps {
   valor: string;
   aoMudar: (texto: string) => void;
   placeholder: string;
+  /** Borda na cor de destaque, para a busca não se perder no meio de outras informações. */
+  destacado?: boolean;
 }
 
-export function CampoDeBusca({ valor, aoMudar, placeholder }: CampoDeBuscaProps) {
+export function CampoDeBusca({ valor, aoMudar, placeholder, destacado }: CampoDeBuscaProps) {
   const p = usePaleta();
+  const [focado, setFocado] = useState(false);
   return (
-    <View style={[estilos.busca, { backgroundColor: p.superficie, borderColor: p.linha }]}>
-      <Icone nome="busca" cor={p.textoSuave} tamanho={20} />
+    <View
+      style={[
+        estilos.busca,
+        {
+          backgroundColor: p.superficie,
+          borderColor: destacado || focado ? p.destaque : p.bordaCampo,
+        },
+        destacado && { borderWidth: 2 },
+      ]}
+    >
+      <Icone nome="busca" cor={destacado ? p.destaque : p.textoSuave} tamanho={20} />
       <TextInput
         accessibilityLabel={placeholder}
         value={valor}
         onChangeText={aoMudar}
         placeholder={placeholder}
         placeholderTextColor={p.textoSuave}
-        style={{ flex: 1, minHeight: 44, color: p.texto, fontSize: fonte.corpo }}
+        onFocus={() => setFocado(true)}
+        onBlur={() => setFocado(false)}
+        style={[
+          { flex: 1, minHeight: 44, color: p.texto, fontSize: fonte.corpo },
+          Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
+        ]}
       />
     </View>
   );
@@ -224,7 +242,7 @@ export function BotaoDeFiltro({ aberto, comFiltroAtivo, aoPressionar }: BotaoDeF
         estilos.botaoFiltro,
         {
           backgroundColor: aberto ? p.destaque : p.superficie,
-          borderColor: aberto ? p.destaque : p.linha,
+          borderColor: aberto ? p.destaque : p.bordaCampo,
         },
       ]}
     >
@@ -291,6 +309,95 @@ export function BotaoDeIcone({
   );
 }
 
+/**
+ * Bloco de uma folha: título forte com uma barra na cor de destaque e o conteúdo numa caixa de fundo
+ * levemente diferente, para as duas escolhas (item da lista ou item novo) não se misturarem.
+ */
+export function BlocoDaFolha({
+  titulo,
+  dica,
+  children,
+}: {
+  titulo: string;
+  dica: string;
+  children: React.ReactNode;
+}) {
+  const p = usePaleta();
+  return (
+    <View
+      style={{
+        gap: espaco.sm,
+        padding: espaco.md,
+        borderRadius: raio.md,
+        borderWidth: 1,
+        borderColor: p.linha,
+        backgroundColor: p.fundo,
+      }}
+    >
+      <View
+        style={{
+          borderLeftWidth: 4,
+          borderLeftColor: p.destaque,
+          paddingLeft: espaco.sm,
+          gap: 2,
+        }}
+      >
+        <Text style={{ color: p.texto, fontSize: fonte.titulo, fontWeight: '800' }}>{titulo}</Text>
+        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>{dica}</Text>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+/** Linha com um "OU" no meio, entre as duas alternativas da folha de troca do par. */
+export function DivisorOu() {
+  const p = usePaleta();
+  return (
+    <View
+      accessibilityElementsHidden
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: espaco.md,
+        marginVertical: espaco.xs,
+      }}
+    >
+      <View style={{ flex: 1, height: 1, backgroundColor: p.linha }} />
+      <View
+        style={{
+          paddingHorizontal: espaco.md,
+          paddingVertical: 4,
+          borderRadius: raio.pilula,
+          backgroundColor: p.destaqueSuave,
+        }}
+      >
+        <Text
+          style={{
+            color: p.destaque,
+            fontSize: fonte.pequena,
+            fontWeight: '800',
+            letterSpacing: 1,
+          }}
+        >
+          OU
+        </Text>
+      </View>
+      <View style={{ flex: 1, height: 1, backgroundColor: p.linha }} />
+    </View>
+  );
+}
+
+/** Título de uma seção da tela: forte, com a barra na cor de destaque (no lugar do rótulo pequeno e cinza). */
+export function TituloDeSecao({ children }: { children: React.ReactNode }) {
+  const p = usePaleta();
+  return (
+    <View style={{ borderLeftWidth: 4, borderLeftColor: p.destaque, paddingLeft: espaco.sm }}>
+      <Text style={{ color: p.texto, fontSize: fonte.titulo, fontWeight: '800' }}>{children}</Text>
+    </View>
+  );
+}
+
 const estilos = StyleSheet.create({
   coluna: { flex: 1, width: '100%', maxWidth: 560, alignSelf: 'center' },
   centro: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -310,7 +417,7 @@ const estilos = StyleSheet.create({
     borderRadius: raio.sm,
   },
   chip: {
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: 14,
     borderRadius: raio.pilula,
     borderWidth: 1,
@@ -411,7 +518,7 @@ export function GatilhoDeSeletor({ rotulo, valor, aberto, aoPressionar }: Gatilh
       onPress={aoPressionar}
       style={[
         estilos.gatilho,
-        { backgroundColor: p.superficie, borderColor: aberto ? p.destaque : p.linha },
+        { backgroundColor: p.superficie, borderColor: aberto ? p.destaque : p.bordaCampo },
       ]}
     >
       <Text numberOfLines={1} style={{ flex: 1, color: p.texto, fontWeight: '600', fontSize: 13 }}>
@@ -456,7 +563,7 @@ export function PainelDeOpcoes({ titulo, opcoes }: { titulo: string; opcoes: Opc
                 estilos.caixa,
                 {
                   backgroundColor: o.marcada ? p.destaque : 'transparent',
-                  borderColor: o.marcada ? p.destaque : p.linha,
+                  borderColor: o.marcada ? p.destaque : p.bordaCampo,
                 },
               ]}
             >

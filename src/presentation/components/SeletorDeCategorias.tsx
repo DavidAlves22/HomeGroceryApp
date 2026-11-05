@@ -92,7 +92,7 @@ export function SeletorDeCategorias({
                     style={[
                       estilos.caixa,
                       {
-                        borderColor: marcada ? p.destaque : p.linha,
+                        borderColor: marcada ? p.destaque : p.bordaCampo,
                         backgroundColor: marcada ? p.destaque : 'transparent',
                       },
                     ]}

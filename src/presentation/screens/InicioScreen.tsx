@@ -108,7 +108,7 @@ export function InicioScreen() {
           <Text
             style={{
               color: p.textoSuave,
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: '700',
               letterSpacing: 1,
               textTransform: 'uppercase',
@@ -130,7 +130,7 @@ export function InicioScreen() {
                 acao={{ rotulo: 'Tentar novamente', aoPressionar: () => void recarregar() }}
               />
             ) : resumo ? (
-              <Cartao estilo={{ gap: espaco.sm }}>
+              <Cartao heroi estilo={{ gap: espaco.sm }}>
                 <View style={estilos.entre}>
                   <Pilula
                     texto={resumo.status === 'Finalizada' ? 'Finalizada' : 'Em andamento'}
@@ -156,11 +156,11 @@ export function InicioScreen() {
                 />
                 <View style={estilos.estatisticas}>
                   <View style={[estilos.estatistica, { backgroundColor: p.fundo }]}>
-                    <Text style={estilos.rotulo}>Comprados</Text>
+                    <Text style={[estilos.rotulo, { color: p.textoSuave }]}>Comprados</Text>
                     <Text style={[estilos.valor, { color: p.texto }]}>{comprados}</Text>
                   </View>
                   <View style={[estilos.estatistica, { backgroundColor: p.fundo }]}>
-                    <Text style={estilos.rotulo}>Pendentes</Text>
+                    <Text style={[estilos.rotulo, { color: p.textoSuave }]}>Pendentes</Text>
                     <Text style={[estilos.valor, { color: p.texto }]}>{total - comprados}</Text>
                   </View>
                 </View>
@@ -182,7 +182,7 @@ export function InicioScreen() {
                         ? 'Toque de novo para apagar esta lista'
                         : 'Cancelar compra'
                     }
-                    variante={confirmandoCancelar ? 'principal' : 'texto'}
+                    variante={confirmandoCancelar ? 'perigoCheio' : 'perigoTexto'}
                     carregando={cancelando}
                     aoPressionar={() =>
                       confirmandoCancelar
@@ -193,7 +193,7 @@ export function InicioScreen() {
                 )}
               </Cartao>
             ) : (
-              <Cartao estilo={{ gap: espaco.md }}>
+              <Cartao heroi estilo={{ gap: espaco.md }}>
                 <Text style={{ color: p.texto, fontSize: fonte.titulo, fontWeight: '700' }}>
                   Sem lista para {mesAtual.nome}
                 </Text>
@@ -210,6 +210,7 @@ export function InicioScreen() {
           <View style={largo ? estilos.colunaLateral : estilos.umaColuna}>
             {resumo && resumo.status !== 'Finalizada' && (
               <Botao
+                icone="mais_mais"
                 titulo="Pedir item (acabou em casa)"
                 variante="secundario"
                 aoPressionar={() => setPedindo(true)}
@@ -218,12 +219,14 @@ export function InicioScreen() {
 
             <View style={estilos.atalhos}>
               <Botao
+                icone="mais_mais"
                 titulo="Nova lista"
                 variante="secundario"
                 estilo={{ flex: 1 }}
                 aoPressionar={() => navegacao.navigate('NovaLista')}
               />
               <Botao
+                icone="lista"
                 titulo="Lista padrão"
                 variante="secundario"
                 estilo={{ flex: 1 }}
@@ -275,11 +278,10 @@ const estilos = StyleSheet.create({
   estatisticas: { flexDirection: 'row', gap: espaco.sm, marginVertical: espaco.sm },
   estatistica: { flex: 1, borderRadius: 14, padding: espaco.md },
   rotulo: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.8,
     textTransform: 'uppercase',
-    opacity: 0.6,
   },
   valor: { fontSize: 22, fontWeight: '700', fontVariant: ['tabular-nums'] },
   atalhos: { flexDirection: 'row', gap: espaco.sm },

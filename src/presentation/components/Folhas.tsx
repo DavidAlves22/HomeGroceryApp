@@ -219,6 +219,7 @@ export function FolhaDeItem({
     <Moldura visivel={visivel} aoFechar={aoFechar}>
       <TituloDaFolha>{titulo}</TituloDaFolha>
       <Campo
+        destacado
         rotulo="Nome do produto"
         value={nome}
         onChangeText={aoDigitarNome}

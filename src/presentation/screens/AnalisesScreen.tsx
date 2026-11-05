@@ -200,13 +200,13 @@ export function AnalisesScreen() {
           />
         }
       >
-        <Cartao estilo={{ gap: espaco.md }}>
+        <Cartao heroi estilo={{ gap: espaco.md }}>
           <View style={estilos.entre}>
             <Titulo2>Gasto por mês</Titulo2>
             {anterior && (
               <View style={{ alignItems: 'flex-end' }}>
                 <Variacao percentual={ultimo.variacaoPercentual} />
-                <Text style={{ color: p.textoSuave, fontSize: 11 }}>
+                <Text style={{ color: p.textoSuave, fontSize: 12 }}>
                   {Competencia.deChave(ultimo.competencia).abreviado} vs.{' '}
                   {Competencia.deChave(anterior.competencia).abreviado}
                 </Text>
@@ -368,7 +368,7 @@ export function AnalisesScreen() {
               </Text>
               <Variacao percentual={serieSelecionada.variacaoPercentual} />
             </View>
-            <Text style={{ color: p.textoSuave, fontSize: 11 }}>
+            <Text style={{ color: p.textoSuave, fontSize: 12 }}>
               Preço por {rotuloDaBase(serieSelecionada.unidadeBase)}
             </Text>
             <GraficoDeLinha
@@ -393,7 +393,7 @@ export function AnalisesScreen() {
                   <Text
                     style={{
                       color: p.textoSuave,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: '700',
                       textTransform: 'uppercase',
                     }}
@@ -439,7 +439,7 @@ export function AnalisesScreen() {
                   <Text style={{ color: p.texto, fontWeight: '600', fontSize: fonte.corpo }}>
                     {s.nome}
                   </Text>
-                  <Text style={{ color: p.textoSuave, fontSize: 11 }}>
+                  <Text style={{ color: p.textoSuave, fontSize: 12 }}>
                     {reais(s.pontos[s.pontos.length - 2].preco)} para {reais(s.ultimoPreco)}
                   </Text>
                 </View>
@@ -491,7 +491,7 @@ const estilos = StyleSheet.create({
     minHeight: 40,
   },
   cabecalhoTabela: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,

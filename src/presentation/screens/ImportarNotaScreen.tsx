@@ -18,16 +18,20 @@ import { formatarCnpj, lerLinkDaNota, type LinkDaNota } from '../../domain/servi
 import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
 import { Botao, Campo, Cartao, MensagemDeErro, TextoSuave } from '../components/base';
 import { CameraDoQr } from '../components/CameraDoQr';
-import { Moldura, RotuloDaFolha, TituloDaFolha } from '../components/Folhas';
+import { Moldura, TituloDaFolha } from '../components/Folhas';
 import {
+  BlocoDaFolha,
   Cabecalho,
+  CampoDeBusca,
   Carregando,
   Chip,
+  DivisorOu,
   EstadoVazio,
   GatilhoDeSeletor,
   Pagina,
   PainelDeOpcoes,
   Pilula,
+  TituloDeSecao,
 } from '../components/ui';
 import { useContainer } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
@@ -397,7 +401,7 @@ export function ImportarNotaScreen() {
 
             {mercados && mercados.length > 0 && (
               <Cartao estilo={{ gap: espaco.sm }}>
-                <RotuloDaFolha>MERCADO DESTA NOTA</RotuloDaFolha>
+                <TituloDeSecao>Mercado desta nota</TituloDeSecao>
                 <View style={estilos.chips}>
                   {mercados.map((m) => (
                     <Chip
@@ -421,7 +425,7 @@ export function ImportarNotaScreen() {
               </Cartao>
             )}
 
-            <RotuloDaFolha>CONFIRA OS PARES (TOQUE PARA TROCAR)</RotuloDaFolha>
+            <TituloDeSecao>Confira os pares (toque para trocar)</TituloDeSecao>
             {linhas.map((linha, indice) => (
               <Pressable
                 key={`${linha.item.codigo}-${indice}`}
@@ -449,7 +453,9 @@ export function ImportarNotaScreen() {
                     numberOfLines={2}
                     style={{ flex: 1, color: p.texto, fontSize: fonte.corpo, fontWeight: '700' }}
                   >
-                    {linha.item.nome}
+                    {linha.escolha.tipo === 'novo'
+                      ? linha.escolha.nome
+                      : nomeLegivel(linha.item.nome)}
                   </Text>
                   <Text
                     style={{ color: p.texto, fontWeight: '700', fontVariant: ['tabular-nums'] }}
@@ -504,8 +510,7 @@ export function ImportarNotaScreen() {
                         fontWeight: '700',
                       }}
                     >
-                      + Novo item: {linha.escolha.nome} ·{' '}
-                      {nomeDaCategoria(linha.escolha.categoriaId) || 'sem categoria'}
+                      + Novo item · {nomeDaCategoria(linha.escolha.categoriaId) || 'sem categoria'}
                     </Text>
                   ) : (
                     <Text
@@ -566,7 +571,7 @@ export function ImportarNotaScreen() {
                 . O gasto do mês já está atualizado.
               </TextoSuave>
             </Cartao>
-            <Botao titulo="Importar outra nota" aoPressionar={outraNota} />
+            <Botao icone="nota" titulo="Importar outra nota" aoPressionar={outraNota} />
             <Botao
               titulo="Concluir"
               variante="secundario"
@@ -588,93 +593,109 @@ export function ImportarNotaScreen() {
               {reais(linhaEmEdicao.item.valorTotal)}
             </TextoSuave>
 
-            <RotuloDaFolha>É UM ITEM DA SUA LISTA</RotuloDaFolha>
-            <Campo
-              rotulo="Buscar produto"
-              value={buscaNaLista}
-              onChangeText={setBuscaNaLista}
-              placeholder="Digite parte do nome"
-              autoCapitalize="none"
-              autoCorrect={false}
-              maxLength={60}
-            />
-            {itensParaEscolher.length === 0 && (
-              <TextoSuave>Nenhum item da sua lista com esse nome.</TextoSuave>
-            )}
-            <ScrollView
-              style={{ maxHeight: 320 }}
-              contentContainerStyle={{ gap: espaco.sm }}
-              nestedScrollEnabled
-              keyboardShouldPersistTaps="handled"
+            <BlocoDaFolha
+              titulo="É um item da sua lista"
+              dica="Busque pelo nome e toque no item para usá-lo como par."
             >
-              {itensParaEscolher.map((item) => {
-                const marcado =
-                  linhaEmEdicao.escolha.tipo === 'item' && linhaEmEdicao.escolha.itemId === item.id;
-                return (
-                  <Pressable
-                    key={item.id}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Usar ${item.nome}`}
-                    onPress={() => escolher(editando, { tipo: 'item', itemId: item.id })}
-                    style={[
-                      estilos.opcao,
-                      {
-                        borderColor: marcado ? p.destaque : p.linha,
-                        backgroundColor: marcado ? p.destaqueSuave : p.superficie,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={{ flex: 1, color: p.texto, fontSize: fonte.corpo, fontWeight: '600' }}
-                    >
-                      {item.nome}
-                    </Text>
-                    <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                      {item.comprado ? 'comprado' : 'pendente'}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-
-            <RotuloDaFolha>OU ADICIONAR COMO ITEM NOVO</RotuloDaFolha>
-            <Campo
-              rotulo="Nome do item novo"
-              value={nomeNovo}
-              onChangeText={setNomeNovo}
-              maxLength={120}
-            />
-            <RotuloDaFolha>Categoria do item novo</RotuloDaFolha>
-            <GatilhoDeSeletor
-              rotulo="Categoria"
-              valor={
-                (linhaEmEdicao.escolha.tipo === 'novo' &&
-                  nomeDaCategoria(linhaEmEdicao.escolha.categoriaId)) ||
-                'Escolha a categoria'
-              }
-              aberto={escolhendoCategoria}
-              aoPressionar={() => setEscolhendoCategoria(!escolhendoCategoria)}
-            />
-            {escolhendoCategoria && (
-              <PainelDeOpcoes
-                titulo="Escolher a categoria"
-                opcoes={categoriasEmOrdem.map((c) => ({
-                  chave: c.id,
-                  rotulo: c.nome,
-                  marcada:
-                    linhaEmEdicao.escolha.tipo === 'novo' &&
-                    linhaEmEdicao.escolha.categoriaId === c.id,
-                  aoPressionar: () => {
-                    escolher(editando, {
-                      tipo: 'novo',
-                      categoriaId: c.id,
-                      nome: nomeNovo.trim() || linhaEmEdicao.item.nome,
-                    });
-                    setEscolhendoCategoria(false);
-                  },
-                }))}
+              <CampoDeBusca
+                destacado
+                valor={buscaNaLista}
+                aoMudar={setBuscaNaLista}
+                placeholder="Buscar produto"
               />
-            )}
+              {itensParaEscolher.length === 0 && (
+                <TextoSuave>Nenhum item da sua lista com esse nome.</TextoSuave>
+              )}
+              <ScrollView
+                style={{ maxHeight: 320 }}
+                contentContainerStyle={{ gap: espaco.sm }}
+                nestedScrollEnabled
+                keyboardShouldPersistTaps="handled"
+              >
+                {itensParaEscolher.map((item) => {
+                  const marcado =
+                    linhaEmEdicao.escolha.tipo === 'item' &&
+                    linhaEmEdicao.escolha.itemId === item.id;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Usar ${item.nome}`}
+                      onPress={() => escolher(editando, { tipo: 'item', itemId: item.id })}
+                      style={[
+                        estilos.opcao,
+                        {
+                          borderColor: marcado ? p.destaque : p.linha,
+                          backgroundColor: marcado ? p.destaqueSuave : p.superficie,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          flex: 1,
+                          color: p.texto,
+                          fontSize: fonte.corpo,
+                          fontWeight: '600',
+                        }}
+                      >
+                        {item.nome}
+                      </Text>
+                      <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                        {item.comprado ? 'comprado' : 'pendente'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </BlocoDaFolha>
+
+            <DivisorOu />
+
+            <BlocoDaFolha
+              titulo="Adicionar como item novo"
+              dica="Se este produto ainda não está na sua lista."
+            >
+              <Campo
+                destacado
+                rotulo="Nome do item novo"
+                value={nomeNovo}
+                onChangeText={setNomeNovo}
+                maxLength={120}
+              />
+              <Text style={{ color: p.texto, fontSize: 14, fontWeight: '700' }}>
+                Categoria do item novo
+              </Text>
+              <GatilhoDeSeletor
+                rotulo="Categoria"
+                valor={
+                  (linhaEmEdicao.escolha.tipo === 'novo' &&
+                    nomeDaCategoria(linhaEmEdicao.escolha.categoriaId)) ||
+                  'Escolha a categoria'
+                }
+                aberto={escolhendoCategoria}
+                aoPressionar={() => setEscolhendoCategoria(!escolhendoCategoria)}
+              />
+              {escolhendoCategoria && (
+                <PainelDeOpcoes
+                  titulo="Escolher a categoria"
+                  opcoes={categoriasEmOrdem.map((c) => ({
+                    chave: c.id,
+                    rotulo: c.nome,
+                    marcada:
+                      linhaEmEdicao.escolha.tipo === 'novo' &&
+                      linhaEmEdicao.escolha.categoriaId === c.id,
+                    aoPressionar: () => {
+                      escolher(editando, {
+                        tipo: 'novo',
+                        categoriaId: c.id,
+                        nome: nomeNovo.trim() || linhaEmEdicao.item.nome,
+                      });
+                      setEscolhendoCategoria(false);
+                    },
+                  }))}
+                />
+              )}
+            </BlocoDaFolha>
             <Botao
               titulo="Ignorar este item da nota"
               variante="secundario"
@@ -699,7 +720,7 @@ const estilos = StyleSheet.create({
   },
   linha: { borderWidth: 1, borderRadius: raio.md, padding: espaco.md, gap: 2 },
   botaoIgnorar: {
-    minHeight: 30,
+    minHeight: 44,
     paddingHorizontal: 12,
     borderRadius: raio.pilula,
     borderWidth: 1,

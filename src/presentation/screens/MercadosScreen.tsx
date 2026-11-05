@@ -79,6 +79,7 @@ function CartaoDoMercado({
       <View style={estilos.acoes}>
         <Botao titulo="Comprar aqui" aoPressionar={aoComprar} estilo={{ flex: 1, minHeight: 44 }} />
         <Botao
+          icone="mapa"
           titulo="Editar mapa"
           variante="secundario"
           aoPressionar={aoEditar}
@@ -88,7 +89,7 @@ function CartaoDoMercado({
       {podeExcluir && (
         <Botao
           titulo={confirmandoExclusao ? 'Toque de novo para excluir' : 'Excluir mercado'}
-          variante={confirmandoExclusao ? 'principal' : 'texto'}
+          variante={confirmandoExclusao ? 'perigoCheio' : 'perigoTexto'}
           aoPressionar={aoExcluir}
         />
       )}

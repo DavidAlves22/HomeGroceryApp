@@ -84,7 +84,7 @@ export function GraficoDeBarras({
             style={{
               flex: 1,
               textAlign: 'center',
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: indice === selecionada ? '700' : '500',
               color: indice === selecionada ? p.texto : p.textoSuave,
             }}
@@ -139,7 +139,7 @@ export function BarrasHorizontais({ itens }: BarrasHorizontaisProps) {
             />
           </View>
           {item.detalhe && (
-            <Text style={{ color: p.textoSuave, fontSize: 11 }}>{item.detalhe}</Text>
+            <Text style={{ color: p.textoSuave, fontSize: 12 }}>{item.detalhe}</Text>
           )}
         </View>
       ))}
@@ -241,9 +241,9 @@ export function GraficoDeLinha({
         </Text>
       )}
       <View style={estilos.rotulos}>
-        <Text style={{ color: p.textoSuave, fontSize: 11 }}>{pontos[0].rotulo}</Text>
+        <Text style={{ color: p.textoSuave, fontSize: 12 }}>{pontos[0].rotulo}</Text>
         {pontos.length > 1 && (
-          <Text style={{ color: p.textoSuave, fontSize: 11 }}>{pontos[ultimo].rotulo}</Text>
+          <Text style={{ color: p.textoSuave, fontSize: 12 }}>{pontos[ultimo].rotulo}</Text>
         )}
       </View>
     </View>
@@ -312,8 +312,8 @@ export function ColunasPorDia({ pontos, unidade, descricao, altura = 120 }: Colu
         </View>
       </View>
       <View style={estilos.rotulos}>
-        <Text style={{ color: p.textoSuave, fontSize: 11 }}>{pontos[0].rotulo}</Text>
-        <Text style={{ color: p.textoSuave, fontSize: 11 }}>
+        <Text style={{ color: p.textoSuave, fontSize: 12 }}>{pontos[0].rotulo}</Text>
+        <Text style={{ color: p.textoSuave, fontSize: 12 }}>
           {pontos[pontos.length - 1].rotulo}
         </Text>
       </View>
@@ -325,7 +325,7 @@ const estilos = StyleSheet.create({
   grade: { position: 'absolute', left: 0, right: 0, height: 1 },
   colunas: { flex: 1, flexDirection: 'row', alignItems: 'flex-end' },
   coluna: { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'flex-end' },
-  valorNaBarra: { fontSize: 11, fontWeight: '700', marginBottom: 3, fontVariant: ['tabular-nums'] },
+  valorNaBarra: { fontSize: 12, fontWeight: '700', marginBottom: 3, fontVariant: ['tabular-nums'] },
   rotulos: { flexDirection: 'row', justifyContent: 'space-between' },
   entre: {
     flexDirection: 'row',

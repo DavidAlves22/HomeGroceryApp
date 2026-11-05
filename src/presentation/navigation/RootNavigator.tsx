@@ -107,7 +107,7 @@ function NavegacaoPorAbas() {
               paddingBottom: 14,
               paddingTop: 8,
             },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
         tabBarIcon: ({ color }) => <Icone nome={ICONES[route.name]} cor={color} />,
       })}
     >

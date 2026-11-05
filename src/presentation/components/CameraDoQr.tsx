@@ -50,9 +50,7 @@ export function CameraDoQr({ visivel, aoLer, aoFechar }: Props) {
   return (
     <Moldura visivel={visivel} aoFechar={aoFechar}>
       <TituloDaFolha>Aponte para o QR da nota</TituloDaFolha>
-      <TextoSuave>
-        Deixe o QR code do cupom inteiro na imagem. A leitura é automática.
-      </TextoSuave>
+      <TextoSuave>Deixe o QR code do cupom inteiro na imagem. A leitura é automática.</TextoSuave>
       <View
         style={{
           width: '100%',
@@ -81,7 +79,14 @@ export function CameraDoQr({ visivel, aoLer, aoFechar }: Props) {
               backgroundColor: p.superficie,
             }}
           >
-            <Text style={{ color: p.alerta, fontSize: fonte.corpo, fontWeight: '600', textAlign: 'center' }}>
+            <Text
+              style={{
+                color: p.alerta,
+                fontSize: fonte.corpo,
+                fontWeight: '600',
+                textAlign: 'center',
+              }}
+            >
               {mensagem}
             </Text>
           </View>

@@ -65,5 +65,5 @@ export function ResumoFinanceiro({ estimado, realizado, compradosSemPreco = 0 }:
 const estilos = StyleSheet.create({
   linha: { flexDirection: 'row', gap: espaco.sm },
   caixa: { flex: 1, borderRadius: raio.sm + 2, padding: espaco.md, gap: 2 },
-  rotulo: { fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+  rotulo: { fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
 });

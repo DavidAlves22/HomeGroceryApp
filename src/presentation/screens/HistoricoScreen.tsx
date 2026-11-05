@@ -116,6 +116,7 @@ export function HistoricoScreen() {
                 </Text>
                 {lista.comprados >= 1 && (
                   <Botao
+                    icone="nota"
                     titulo="Importar nota fiscal"
                     variante="secundario"
                     aoPressionar={() => navegacao.navigate('ImportarNota', { listaId: lista.id })}

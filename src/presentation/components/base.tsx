@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -10,11 +11,14 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { espaco, fonte, raio, usePaleta } from '../theme';
+import { Icone, type NomeDoIcone } from './Icone';
 
 interface BotaoProps {
   titulo: string;
   aoPressionar: () => void;
-  variante?: 'principal' | 'secundario' | 'texto';
+  variante?: 'principal' | 'secundario' | 'texto' | 'perigo' | 'perigoTexto' | 'perigoCheio';
+  /** Ícone desenhado antes do nome, na cor do texto do botão. */
+  icone?: NomeDoIcone;
   carregando?: boolean;
   desabilitado?: boolean;
   estilo?: ViewStyle;
@@ -25,13 +29,24 @@ export function Botao({
   titulo,
   aoPressionar,
   variante = 'principal',
+  icone,
   carregando,
   desabilitado,
   estilo,
 }: BotaoProps) {
   const p = usePaleta();
   const principal = variante === 'principal';
+  const perigoCheio = variante === 'perigoCheio';
+  const comBorda = variante === 'secundario' || variante === 'perigo';
   const inativo = desabilitado || carregando;
+  const corDoTexto =
+    principal || perigoCheio
+      ? p.textoSobreDestaque
+      : variante === 'texto'
+        ? p.destaque
+        : variante === 'perigo' || variante === 'perigoTexto'
+          ? p.alerta
+          : p.texto;
 
   return (
     <Pressable
@@ -44,28 +59,32 @@ export function Botao({
         {
           backgroundColor: principal
             ? p.destaque
-            : variante === 'secundario'
-              ? p.superficie
-              : 'transparent',
-          borderColor: variante === 'secundario' ? p.linha : 'transparent',
+            : perigoCheio
+              ? p.alerta
+              : comBorda
+                ? p.superficie
+                : 'transparent',
+          // Secundário: borda laranja (1,5 px) para o botão branco não se perder no fundo claro.
+          // Perigo: a mesma forma, em vermelho, para a ação que não volta atrás não parecer um link comum.
+          borderColor:
+            variante === 'secundario'
+              ? p.destaque
+              : variante === 'perigo'
+                ? p.alerta
+                : 'transparent',
+          borderWidth: comBorda ? 1.5 : 1,
           opacity: inativo ? 0.6 : pressed ? 0.85 : 1,
         },
         estilo,
       ]}
     >
       {carregando ? (
-        <ActivityIndicator color={principal ? p.textoSobreDestaque : p.destaque} />
+        <ActivityIndicator color={principal || perigoCheio ? p.textoSobreDestaque : p.destaque} />
       ) : (
-        <Text
-          style={[
-            estilos.botaoTexto,
-            {
-              color: principal ? p.textoSobreDestaque : variante === 'texto' ? p.destaque : p.texto,
-            },
-          ]}
-        >
-          {titulo}
-        </Text>
+        <View style={estilos.botaoConteudo}>
+          {icone && <Icone nome={icone} cor={corDoTexto} tamanho={20} />}
+          <Text style={[estilos.botaoTexto, { color: corDoTexto, flexShrink: 1 }]}>{titulo}</Text>
+        </View>
       )}
     </Pressable>
   );
@@ -73,31 +92,84 @@ export function Botao({
 
 interface CampoProps extends TextInputProps {
   rotulo: string;
+  /** Rótulo forte e borda na cor de destaque, para o campo principal de uma folha. */
+  destacado?: boolean;
 }
 
-export function Campo({ rotulo, style, ...resto }: CampoProps) {
+export function Campo({ rotulo, style, destacado, onFocus, onBlur, ...resto }: CampoProps) {
   const p = usePaleta();
+  const [focado, setFocado] = useState(false);
   return (
     <View style={{ gap: espaco.xs }}>
-      <Text style={[estilos.rotulo, { color: p.textoSuave }]}>{rotulo}</Text>
+      <Text
+        style={[
+          estilos.rotulo,
+          { color: destacado ? p.texto : p.textoSuave },
+          destacado && { fontSize: 14 },
+        ]}
+      >
+        {rotulo}
+      </Text>
       <TextInput
         accessibilityLabel={rotulo}
         placeholderTextColor={p.textoSuave}
         style={[
           estilos.campo,
-          { backgroundColor: p.superficie, borderColor: p.linha, color: p.texto },
+          { backgroundColor: p.superficie, borderColor: p.bordaCampo, color: p.texto },
+          Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null,
+          // Foco desenhado na própria borda (no navegador o contorno preto padrão aparecia por cima).
+          focado && { borderColor: p.destaque, borderWidth: 2 },
+          destacado && { borderColor: p.destaque, borderWidth: 2 },
           style,
         ]}
+        onFocus={(e) => {
+          setFocado(true);
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocado(false);
+          onBlur?.(e);
+        }}
         {...resto}
       />
     </View>
   );
 }
 
-export function Cartao({ children, estilo }: { children: React.ReactNode; estilo?: ViewStyle }) {
+export function Cartao({
+  children,
+  estilo,
+  heroi,
+}: {
+  children: React.ReactNode;
+  estilo?: ViewStyle;
+  /** Cartão principal da tela: faixa laranja de 4 px no topo, para se destacar dos demais. */
+  heroi?: boolean;
+}) {
   const p = usePaleta();
   return (
-    <View style={[estilos.cartao, { backgroundColor: p.superficie, borderColor: p.linha }, estilo]}>
+    <View
+      style={[
+        estilos.cartao,
+        { backgroundColor: p.superficie, borderColor: p.linha },
+        // Cartão principal: faixa laranja de 4 px no topo (a borda laranja inteira fica para seleção e foco).
+        heroi && { overflow: 'hidden' },
+        estilo,
+      ]}
+    >
+      {heroi && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 4,
+            backgroundColor: p.destaque,
+          }}
+        />
+      )}
       {children}
     </View>
   );
@@ -135,7 +207,15 @@ const estilos = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: espaco.xl,
+    // O mesmo espaçamento lateral em todos os botões: com `flex: 1` lado a lado, padding diferente deixaria
+    // um botão mais estreito que o outro (e o nome com ícone não quebraria em duas linhas).
+    paddingHorizontal: espaco.md,
+  },
+  botaoConteudo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: espaco.sm,
   },
   botaoTexto: { fontSize: fonte.corpo, fontWeight: '700', textAlign: 'center' },
   rotulo: { fontSize: fonte.pequena, fontWeight: '700' },

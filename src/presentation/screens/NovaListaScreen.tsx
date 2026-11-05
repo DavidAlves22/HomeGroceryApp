@@ -357,7 +357,7 @@ export function NovaListaScreen() {
             <Text
               style={{
                 color: p.textoSuave,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: '700',
                 letterSpacing: 1,
                 textTransform: 'uppercase',
@@ -391,10 +391,31 @@ export function NovaListaScreen() {
               },
             ]}
           >
-            <Text style={{ color: p.texto, fontSize: fonte.corpo, fontWeight: '700' }}>
-              {o.titulo}
-            </Text>
-            <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>{o.texto}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: espaco.md }}>
+              {/* Marca de seleção: o estado não depende só da cor da borda. */}
+              <View
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  borderWidth: 2,
+                  borderColor: origem === o.origem ? p.destaque : p.bordaCampo,
+                  backgroundColor: origem === o.origem ? p.destaque : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                {origem === o.origem && (
+                  <Icone nome="check" cor={p.textoSobreDestaque} tamanho={14} espessura={3} />
+                )}
+              </View>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={{ color: p.texto, fontSize: fonte.corpo, fontWeight: '700' }}>
+                  {o.titulo}
+                </Text>
+                <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>{o.texto}</Text>
+              </View>
+            </View>
           </Pressable>
         ))}
 

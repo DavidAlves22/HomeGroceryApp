@@ -142,7 +142,7 @@ export function AutenticacaoScreen() {
             titulo="Esqueci minha senha"
             estilo={{
               alignSelf: 'flex-start',
-              minHeight: 32,
+              minHeight: 44,
               paddingHorizontal: 0,
               marginTop: -espaco.sm,
             }}

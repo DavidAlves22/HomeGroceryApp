@@ -413,7 +413,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
           </Cartao>
         )}
 
-        <Cartao>
+        <Cartao heroi>
           <View style={estilos.entre}>
             <Text
               style={{
@@ -440,7 +440,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
             realizado={totais.realizado}
             compradosSemPreco={totais.compradosSemPreco}
           />
-          {mercados && mercados.length > 0 && (
+          {mercados && mercados.length > 1 && (
             <>
               <View style={{ height: espaco.md }} />
               <DivisaoDaCompra itens={lista.itens} mercados={mercados} />
@@ -450,6 +450,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
 
         {resumo.comprados >= 1 && (
           <Botao
+            icone="nota"
             titulo="Importar nota fiscal"
             variante="secundario"
             aoPressionar={() => navegacao.navigate('ImportarNota', { listaId: lista.resumo.id })}
@@ -458,6 +459,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
 
         {!somenteLeitura && (
           <Botao
+            icone={mercadoDeHoje ? 'rota' : 'mapa'}
             titulo={mercadoDeHoje ? `Rota em ${mercadoDeHoje.nome}` : 'Mapear meu mercado'}
             aoPressionar={() => navegacao.navigate(mercadoDeHoje ? 'Rota' : 'Mercados')}
           />
@@ -471,6 +473,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
               </Text>
             ))}
             <Botao
+              icone="pessoas"
               titulo={divisaoDaCompra.length > 0 ? 'Mudar a divisão' : 'Dividir a compra'}
               variante="secundario"
               aoPressionar={() => setDividindo(true)}

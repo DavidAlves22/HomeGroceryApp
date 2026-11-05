@@ -287,7 +287,7 @@ export function GrupoScreen() {
         {grupo.compartilhado && (
           <Botao
             titulo={confirmandoSaida ? 'Toque de novo para sair do grupo' : 'Sair do grupo'}
-            variante={confirmandoSaida ? 'principal' : 'secundario'}
+            variante={confirmandoSaida ? 'perigoCheio' : 'perigo'}
             carregando={ocupado}
             aoPressionar={() => (confirmandoSaida ? void sair() : setConfirmandoSaida(true))}
           />

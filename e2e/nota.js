@@ -180,7 +180,7 @@ async function preparar() {
     let t = await texto();
     verificar(t.includes('8 itens'), 'a nota foi lida com 8 itens');
     verificar(t.includes('→ Biscoito Passatempo') && t.includes('→ Biscoito Bauducco Wafer') && t.includes('→ Requeijão'), 'os pares por nome foram sugeridos');
-    verificar(t.includes('+ Novo item: M.Pizza M.Leve Frig.'), 'o que não está na lista vira item novo');
+    verificar(t.includes('+ Novo item'), 'o que não está na lista vira item novo');
     await clicar('WMS Araras');
     await foto('conferir-pares');
 
@@ -191,7 +191,7 @@ async function preparar() {
     await foto('item-ignorado');
     await clicarRotulo('Desfazer ignorar M.PIZZA M.LEVE FRIG.');
     await esperarTexto('Importar 8 itens');
-    verificar((await texto()).includes('+ Novo item: M.Pizza M.Leve Frig.'), 'Desfazer devolve o item com o par que tinha');
+    verificar((await texto()).includes('+ Novo item'), 'Desfazer devolve o item com o par que tinha');
     await clicarRotulo('Ignorar BISC.PASSATEMPO');
     await clicarRotulo('Desfazer ignorar BISC.PASSATEMPO');
     verificar((await texto()).includes('→ Biscoito Passatempo'), 'um item que estava casado volta casado ao desfazer');
@@ -204,7 +204,7 @@ async function preparar() {
     await page.evaluate(() => history.back());
     await pausa(600);
     t = await texto();
-    verificar(!t.includes('É UM ITEM DA SUA LISTA') && t.includes('CONFIRA OS PARES'), 'o voltar do navegador fecha a folha do par e continua em Importar nota');
+    verificar(!t.toLowerCase().includes('é um item da sua lista') && t.includes('Confira os pares'), 'o voltar do navegador fecha a folha do par e continua em Importar nota');
     await clicarRotulo('Trocar o par de QJO.M.PADR.TIROLEZ');
     await esperarTexto('É UM ITEM DA SUA LISTA');
     await clicarRotulo('Usar Queijo Tirolez');

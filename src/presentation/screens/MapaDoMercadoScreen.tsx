@@ -704,7 +704,7 @@ export function MapaDoMercadoScreen() {
                 />
                 <Botao
                   titulo={confirmandoExclusao ? 'Confirmar' : 'Excluir seção'}
-                  variante={confirmandoExclusao ? 'principal' : 'secundario'}
+                  variante={confirmandoExclusao ? 'perigoCheio' : 'perigo'}
                   desabilitado={!secao}
                   aoPressionar={excluirSecao}
                   estilo={{ flex: 1, minHeight: 44 }}
@@ -818,6 +818,7 @@ export function MapaDoMercadoScreen() {
             aoPressionar={() => void salvar()}
           />
           <Botao
+            icone="rota"
             titulo="Comprar neste mercado"
             variante="secundario"
             aoPressionar={() => {

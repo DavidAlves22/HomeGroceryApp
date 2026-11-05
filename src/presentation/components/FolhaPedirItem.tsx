@@ -12,7 +12,7 @@ import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Botao, MensagemDeErro, TextoSuave } from './base';
 import { Moldura, TituloDaFolha } from './Folhas';
 import { Icone } from './Icone';
-import { CampoDeBusca } from './ui';
+import { CampoDeBusca, DivisorOu, TituloDeSecao } from './ui';
 
 interface Props {
   visivel: boolean;
@@ -106,16 +106,14 @@ export function FolhaPedirItem({
       <TextoSuave>
         Toque no que acabou. O item entra na lista e quem estiver no mercado já vê.
       </TextoSuave>
-      <CampoDeBusca valor={termo} aoMudar={setTermo} placeholder="Buscar produto" />
+      <CampoDeBusca destacado valor={termo} aoMudar={setTermo} placeholder="Buscar produto" />
       {erro && <MensagemDeErro mensagem={erro} />}
 
       {lista.length === 0 && achados !== null && (
         <TextoSuave>Nenhum produto com esse nome no seu cadastro.</TextoSuave>
       )}
       {achados === null && sugestoesIniciais.length > 0 && (
-        <Text style={{ color: p.textoSuave, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 }}>
-          FAVORITOS E MAIS COMPRADOS
-        </Text>
+        <TituloDeSecao>Favoritos e mais comprados</TituloDeSecao>
       )}
       <View style={{ gap: espaco.sm }}>
         {lista.map((produto) => {
@@ -166,11 +164,14 @@ export function FolhaPedirItem({
       </View>
 
       {termo.trim().length >= 2 && achados !== null && !temExato && (
-        <Botao
-          titulo={`Pedir “${termo.trim()}” como produto novo`}
-          variante="secundario"
-          aoPressionar={() => aoCriarNovo(termo.trim())}
-        />
+        <>
+          <DivisorOu />
+          <Botao
+            titulo={`Pedir “${termo.trim()}” como produto novo`}
+            variante="secundario"
+            aoPressionar={() => aoCriarNovo(termo.trim())}
+          />
+        </>
       )}
       <Botao titulo="Pronto" variante="texto" aoPressionar={aoFechar} />
     </Moldura>

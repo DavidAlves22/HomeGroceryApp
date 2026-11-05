@@ -50,7 +50,7 @@ export function CampoNumerico({
         accessibilityRole="button"
         accessibilityLabel={`${rotulo}, ${vazio ? 'vazio' : texto}`}
         onPress={() => setDigitando(true)}
-        style={[estilos.caixa, { backgroundColor: p.superficie, borderColor: p.linha }]}
+        style={[estilos.caixa, { backgroundColor: p.superficie, borderColor: p.bordaCampo }]}
       >
         <Text
           numberOfLines={1}
