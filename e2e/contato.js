@@ -211,7 +211,8 @@ async function prepararContas() {
     confere(!t.includes('Mensagens dos usuários') && !t.includes('Painel do administrador'), 'usuário comum não tem atalhos de administrador');
 
     // 7. Administrador remove uma informação; some para o usuário.
-    await admin.clicar('Editar');
+    await admin.page.click('[aria-label="Editar Email para contato"]');
+    await pausa(450);
     await admin.esperarTexto('Editar informação');
     await admin.clicar('Excluir');
     await admin.esperarTexto('Toque de novo para excluir');

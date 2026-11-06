@@ -152,13 +152,7 @@ export function MensagensDoPainelScreen() {
               <LinhaDeInformacao
                 key={info.id}
                 informacao={info}
-                acoes={
-                  <Botao
-                    titulo="Editar"
-                    variante="secundario"
-                    aoPressionar={() => setFolha({ tipo: 'editar', informacao: info })}
-                  />
-                }
+                aoEditar={() => setFolha({ tipo: 'editar', informacao: info })}
               />
             ))}
             <View style={{ paddingTop: espaco.sm }}>

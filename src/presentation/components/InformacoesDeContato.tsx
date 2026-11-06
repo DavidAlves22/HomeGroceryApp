@@ -34,14 +34,14 @@ async function copiarTexto(texto: string): Promise<boolean> {
 /**
  * Uma informação do card de contato como o usuário a vê: título (com o ícone de copiar à direita), descrição (só se
  * existir) e o valor, que dá para selecionar. Os nomes dos campos ("título", "descrição", "valor") nunca aparecem.
- * `acoes` abre espaço para os botões do administrador (editar).
+ * `aoEditar` (só o administrador) acrescenta o lápis ao lado do ícone de copiar.
  */
 export function LinhaDeInformacao({
   informacao,
-  acoes,
+  aoEditar,
 }: {
   informacao: InformacaoDeContato;
-  acoes?: React.ReactNode;
+  aoEditar?: () => void;
 }) {
   const p = usePaleta();
   const toast = useToast();
@@ -66,6 +66,17 @@ export function LinhaDeInformacao({
         >
           <Icone nome="copiar" cor={p.destaque} tamanho={20} />
         </Pressable>
+        {aoEditar && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Editar ${informacao.titulo}`}
+            hitSlop={8}
+            onPress={aoEditar}
+            style={estilos.copiar}
+          >
+            <Icone nome="editar" cor={p.destaque} tamanho={20} />
+          </Pressable>
+        )}
       </View>
       {!!informacao.descricao && (
         <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>{informacao.descricao}</Text>
@@ -76,7 +87,6 @@ export function LinhaDeInformacao({
       >
         {informacao.valor}
       </Text>
-      {acoes && <View style={estilos.acoes}>{acoes}</View>}
     </View>
   );
 }
@@ -85,5 +95,4 @@ const estilos = StyleSheet.create({
   linha: { gap: 2, paddingVertical: espaco.md, borderBottomWidth: 1 },
   titulo: { flexDirection: 'row', alignItems: 'center', gap: espaco.sm },
   copiar: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-  acoes: { flexDirection: 'row', flexWrap: 'wrap', gap: espaco.sm, paddingTop: espaco.xs },
 });
