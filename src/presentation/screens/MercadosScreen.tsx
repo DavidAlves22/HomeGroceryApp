@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
 import type { MercadoResumo } from '../../domain/entities/mercados';
 import { mercadoEmUso } from '../../domain/services/compraDividida';
 import { Botao, Campo, Cartao, MensagemDeErro, TextoSuave } from '../components/base';
 import { Moldura, TituloDaFolha, RotuloDaFolha } from '../components/Folhas';
+import { Icone } from '../components/Icone';
 import { MapaSvg } from '../components/MapaSvg';
 import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina, Pilula } from '../components/ui';
 import { useContainer, useMercadoAtual } from '../hooks/AppProviders';
@@ -63,9 +64,39 @@ function CartaoDoMercado({
           )}
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: espaco.xs }}>
-          <Text style={{ color: p.texto, fontSize: fonte.titulo, fontWeight: '700' }}>
-            {mercado.nome}
-          </Text>
+          <View style={estilos.titulo}>
+            <Text style={{ flex: 1, color: p.texto, fontSize: fonte.titulo, fontWeight: '700' }}>
+              {mercado.nome}
+            </Text>
+            {podeExcluir && (
+              // Dois toques: o primeiro só arma (o ícone vira "Excluir?" em vermelho), o segundo exclui.
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  confirmandoExclusao ? 'Confirmar a exclusão do mercado' : 'Excluir mercado'
+                }
+                onPress={aoExcluir}
+                style={[
+                  estilos.lixeira,
+                  confirmandoExclusao && {
+                    backgroundColor: p.alerta,
+                    paddingHorizontal: espaco.md,
+                  },
+                ]}
+              >
+                <Icone
+                  nome="lixeira"
+                  tamanho={20}
+                  cor={confirmandoExclusao ? p.textoSobreDestaque : p.textoSuave}
+                />
+                {confirmandoExclusao && (
+                  <Text style={{ color: p.textoSobreDestaque, fontSize: 12, fontWeight: '700' }}>
+                    Excluir?
+                  </Text>
+                )}
+              </Pressable>
+            )}
+          </View>
           {emUso && <Pilula texto="Comprando aqui" />}
           <Text
             style={{ color: p.textoSuave, fontSize: fonte.pequena, fontVariant: ['tabular-nums'] }}
@@ -86,13 +117,6 @@ function CartaoDoMercado({
           estilo={{ flex: 1, minHeight: 44 }}
         />
       </View>
-      {podeExcluir && (
-        <Botao
-          titulo={confirmandoExclusao ? 'Toque de novo para excluir' : 'Excluir mercado'}
-          variante={confirmandoExclusao ? 'perigoCheio' : 'perigoTexto'}
-          aoPressionar={aoExcluir}
-        />
-      )}
     </Cartao>
   );
 }
@@ -287,6 +311,18 @@ export function MercadosScreen() {
 }
 
 const estilos = StyleSheet.create({
+  titulo: { flexDirection: 'row', alignItems: 'flex-start', gap: espaco.sm },
+  lixeira: {
+    minWidth: 44,
+    height: 44,
+    marginTop: -espaco.sm,
+    marginRight: -espaco.sm,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: espaco.xs,
+  },
   conteudo: { padding: espaco.lg, paddingBottom: 40, gap: espaco.lg },
   linha: { flexDirection: 'row', gap: espaco.md, alignItems: 'flex-start' },
   acoes: { flexDirection: 'row', gap: espaco.sm },

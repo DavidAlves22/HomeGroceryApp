@@ -26,6 +26,7 @@ const CAMINHOS = {
   mapa: ['M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z', 'M9 4v14M15 6v14'],
   nota: ['M6 3h12v18l-3-2-3 2-3-2-3 2z', 'M9 8h6M9 12h6'],
   rota: ['M8.5 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5'],
+  lixeira: ['M4 7h16', 'M9 7V4h6v3', 'M6 7l1 13h10l1-13', 'M10 11v6M14 11v6'],
   cadeado: ['M6 11h12v9H6z', 'M8 11V8a4 4 0 0 1 8 0v3'],
   cadeado_aberto: ['M6 11h12v9H6z', 'M8 11V8a4 4 0 0 1 7.4-2'],
 } as const;
