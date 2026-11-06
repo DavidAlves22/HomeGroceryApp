@@ -4,7 +4,7 @@ import { useVoltarFecha } from '../hooks/useVoltarFecha';
 import { espaco, fonte, usePaleta } from '../theme';
 import { TextoSuave } from './base';
 import { Icone } from './Icone';
-import { Cabecalho, CampoDeBusca, Chip, Pagina } from './ui';
+import { BotaoFlutuante, Cabecalho, CampoDeBusca, Chip, Pagina } from './ui';
 
 export interface OpcaoUnica {
   chave: string;
@@ -22,6 +22,8 @@ interface Props {
   placeholderDaBusca?: string;
   aoEscolher: (chave: string) => void;
   aoFechar: () => void;
+  /** Botão "+" flutuante no canto (ex.: criar a categoria que não está na lista). */
+  acaoDeAdicionar?: { rotulo: string; aoPressionar: () => void };
 }
 
 const comparar = (a: string, b: string) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
@@ -40,6 +42,7 @@ export function SeletorDeOpcao({
   placeholderDaBusca = 'Buscar',
   aoEscolher,
   aoFechar,
+  acaoDeAdicionar,
 }: Props) {
   const p = usePaleta();
   const [busca, setBusca] = useState('');
@@ -109,6 +112,12 @@ export function SeletorDeOpcao({
             })
           )}
         </ScrollView>
+        {acaoDeAdicionar && (
+          <BotaoFlutuante
+            rotulo={acaoDeAdicionar.rotulo}
+            aoPressionar={acaoDeAdicionar.aoPressionar}
+          />
+        )}
       </Pagina>
     </Modal>
   );

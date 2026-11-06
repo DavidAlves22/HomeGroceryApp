@@ -62,6 +62,7 @@ import {
 } from '../components/ui';
 import { useContainer, useMercadoAtual } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
+import { useCriarCategoria } from '../hooks/useCriarCategoria';
 import { PainelDeAjuste, useAjusteDoLayout } from '../hooks/ajusteDoLayout';
 import { useLayoutLargo } from '../hooks/useLayoutLargo';
 import { useToast } from '../hooks/Toast';
@@ -104,6 +105,7 @@ export function MapaDoMercadoScreen() {
     () => container.listarCategorias.executar(),
     'categorias',
   );
+  const criarCategoria = useCriarCategoria(definirCategorias);
 
   const [mapa, setMapa] = useState<MapaEmEdicao | null>(null);
   const [original, setOriginal] = useState('');
@@ -496,9 +498,7 @@ export function MapaDoMercadoScreen() {
         />
         <Chip
           rotulo={
-            janela.escala > 1
-              ? `Tudo · ${janela.escala.toFixed(1).replace('.', ',')}×`
-              : 'Ver tudo'
+            janela.escala > 1 ? `Tudo · ${janela.escala.toFixed(1).replace('.', ',')}×` : 'Ver tudo'
           }
           estilo={estilos.botaoDoZoom}
           ativo={janela.escala > 1}
@@ -848,12 +848,7 @@ export function MapaDoMercadoScreen() {
               : `Categorias · ${secao.nome}`
           }
           categorias={categorias ?? []}
-          aoCriar={async (nome) => {
-            const criada = await container.criarCategoria.executar(nome);
-            definirCategorias((atual) => [...(atual ?? []), criada]);
-            toast('Categoria criada');
-            return criada;
-          }}
+          aoCriar={criarCategoria}
           selecionadas={
             escolhendoCategorias === 'B' ? secao.categoriasLadoB : secao.categoriasLadoA
           }

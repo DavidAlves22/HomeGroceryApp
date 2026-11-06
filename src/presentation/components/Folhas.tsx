@@ -107,6 +107,8 @@ interface FolhaDeItemProps {
   sugestoesIniciais?: Produto[];
   /** Só para item já comprado: permite corrigir em qual mercado a compra foi feita. */
   compra?: { mercados: { id: string; nome: string }[]; mercadoId: string | null };
+  /** Cria uma categoria nova (e a acrescenta em `categorias`); sem isso o seletor não tem o botão "+". */
+  aoCriarCategoria?: (nome: string) => Promise<Categoria>;
   /** O 2º argumento só vem quando a folha mostrou "Comprado em" (mercado escolhido, igual ou não ao anterior). */
   aoSalvar: (dados: DadosDoItem, compradoNaLojaId?: string | null) => Promise<void>;
   aoExcluir?: () => Promise<void>;
@@ -128,6 +130,7 @@ export function FolhaDeItem({
   buscarSugestoes,
   sugestoesIniciais = [],
   compra,
+  aoCriarCategoria,
   aoSalvar,
   aoExcluir,
   aoFechar,
@@ -141,6 +144,7 @@ export function FolhaDeItem({
   const [quantidadeComprada, setQuantidadeComprada] = useState<number | null>(null);
   // Lista de escolha aberta (unidade ou categoria): modal em tela cheia sobre a folha, uma de cada vez.
   const [painel, setPainel] = useState<'unidade' | 'categoria' | 'mercado' | null>(null);
+  const [criandoCategoria, setCriandoCategoria] = useState(false);
   const [mercadoDaCompra, setMercadoDaCompra] = useState<string | null>(null);
   const [sugestoes, setSugestoes] = useState<Produto[]>([]);
   const [erro, setErro] = useState<string | null>(null);
@@ -163,6 +167,7 @@ export function FolhaDeItem({
     setQuantidadeComprada(inicial?.quantidadeComprada ?? null);
     setPainel(null);
     setMercadoDaCompra(compra?.mercadoId ?? null);
+    setCriandoCategoria(false);
     setSugestoes([]);
     setErro(null);
     // Reinicia o formulário só quando a folha abre (não a cada render do pai).
@@ -360,12 +365,38 @@ export function FolhaDeItem({
         escolhida={categoriaId}
         comBuscaEOrdem
         placeholderDaBusca="Buscar categoria"
+        acaoDeAdicionar={
+          aoCriarCategoria
+            ? {
+                rotulo: 'Nova categoria',
+                // Fecha a lista e abre o nome; ao criar, a categoria já fica escolhida no produto.
+                aoPressionar: () => {
+                  setPainel(null);
+                  setCriandoCategoria(true);
+                },
+              }
+            : undefined
+        }
         aoEscolher={(chave) => {
           setCategoriaId(chave);
           setPainel(null);
         }}
         aoFechar={() => setPainel(null)}
       />
+      {aoCriarCategoria && (
+        <FolhaDeTexto
+          visivel={criandoCategoria}
+          titulo="Nova categoria"
+          rotulo="Nome da categoria"
+          rotuloDoBotao="Criar e escolher"
+          aoSalvar={async (texto) => {
+            const criada = await aoCriarCategoria(texto);
+            setCategoriaId(criada.id);
+            setCriandoCategoria(false);
+          }}
+          aoFechar={() => setCriandoCategoria(false)}
+        />
+      )}
       <MensagemDeErro mensagem={erro} />
       <Botao titulo={rotuloDoBotao} aoPressionar={salvar} carregando={enviando} />
       {aoExcluir && (

@@ -17,6 +17,7 @@ import {
 import { useContainer } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { useToast } from '../hooks/Toast';
+import { useCriarCategoria } from '../hooks/useCriarCategoria';
 import { useNavegacao } from '../navigation/tipos';
 import { espaco, fonte, usePaleta } from '../theme';
 
@@ -38,10 +39,11 @@ export function ListaPadraoScreen() {
     carregando,
     recarregar,
   } = useCarregar(() => container.listarItensDoModelo.executar(), 'modelo');
-  const { dados: categorias } = useCarregar(
+  const { dados: categorias, definirDados: definirCategorias } = useCarregar(
     () => container.listarCategorias.executar(),
     'categorias',
   );
+  const criarCategoria = useCriarCategoria(definirCategorias);
   const [busca, setBusca] = useState('');
   const [folha, setFolha] = useState<Folha>(null);
 
@@ -183,6 +185,7 @@ export function ListaPadraoScreen() {
         visivel={folha !== null}
         titulo={folha?.tipo === 'editar' ? 'Editar produto' : 'Novo produto da lista padrão'}
         categorias={categorias ?? []}
+        aoCriarCategoria={criarCategoria}
         inicial={
           folha?.tipo === 'editar'
             ? {

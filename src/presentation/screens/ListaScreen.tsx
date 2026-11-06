@@ -48,6 +48,7 @@ import { DivisaoDaCompra } from '../components/DivisaoDaCompra';
 import { useContainer, useMercadoAtual, useSessao } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { useToast } from '../hooks/Toast';
+import { useCriarCategoria } from '../hooks/useCriarCategoria';
 import { useNavegacao, type RootStackParamList } from '../navigation/tipos';
 import { espaco, fonte, usePaleta } from '../theme';
 
@@ -88,10 +89,11 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
   const toast = useToast();
   const navegacao = useNavegacao();
   const { dados: lista, definirDados, erro, carregando, recarregar } = useCarregar(buscar, chave);
-  const { dados: categorias } = useCarregar(
+  const { dados: categorias, definirDados: definirCategorias } = useCarregar(
     () => container.listarCategorias.executar(),
     'categorias',
   );
+  const criarCategoria = useCriarCategoria(definirCategorias);
 
   // Membros do grupo: para mostrar quem marcou cada item ("Ana marcou").
   const { dados: grupo } = useCarregar(() => container.obterGrupo.executar(), 'grupo');
@@ -684,6 +686,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
         rotuloDoBotao={folha?.tipo === 'editar' ? 'Salvar' : 'Adicionar'}
         buscarSugestoes={(termo) => container.buscarProdutos.executar(termo)}
         sugestoesIniciais={sugestoes ?? []}
+        aoCriarCategoria={criarCategoria}
         compra={
           folha?.tipo === 'editar' && folha.item.comprado
             ? {

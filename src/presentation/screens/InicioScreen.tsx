@@ -13,6 +13,7 @@ import { useContainer, useSessao } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { useLayoutLargo } from '../hooks/useLayoutLargo';
 import { useToast } from '../hooks/Toast';
+import { useCriarCategoria } from '../hooks/useCriarCategoria';
 import { useNavegacao } from '../navigation/tipos';
 import { espaco, fonte, usePaleta } from '../theme';
 
@@ -30,10 +31,11 @@ export function InicioScreen() {
   } = useCarregar(() => container.obterListaAtual.executar(), 'atual');
   const toast = useToast();
   const largo = useLayoutLargo();
-  const { dados: categorias } = useCarregar(
+  const { dados: categorias, definirDados: definirCategorias } = useCarregar(
     () => container.listarCategorias.executar(),
     'categorias',
   );
+  const criarCategoria = useCriarCategoria(definirCategorias);
   const { dados: sugestoes } = useCarregar(
     () => container.obterSugestoesDeProdutos.executar(),
     'sugestoes',
@@ -260,6 +262,7 @@ export function InicioScreen() {
             visivel={novoPedido !== null}
             titulo="Pedir produto novo"
             categorias={categorias ?? []}
+            aoCriarCategoria={criarCategoria}
             inicial={{ nome: novoPedido ?? '' }}
             rotuloDoBotao="Pedir"
             buscarSugestoes={(termo) => container.buscarProdutos.executar(termo)}
