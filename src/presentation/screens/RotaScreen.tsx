@@ -265,6 +265,10 @@ export function RotaScreen() {
     rotaAtual.posicao.x === mapa.entrada.x &&
     rotaAtual.posicao.y === mapa.entrada.y;
   const faltam = (lista?.itens ?? []).filter((i) => !i.comprado).length;
+  // Já comprados NESTE mercado: a rota não os mostra mais, mas ainda dá para dizer onde estavam.
+  const compradosAqui = (lista?.itens ?? []).filter(
+    (i) => i.comprado && i.compradoNaLojaId === atual.id,
+  );
   const locaisDe = (itemId: string): LocalEscolhido[] =>
     (rotaAtual?.locaisProprios ?? [])
       .filter((l) => l.itemId === itemId)
@@ -597,6 +601,40 @@ export function RotaScreen() {
                   ))}
                   <TextoSuave estilo={{ fontSize: fonte.pequena }}>
                     Continuam pendentes e entram na rota do próximo mercado.
+                  </TextoSuave>
+                </Cartao>
+              )}
+
+              {compradosAqui.length > 0 && (
+                <Cartao estilo={{ gap: espaco.sm }}>
+                  <Pilula texto={`Já comprados aqui · ${compradosAqui.length}`} tom="neutro" />
+                  {compradosAqui.map((item) => (
+                    <View key={item.id} style={estilos.parada}>
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ color: p.texto, fontWeight: '700' }}>{item.nome}</Text>
+                        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                          {locaisDe(item.id).length > 0
+                            ? 'Local marcado por você'
+                            : 'Sem local marcado: vale a seção da categoria'}
+                        </Text>
+                      </View>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Onde achei ${item.nome}`}
+                        onPress={() => setItemDoLocal(item)}
+                        style={[
+                          estilos.botaoPequeno,
+                          { borderColor: p.linha, backgroundColor: p.superficie },
+                        ]}
+                      >
+                        <Text style={{ color: p.destaque, fontSize: 12, fontWeight: '700' }}>
+                          {locaisDe(item.id).length > 0 ? 'Mudar local' : 'Onde achei'}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                  <TextoSuave estilo={{ fontSize: fonte.pequena }}>
+                    Dizer onde achou ajuda as próximas rotas de {atual.nome}.
                   </TextoSuave>
                 </Cartao>
               )}
