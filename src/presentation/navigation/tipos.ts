@@ -20,6 +20,8 @@ export type RootStackParamList = {
   MapaDoMercado: { mercadoId: string };
   Rota: undefined;
   Admin: undefined;
+  AdminMensagens: undefined;
+  Contato: undefined;
 };
 
 export type AbasParamList = {

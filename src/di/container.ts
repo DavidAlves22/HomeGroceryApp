@@ -69,6 +69,18 @@ import {
 } from '../application/useCases/admin';
 import { AdminApiGateway } from '../infrastructure/gateways/adminGateway';
 import {
+  AdicionarInformacaoDeContato,
+  AlterarInformacaoDeContato,
+  RemoverInformacaoDeContato,
+  EnviarMensagemDeContato,
+  ListarMensagensDoPainel,
+  ListarMinhasMensagens,
+  MarcarRespostaComoVista,
+  ObterInformacoesDeContato,
+  ResponderMensagemDoPainel,
+} from '../application/useCases/contato';
+import { ContatoApiGateway } from '../infrastructure/gateways/contatoGateway';
+import {
   CriarMercado,
   ExcluirMercado,
   CopiarMapaCompartilhado,
@@ -130,6 +142,7 @@ export function criarContainer(aoExpirarSessao: () => void) {
   const listas = new ListasApiGateway(http);
   const analises = new AnalisesApiGateway(http);
   const admin = new AdminApiGateway(http);
+  const contato = new ContatoApiGateway(http);
   const grupo = new GrupoApiGateway(http);
   const mercados = new MercadosApiGateway(http);
   const mapasCompartilhados = new MapasCompartilhadosApiGateway(http);
@@ -236,6 +249,17 @@ export function criarContainer(aoExpirarSessao: () => void) {
     listarMapasDoPainel: new ListarMapasDoPainel(admin),
     obterMapaDoPainel: new ObterMapaDoPainel(admin),
     excluirMapaDoPainel: new ExcluirMapaDoPainel(admin),
+
+    // Contato e feedback (qualquer pessoa) e a caixa de entrada do administrador
+    obterInformacoesDeContato: new ObterInformacoesDeContato(contato),
+    listarMinhasMensagens: new ListarMinhasMensagens(contato),
+    enviarMensagemDeContato: new EnviarMensagemDeContato(contato),
+    marcarRespostaComoVista: new MarcarRespostaComoVista(contato),
+    listarMensagensDoPainel: new ListarMensagensDoPainel(contato),
+    responderMensagemDoPainel: new ResponderMensagemDoPainel(contato),
+    adicionarInformacaoDeContato: new AdicionarInformacaoDeContato(contato),
+    alterarInformacaoDeContato: new AlterarInformacaoDeContato(contato),
+    removerInformacaoDeContato: new RemoverInformacaoDeContato(contato),
   };
 }
 

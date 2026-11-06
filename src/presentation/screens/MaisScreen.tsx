@@ -7,6 +7,7 @@ import { FolhaDeEncerrarConta } from '../components/FolhaDeEncerrarConta';
 import { FolhaDeTexto } from '../components/Folhas';
 import { Cabecalho, Pagina, Pilula } from '../components/ui';
 import { useContainer, useSessao } from '../hooks/AppProviders';
+import { useCarregar } from '../hooks/dados';
 import { useNavegacao } from '../navigation/tipos';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 
@@ -33,6 +34,46 @@ function Linha({
       </View>
       <Icone nome="seta" cor={p.textoSuave} tamanho={18} />
     </Pressable>
+  );
+}
+
+/** Card de contato: igual para todos (inclusive o administrador). Avisa quando há resposta nova do administrador. */
+function LinhaDeContato() {
+  const { listarMinhasMensagens } = useContainer();
+  const navegacao = useNavegacao();
+  const { dados } = useCarregar(() => listarMinhasMensagens.executar(), 'contato-resumo');
+  const novas = dados?.respostasNovas ?? 0;
+  return (
+    <Linha
+      icone="mensagem"
+      titulo="Contato e feedback"
+      detalhe={
+        novas > 0
+          ? `${novas} ${novas === 1 ? 'resposta nova' : 'respostas novas'}`
+          : 'Fale com a gente, envie sugestões e pedidos'
+      }
+      aoPressionar={() => navegacao.navigate('Contato')}
+    />
+  );
+}
+
+/** Atalho do administrador para as mensagens dos usuários, com quantas esperam resposta. */
+function LinhaDasMensagensDoAdmin() {
+  const { listarMensagensDoPainel } = useContainer();
+  const navegacao = useNavegacao();
+  const { dados } = useCarregar(() => listarMensagensDoPainel.executar(), 'admin-mensagens-resumo');
+  const esperando = dados?.aguardandoResposta ?? 0;
+  return (
+    <Linha
+      icone="mensagem"
+      titulo="Mensagens dos usuários"
+      detalhe={
+        esperando > 0
+          ? `${esperando} aguardando resposta`
+          : 'Responda feedbacks e edite o card de contato'
+      }
+      aoPressionar={() => navegacao.navigate('AdminMensagens')}
+    />
   );
 }
 
@@ -87,6 +128,10 @@ export function MaisScreen() {
           />
         </Cartao>
 
+        <Cartao estilo={{ paddingVertical: 4 }}>
+          <LinhaDeContato />
+        </Cartao>
+
         {sessao?.ehAdmin && (
           <Cartao estilo={{ paddingVertical: 4 }}>
             <Linha
@@ -95,6 +140,8 @@ export function MaisScreen() {
               detalhe="Usuários, uso e números do app"
               aoPressionar={() => navegacao.navigate('Admin')}
             />
+            <View style={{ height: 1, backgroundColor: p.linha }} />
+            <LinhaDasMensagensDoAdmin />
           </Cartao>
         )}
 

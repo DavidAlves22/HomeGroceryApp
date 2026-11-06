@@ -29,6 +29,8 @@ const CAMINHOS = {
   lixeira: ['M4 7h16', 'M9 7V4h6v3', 'M6 7l1 13h10l1-13', 'M10 11v6M14 11v6'],
   cadeado: ['M6 11h12v9H6z', 'M8 11V8a4 4 0 0 1 8 0v3'],
   cadeado_aberto: ['M6 11h12v9H6z', 'M8 11V8a4 4 0 0 1 7.4-2'],
+  copiar: ['M9 9h11v11H9z', 'M5 15V4h11'],
+  mensagem: ['M3 6h18v12H3z', 'M3.5 7l8.5 6.5L20.5 7'],
 } as const;
 
 export type NomeDoIcone = keyof typeof CAMINHOS;

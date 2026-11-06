@@ -10,6 +10,8 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { Icone, type NomeDoIcone } from '../components/Icone';
 import { AdminScreen } from '../screens/AdminScreen';
+import { ContatoScreen } from '../screens/ContatoScreen';
+import { MensagensDoPainelScreen } from '../screens/MensagensDoPainelScreen';
 import { AnalisesScreen } from '../screens/AnalisesScreen';
 import { CategoriasScreen } from '../screens/CategoriasScreen';
 import { HistoricoScreen } from '../screens/HistoricoScreen';
@@ -67,6 +69,8 @@ const LINKING: LinkingOptions<RootStackParamList> | undefined =
             MapaDoMercado: 'mercados/:mercadoId/mapa',
             Rota: 'rota',
             Admin: 'admin',
+            AdminMensagens: 'admin/mensagens',
+            Contato: 'contato',
           },
         },
       }
@@ -152,6 +156,8 @@ export function NavegacaoApp() {
         <Pilha.Screen name="MapaDoMercado" component={MapaDoMercadoScreen} />
         <Pilha.Screen name="Rota" component={RotaScreen} />
         <Pilha.Screen name="Admin" component={AdminScreen} />
+        <Pilha.Screen name="AdminMensagens" component={MensagensDoPainelScreen} />
+        <Pilha.Screen name="Contato" component={ContatoScreen} />
       </Pilha.Navigator>
     </NavigationContainer>
   );
