@@ -3,7 +3,8 @@
 // categorias que faltam no seu grupo, cria o mercado "Favetta" (ou reaproveita) e salva o mapa.
 // Variável opcional: API_URL (padrão: a API publicada no Render).
 const readline = require('readline');
-const { mapa } = require('./favetta');
+// Uso: node scripts/mercados/aplicar.js <mercado>   (mercado = nome do arquivo, ex.: savegnago; padrão favetta)
+const { mapa } = require('./' + (process.argv[2] || 'favetta'));
 
 const API = (process.env.API_URL || 'https://homegrocery-api.onrender.com').replace(/\/$/, '');
 
@@ -52,7 +53,7 @@ async function chamar(metodo, caminho, corpo, token) {
   const senha = process.env.MERCADO_SENHA || (await perguntar('Senha: ', true));
 
   const cidade =
-    process.env.MERCADO_CIDADE || (await perguntar('Cidade do mercado (ex.: Araras): '));
+    process.env.MERCADO_CIDADE || mapa.cidade || (await perguntar('Cidade do mercado (ex.: Araras): '));
   if (!cidade) throw new Error('A cidade é obrigatória.');
 
   const sessao = await chamar('POST', '/autenticacao/login', { email, senha });
@@ -78,7 +79,7 @@ async function chamar(metodo, caminho, corpo, token) {
   // 2) Mercado: reaproveita um chamado Favetta ou cria.
   const lojas = await chamar('GET', '/lojas', null, token);
   let loja = lojas.find((l) => l.nome.toLowerCase() === mapa.nome.toLowerCase());
-  if (loja) console.log('O mercado "Favetta" já existe: o mapa será substituído por inteiro.');
+  if (loja) console.log(`O mercado "${mapa.nome}" já existe: o mapa será substituído por inteiro.`);
   else loja = await chamar('POST', '/lojas', { nome: mapa.nome, cidade }, token);
   const atual = await chamar('GET', `/lojas/${loja.id}`, null, token);
 

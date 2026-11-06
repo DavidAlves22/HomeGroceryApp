@@ -1,7 +1,8 @@
 // Desenha o mapa do Favetta em PNG para conferir antes de aplicar: `node scripts/mercados/previa.js saida.png`.
 const fs = require('fs');
 const path = require('path');
-const { mapa } = require('./favetta');
+// Uso: node scripts/mercados/previa.js <mercado> [saida.png]   (mercado = nome do arquivo, ex.: savegnago; padrão favetta)
+const { mapa } = require('./' + (process.argv[2] || 'favetta'));
 
 const CELULA = 22;
 const cores = ['#d9ecdf', '#dfe4f5', '#f6e0dc'];
@@ -47,7 +48,7 @@ function svg() {
 }
 
 (async () => {
-  const saida = process.argv[2] || path.join(__dirname, 'favetta.png');
+  const saida = process.argv[3] || path.join(__dirname, (process.argv[2] || 'favetta') + '.png');
   const puppeteer = require('puppeteer-core');
   const chrome = [
     'C:/Program Files/Google/Chrome/Application/chrome.exe',
