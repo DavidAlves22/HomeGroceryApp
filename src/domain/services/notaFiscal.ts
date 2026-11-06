@@ -29,6 +29,8 @@ export function lerNumero(texto: string): number {
 }
 
 const arredondar2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
+/** A API aceita no máximo 3 casas na quantidade; a nota de pesáveis traz 4 ("0,7755 kg"). */
+const arredondar3 = (n: number) => Math.round((n + Number.EPSILON) * 1000) / 1000;
 
 /**
  * Lê o texto copiado da página da NFC-e (o que abre pelo QR da nota). O formato que o navegador entrega é:
@@ -95,7 +97,7 @@ export function lerNotaFiscal(texto: string): NotaLida {
       return;
     }
 
-    const q = lerNumero(quantidade);
+    const q = arredondar3(lerNumero(quantidade));
     const u = unitario ? lerNumero(unitario) : arredondar2(lerNumero(total ?? '0') / q);
     itens.push({
       nome,
@@ -186,6 +188,8 @@ const ABREVIACOES: Record<string, string> = {
   hig: 'higienico',
   mus: 'mussarela',
   mucar: 'mucarela',
+  // "Leite caixinha" na lista é o "LEITE UHT ..." da nota; o leite condensado e o creme de leite não têm UHT.
+  caixinha: 'uht',
 };
 
 /** Unidades escritas soltas na nota ("PAD BISNAGUINHA kg"): não dizem qual é o produto. */
@@ -249,6 +253,9 @@ export function semelhanca(nomeDaNota: string, nomeDoItem: string): number {
   // Item da lista com duas palavras ou mais inteiro dentro do nome da nota ("Batata Palha" em "BATATA PALHA CROQUES
   // CEBOLA E SALSA"): a nota só acrescenta marca e sabor. Uma palavra só ("Biscoito") continua exigindo mais.
   if (b.length >= 2 && iguais === b.length) return 0.5 + base / 2;
+  // Item da lista de uma palavra só ("Arroz", "Açúcar", "Feijão"): basta a palavra estar no nome da nota. Fica logo
+  // no mínimo, para nunca ganhar de um par mais completo; se errar, o usuário troca na revisão.
+  if (b.length === 1 && iguais === 1) return Math.max(base, SEMELHANCA_MINIMA);
   return base;
 }
 
@@ -275,6 +282,15 @@ export function sugerirPares(
   const pares = new Map<number, ParSugerido>();
   const usados = new Set<string>();
 
+  // Linhas repetidas da nota (o mesmo produto bipado 3 vezes) são UM produto só: só a primeira disputa um item da
+  // lista, e as outras herdam o par dela. A API soma as linhas do mesmo item numa compra (quantidade 3, preço médio).
+  const chave = (n: ItemDaNota) => n.codigo || normalizar(n.nome);
+  const primeiraDe = new Map<string, number>();
+  itensDaNota.forEach((nota, indice) => {
+    if (!primeiraDe.has(chave(nota))) primeiraDe.set(chave(nota), indice);
+  });
+  const ehPrimeira = (indice: number) => primeiraDe.get(chave(itensDaNota[indice])) === indice;
+
   itensDaNota.forEach((nota, indice) => {
     const produtoId = vinculos.get(nota.codigo);
     const item = produtoId ? itensDaLista.find((i) => i.produtoId === produtoId) : undefined;
@@ -283,7 +299,7 @@ export function sugerirPares(
 
   const candidatos: { indice: number; itemId: string; nota: number }[] = [];
   itensDaNota.forEach((nota, indice) => {
-    if (pares.has(indice)) return;
+    if (pares.has(indice) || !ehPrimeira(indice)) return;
     for (const item of itensDaLista) {
       const nota2 = semelhanca(nota.nome, item.nome);
       if (nota2 >= SEMELHANCA_MINIMA) candidatos.push({ indice, itemId: item.id, nota: nota2 });
@@ -295,6 +311,12 @@ export function sugerirPares(
     pares.set(c.indice, { itemId: c.itemId, origem: 'nome' });
     usados.add(c.itemId);
   }
+
+  itensDaNota.forEach((nota, indice) => {
+    if (pares.has(indice)) return;
+    const par = pares.get(primeiraDe.get(chave(nota)) ?? indice);
+    if (par) pares.set(indice, par);
+  });
   return pares;
 }
 

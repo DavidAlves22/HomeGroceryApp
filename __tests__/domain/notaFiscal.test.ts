@@ -10,6 +10,29 @@ import {
   unidadeReconhecidaDaNota,
 } from '../../src/domain/services/notaFiscal';
 
+// Nota real do Savegnago (SP) com pesáveis de 4 casas e produtos repetidos.
+const linhaSav = (
+  nome: string,
+  cod: string,
+  qtd: string,
+  un: string,
+  unit: string,
+  total: string,
+) =>
+  `${nome} (Código: ${cod} )\nQtde.:${qtd}   UN: ${un}   Vl. Unit.:   ${unit} \tVl. Total\n${total}\n`;
+const NOTA_SAVEGNAGO =
+  'SAVEGNAGO SUPERMERCADOS LTDA\nCNPJ: 71.322.150/0051-29\nAV DONA RENATA , 3605 , ARARAS , SP\n' +
+  linhaSav('CENOURA kg', '4626', '1,5789', 'KG', '2,85', '4,50') +
+  linhaSav('LEITE UHT 10G PRO ITALAC 1', '163927', '1', 'UN', '6,59', '6,59') +
+  linhaSav('LEITE UHT 10G PRO ITALAC 1', '163927', '1', 'UN', '6,59', '6,59') +
+  linhaSav('CEBOLA NACIONAL kg', '4631', '0,7755', 'KG', '6,95', '5,39') +
+  linhaSav('MOLHO TOM FUGINI 300G SAC', '18835', '1', 'UN', '1,95', '1,95') +
+  linhaSav('MOLHO TOM FUGINI 300G SAC', '18835', '1', 'UN', '1,95', '1,95') +
+  linhaSav('MOLHO TOM FUGINI 300G SAC', '18835', '1', 'UN', '1,95', '1,95') +
+  linhaSav('FEIJAO CARIOCA CAMIL 1kg', '13437', '1', 'UN', '7,49', '7,49') +
+  linhaSav('ACUCAR CRISTAL UNIAO CRIST', '8478', '1', 'UN', '7,35', '7,35') +
+  'Qtd. total de itens:9\nValor total R$:41,76\n';
+
 // O texto como o navegador entrega ao copiar a página da NFC-e (colado pelo usuário).
 const NOTA = `WMS SUPERMERCADOS DO BRASIL LTDA
 CNPJ: 93.209.765/0509-98
@@ -137,7 +160,9 @@ describe('semelhança e pares', () => {
     expect(semelhanca('BISC.PASSATEMPO', 'Biscoito Passatempo')).toBe(1);
     expect(semelhanca('REQUEIJAO TIROLEZ', 'Requeijão')).toBe(0.5);
     expect(semelhanca('QJO.M.PADR.TIROLEZ', 'Queijo Tirolez')).toBeGreaterThan(0.3);
-    expect(semelhanca('BISC.GAROTO CHOCO', 'Biscoito')).toBeLessThan(0.5);
+    // Item da lista de uma palavra só casa com qualquer nota que a contenha (o usuário troca na revisão se errar).
+    expect(semelhanca('BISC.GAROTO CHOCO', 'Biscoito')).toBe(0.5);
+    expect(semelhanca('BISC.GAROTO CHOCO', 'Arroz')).toBe(0);
   });
 
   it('o nome da lista inteiro dentro do nome da nota casa, mesmo com marca, sabor e tamanho a mais', () => {
@@ -196,6 +221,52 @@ describe('semelhança e pares', () => {
     expect(pares.get(6)).toEqual({ itemId: 'i4', origem: 'nome' }); // Requeijão
     expect(pares.has(0)).toBe(false); // pizza não está na lista
     expect(pares.has(4)).toBe(false); // Bauducco Cookie: só 1 de 3 palavras, abaixo do mínimo
+  });
+
+  it('linhas repetidas da nota herdam o par da primeira (molho de tomate bipado 3 vezes)', () => {
+    const itens = [itemDaLista('i1', 'Molho de Tomate'), itemDaLista('i2', 'Leite UHT')];
+    const nota = lerNotaFiscal(NOTA_SAVEGNAGO).itens;
+    const pares = sugerirPares(nota, itens, new Map());
+    const molhos = nota.map((n, i) => (n.nome.startsWith('MOLHO') ? i : -1)).filter((i) => i >= 0);
+    expect(molhos).toHaveLength(3);
+    for (const i of molhos) expect(pares.get(i)?.itemId).toBe('i1');
+    const leites = nota.map((n, i) => (n.nome.startsWith('LEITE') ? i : -1)).filter((i) => i >= 0);
+    for (const i of leites) expect(pares.get(i)?.itemId).toBe('i2');
+  });
+
+  it('item da lista de uma palavra só casa com o item da nota que a contém', () => {
+    const itens = [
+      itemDaLista('i1', 'Açúcar'),
+      itemDaLista('i2', 'Feijão'),
+      itemDaLista('i3', 'Cebola'),
+    ];
+    const nota = lerNotaFiscal(NOTA_SAVEGNAGO).itens;
+    const pares = sugerirPares(nota, itens, new Map());
+    const idDo = (nome: string) =>
+      pares.get(nota.findIndex((n) => n.nome.startsWith(nome)))?.itemId;
+    expect(idDo('ACUCAR')).toBe('i1');
+    expect(idDo('FEIJAO')).toBe('i2');
+    expect(idDo('CEBOLA')).toBe('i3');
+  });
+
+  it('"Leite caixinha" casa com o leite UHT da nota e não com condensado nem creme de leite', () => {
+    expect(semelhanca('LEITE UHT 10G PRO ITALAC 1', 'Leite caixinha')).toBeGreaterThanOrEqual(0.5);
+    expect(semelhanca('LEITE CONDENSADO MOCOCA 395G', 'Leite caixinha')).toBeLessThan(0.5);
+    expect(semelhanca('CREME DE LEITE NESTLE 200G', 'Leite caixinha')).toBeLessThan(0.5);
+    const itens = [itemDaLista('i1', 'Leite caixinha')];
+    const nota = lerNotaFiscal(NOTA_SAVEGNAGO).itens;
+    const pares = sugerirPares(nota, itens, new Map());
+    const leites = nota.map((n, i) => (n.nome.startsWith('LEITE') ? i : -1)).filter((i) => i >= 0);
+    for (const i of leites) expect(pares.get(i)?.itemId).toBe('i1');
+  });
+
+  it('quantidade com 4 casas na nota vira 3 casas (a API recusa mais que isso)', () => {
+    const nota = lerNotaFiscal(NOTA_SAVEGNAGO);
+    const cebola = nota.itens.find((n) => n.nome.startsWith('CEBOLA'));
+    expect(cebola?.quantidade).toBe(0.776);
+    expect(precoParaOApp(cebola!)).toBe(6.95);
+    for (const n of nota.itens)
+      expect(Math.round(n.quantidade * 1000)).toBeCloseTo(n.quantidade * 1000, 6);
   });
 
   it('o nome legível deixa o item novo apresentável', () => {
