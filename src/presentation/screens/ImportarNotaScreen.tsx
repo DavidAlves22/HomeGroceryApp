@@ -9,6 +9,7 @@ import {
   precoParaOApp,
   sugerirPares,
   unidadeDaNota,
+  unidadeReconhecidaDaNota,
   type ItemDaNota,
   type NotaLida,
 } from '../../domain/services/notaFiscal';
@@ -254,7 +255,7 @@ export function ImportarNotaScreen() {
           precoUnitario: precoParaOApp(l.item),
           itemId: l.escolha.tipo === 'item' ? l.escolha.itemId : null,
           categoriaId: l.escolha.tipo === 'novo' ? l.escolha.categoriaId : null,
-          unidade: l.escolha.tipo === 'novo' ? unidadeDaNota(l.item.unidadeNaNota) : null,
+          unidade: unidadeReconhecidaDaNota(l.item.unidadeNaNota),
         })),
       });
       setResultado({ itens: casados, novos, total: totalImportado });

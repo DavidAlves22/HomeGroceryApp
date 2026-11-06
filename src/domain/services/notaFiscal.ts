@@ -154,7 +154,8 @@ export function precoParaOApp(item: ItemDaNota): number {
   return casas <= 2 ? item.valorUnitario : arredondar2(item.valorTotal / item.quantidade);
 }
 
-export function unidadeDaNota(unidadeNaNota: string): Unidade {
+/** A unidade da nota, ou null se o app não a reconhece (aí vale a do item da lista, que não deve ser trocada). */
+export function unidadeReconhecidaDaNota(unidadeNaNota: string): Unidade | null {
   const un = unidadeNaNota.toUpperCase();
   if (un.startsWith('KG')) return 'Kg';
   if (un === 'G' || un.startsWith('GR')) return 'G';
@@ -162,7 +163,13 @@ export function unidadeDaNota(unidadeNaNota: string): Unidade {
   if (un.startsWith('ML')) return 'Ml';
   if (un.startsWith('PC')) return 'Pacote';
   if (un.startsWith('CX')) return 'Caixa';
-  return 'Unidade';
+  if (un.startsWith('UN')) return 'Unidade';
+  return null;
+}
+
+/** Para item NOVO (não há unidade anterior): o que não é reconhecido vira Unidade. */
+export function unidadeDaNota(unidadeNaNota: string): Unidade {
+  return unidadeReconhecidaDaNota(unidadeNaNota) ?? 'Unidade';
 }
 
 // --- Sugestão de pares entre a nota e a lista -------------------------------------------------------------

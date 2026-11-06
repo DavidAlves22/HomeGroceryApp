@@ -7,6 +7,7 @@ import {
   semelhanca,
   sugerirPares,
   unidadeDaNota,
+  unidadeReconhecidaDaNota,
 } from '../../src/domain/services/notaFiscal';
 
 // O texto como o navegador entrega ao copiar a página da NFC-e (colado pelo usuário).
@@ -124,6 +125,10 @@ describe('preço e unidade para o app', () => {
     expect(unidadeDaNota('KG9')).toBe('Kg');
     expect(unidadeDaNota('LT')).toBe('Litro');
     expect(unidadeDaNota('PCT')).toBe('Pacote');
+    // Desconhecida: itens novos viram Unidade, mas item casado mantém a unidade da lista (null = não trocar).
+    expect(unidadeDaNota('BDJ')).toBe('Unidade');
+    expect(unidadeReconhecidaDaNota('BDJ')).toBeNull();
+    expect(unidadeReconhecidaDaNota('UND9')).toBe('Unidade');
   });
 });
 
