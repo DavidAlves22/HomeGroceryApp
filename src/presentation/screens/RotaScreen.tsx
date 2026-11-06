@@ -180,6 +180,8 @@ export function RotaScreen() {
   // Item cujo local está sendo marcado (abre a folha com o mapa).
   const [itemDoLocal, setItemDoLocal] = useState<ItemDaLista | null>(null);
   const [salvandoLocal, setSalvandoLocal] = useState(false);
+  // "Já comprados aqui" começa recolhido (só a contagem); toque para abrir a lista.
+  const [compradosAbertos, setCompradosAbertos] = useState(false);
 
   const escolher = (id: string) => {
     posicao.current = null;
@@ -607,35 +609,49 @@ export function RotaScreen() {
 
               {compradosAqui.length > 0 && (
                 <Cartao estilo={{ gap: espaco.sm }}>
-                  <Pilula texto={`Já comprados aqui · ${compradosAqui.length}`} tom="neutro" />
-                  {compradosAqui.map((item) => (
-                    <View key={item.id} style={estilos.parada}>
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={{ color: p.texto, fontWeight: '700' }}>{item.nome}</Text>
-                        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                          {locaisDe(item.id).length > 0
-                            ? 'Local marcado por você'
-                            : 'Sem local marcado: vale a seção da categoria'}
-                        </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: compradosAbertos }}
+                    accessibilityLabel={`Já comprados aqui, ${compradosAqui.length}`}
+                    onPress={() => setCompradosAbertos(!compradosAbertos)}
+                    style={estilos.cabecaDoCartao}
+                  >
+                    <Pilula texto={`Já comprados aqui · ${compradosAqui.length}`} tom="neutro" />
+                    <Icone
+                      nome={compradosAbertos ? 'cima' : 'baixo'}
+                      cor={p.textoSuave}
+                      tamanho={20}
+                    />
+                  </Pressable>
+                  {compradosAbertos &&
+                    compradosAqui.map((item) => (
+                      <View key={item.id} style={estilos.parada}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={{ color: p.texto, fontWeight: '700' }}>{item.nome}</Text>
+                          <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                            {locaisDe(item.id).length > 0 ? 'Local marcado' : 'Sem local marcado'}
+                          </Text>
+                        </View>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Onde achei ${item.nome}`}
+                          onPress={() => setItemDoLocal(item)}
+                          style={[
+                            estilos.botaoPequeno,
+                            { borderColor: p.linha, backgroundColor: p.superficie },
+                          ]}
+                        >
+                          <Text style={{ color: p.destaque, fontSize: 12, fontWeight: '700' }}>
+                            {locaisDe(item.id).length > 0 ? 'Mudar local' : 'Onde achei'}
+                          </Text>
+                        </Pressable>
                       </View>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`Onde achei ${item.nome}`}
-                        onPress={() => setItemDoLocal(item)}
-                        style={[
-                          estilos.botaoPequeno,
-                          { borderColor: p.linha, backgroundColor: p.superficie },
-                        ]}
-                      >
-                        <Text style={{ color: p.destaque, fontSize: 12, fontWeight: '700' }}>
-                          {locaisDe(item.id).length > 0 ? 'Mudar local' : 'Onde achei'}
-                        </Text>
-                      </Pressable>
-                    </View>
-                  ))}
-                  <TextoSuave estilo={{ fontSize: fonte.pequena }}>
-                    Dizer onde achou ajuda as próximas rotas de {atual.nome}.
-                  </TextoSuave>
+                    ))}
+                  {compradosAbertos && (
+                    <TextoSuave estilo={{ fontSize: fonte.pequena }}>
+                      Dizer onde achou ajuda as próximas rotas de {atual.nome}.
+                    </TextoSuave>
+                  )}
                 </Cartao>
               )}
             </>
@@ -668,6 +684,12 @@ export function RotaScreen() {
 }
 
 const estilos = StyleSheet.create({
+  cabecaDoCartao: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 32,
+  },
   umaColuna: { flex: 1 },
   duasColunas: { flex: 1, flexDirection: 'row' },
   colunaDoMapa: { flexGrow: 1, flexShrink: 1, flexBasis: 0 },
