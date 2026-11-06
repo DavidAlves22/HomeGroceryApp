@@ -290,10 +290,24 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
     }
   }
 
-  async function salvar(dados: DadosDoItem) {
+  async function salvar(dados: DadosDoItem, compradoNaLojaId?: string | null) {
     const listaId = lista!.resumo.id;
     if (folha?.tipo === 'editar') {
-      trocarItem(await container.editarItemDaLista.executar(listaId, folha.item, dados));
+      let atualizado = await container.editarItemDaLista.executar(listaId, folha.item, dados);
+      // Corrigir o mercado de um item já comprado: o servidor aceita marcar de novo com outro mercado.
+      if (
+        folha.item.comprado &&
+        compradoNaLojaId &&
+        compradoNaLojaId !== folha.item.compradoNaLojaId
+      ) {
+        atualizado = await container.marcarItemComprado.executar(
+          listaId,
+          folha.item.id,
+          true,
+          compradoNaLojaId,
+        );
+      }
+      trocarItem(atualizado);
       toast('Produto atualizado');
     } else {
       const criado = await container.adicionarItemNaLista.executar(listaId, dados);
@@ -670,6 +684,14 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
         rotuloDoBotao={folha?.tipo === 'editar' ? 'Salvar' : 'Adicionar'}
         buscarSugestoes={(termo) => container.buscarProdutos.executar(termo)}
         sugestoesIniciais={sugestoes ?? []}
+        compra={
+          folha?.tipo === 'editar' && folha.item.comprado
+            ? {
+                mercados: (mercados ?? []).map((m) => ({ id: m.id, nome: m.nome })),
+                mercadoId: folha.item.compradoNaLojaId,
+              }
+            : undefined
+        }
         aoSalvar={salvar}
         aoExcluir={folha?.tipo === 'editar' ? () => excluir(folha.item) : undefined}
         aoFechar={() => setFolha(null)}

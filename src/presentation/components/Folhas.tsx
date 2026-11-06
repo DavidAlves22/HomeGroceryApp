@@ -105,7 +105,10 @@ interface FolhaDeItemProps {
   buscarSugestoes: (termo: string) => Promise<Produto[]>;
   /** Favoritos e recorrentes, mostrados enquanto o nome está vazio (só ao adicionar). */
   sugestoesIniciais?: Produto[];
-  aoSalvar: (dados: DadosDoItem) => Promise<void>;
+  /** Só para item já comprado: permite corrigir em qual mercado a compra foi feita. */
+  compra?: { mercados: { id: string; nome: string }[]; mercadoId: string | null };
+  /** O 2º argumento só vem quando a folha mostrou "Comprado em" (mercado escolhido, igual ou não ao anterior). */
+  aoSalvar: (dados: DadosDoItem, compradoNaLojaId?: string | null) => Promise<void>;
   aoExcluir?: () => Promise<void>;
   aoFechar: () => void;
 }
@@ -124,6 +127,7 @@ export function FolhaDeItem({
   rotuloDoBotao,
   buscarSugestoes,
   sugestoesIniciais = [],
+  compra,
   aoSalvar,
   aoExcluir,
   aoFechar,
@@ -136,7 +140,8 @@ export function FolhaDeItem({
   const [precoPago, setPrecoPago] = useState<number | null>(null);
   const [quantidadeComprada, setQuantidadeComprada] = useState<number | null>(null);
   // Lista de escolha aberta (unidade ou categoria): modal em tela cheia sobre a folha, uma de cada vez.
-  const [painel, setPainel] = useState<'unidade' | 'categoria' | null>(null);
+  const [painel, setPainel] = useState<'unidade' | 'categoria' | 'mercado' | null>(null);
+  const [mercadoDaCompra, setMercadoDaCompra] = useState<string | null>(null);
   const [sugestoes, setSugestoes] = useState<Produto[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -157,6 +162,7 @@ export function FolhaDeItem({
     setPrecoPago(inicial?.precoUnitario ?? null);
     setQuantidadeComprada(inicial?.quantidadeComprada ?? null);
     setPainel(null);
+    setMercadoDaCompra(compra?.mercadoId ?? null);
     setSugestoes([]);
     setErro(null);
     // Reinicia o formulário só quando a folha abre (não a cada render do pai).
@@ -213,7 +219,7 @@ export function FolhaDeItem({
         quantidadeComprada,
       });
     }
-    void executar(() => aoSalvar(dados));
+    void executar(() => (compra ? aoSalvar(dados, mercadoDaCompra) : aoSalvar(dados)));
   }
 
   return (
@@ -314,6 +320,28 @@ export function FolhaDeItem({
           />
         </View>
       </View>
+      {compra && compra.mercados.length > 0 && (
+        <View style={{ gap: espaco.xs }}>
+          <RotuloDaFolha>Comprado em</RotuloDaFolha>
+          <GatilhoDeSeletor
+            rotulo="Mercado da compra"
+            valor={compra.mercados.find((m) => m.id === mercadoDaCompra)?.nome ?? 'Sem mercado'}
+            aberto={painel === 'mercado'}
+            aoPressionar={() => setPainel(painel === 'mercado' ? null : 'mercado')}
+          />
+        </View>
+      )}
+      <SeletorDeOpcao
+        visivel={painel === 'mercado'}
+        titulo="Onde foi comprado"
+        opcoes={(compra?.mercados ?? []).map((m) => ({ chave: m.id, rotulo: m.nome }))}
+        escolhida={mercadoDaCompra ?? ''}
+        aoEscolher={(chave) => {
+          setMercadoDaCompra(chave);
+          setPainel(null);
+        }}
+        aoFechar={() => setPainel(null)}
+      />
       <SeletorDeOpcao
         visivel={painel === 'unidade'}
         titulo="Escolher a unidade"
