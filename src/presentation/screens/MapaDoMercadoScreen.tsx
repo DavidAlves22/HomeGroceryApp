@@ -100,7 +100,7 @@ export function MapaDoMercadoScreen() {
     () => container.obterMercado.executar(params.mercadoId),
     `mercado:${params.mercadoId}`,
   );
-  const { dados: categorias } = useCarregar(
+  const { dados: categorias, definirDados: definirCategorias } = useCarregar(
     () => container.listarCategorias.executar(),
     'categorias',
   );
@@ -848,6 +848,12 @@ export function MapaDoMercadoScreen() {
               : `Categorias · ${secao.nome}`
           }
           categorias={categorias ?? []}
+          aoCriar={async (nome) => {
+            const criada = await container.criarCategoria.executar(nome);
+            definirCategorias((atual) => [...(atual ?? []), criada]);
+            toast('Categoria criada');
+            return criada;
+          }}
           selecionadas={
             escolhendoCategorias === 'B' ? secao.categoriasLadoB : secao.categoriasLadoA
           }

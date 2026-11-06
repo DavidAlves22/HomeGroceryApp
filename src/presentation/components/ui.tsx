@@ -271,9 +271,12 @@ export function BotaoDeFiltro({ aberto, comFiltroAtivo, aoPressionar }: BotaoDeF
 export function BotaoFlutuante({
   aoPressionar,
   rotulo,
+  acimaDe = 0,
 }: {
   aoPressionar: () => void;
   rotulo: string;
+  /** Sobe o botão (em px) para ele não cobrir uma barra de ação fixa no rodapé. */
+  acimaDe?: number;
 }) {
   const p = usePaleta();
   return (
@@ -281,7 +284,11 @@ export function BotaoFlutuante({
       accessibilityRole="button"
       accessibilityLabel={rotulo}
       onPress={aoPressionar}
-      style={[estilos.fab, { backgroundColor: p.destaque }]}
+      style={[
+        estilos.fab,
+        { backgroundColor: p.destaque },
+        acimaDe > 0 ? { bottom: espaco.lg + acimaDe } : null,
+      ]}
     >
       <Icone nome="mais_mais" cor={p.textoSobreDestaque} tamanho={26} espessura={2.5} />
     </Pressable>

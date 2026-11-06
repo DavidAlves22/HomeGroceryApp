@@ -5,7 +5,8 @@ import { useVoltarFecha } from '../hooks/useVoltarFecha';
 import { espaco, fonte, usePaleta } from '../theme';
 import { Botao, TextoSuave } from './base';
 import { Icone } from './Icone';
-import { Cabecalho, CampoDeBusca, Chip, Pagina } from './ui';
+import { FolhaDeTexto } from './Folhas';
+import { BotaoFlutuante, Cabecalho, CampoDeBusca, Chip, Pagina } from './ui';
 
 interface Props {
   visivel: boolean;
@@ -14,13 +15,19 @@ interface Props {
   selecionadas: string[];
   aoAlternar: (categoriaId: string) => void;
   aoFechar: () => void;
+  /** Cria a categoria no servidor e devolve a nova; sem isso o botão "+" não aparece. */
+  aoCriar?: (nome: string) => Promise<Categoria>;
 }
+
+// Botão "Concluído" (52) + o respiro de cima e de baixo do rodapé: o "+" flutua logo acima dele.
+const ALTURA_DA_BARRA_DE_ACAO = 56;
 
 const comparar = (a: string, b: string) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' });
 
 /**
  * Lista de categorias em tela cheia (sobre o app inteiro) para marcar várias de uma vez, com busca e ordem alfabética
- * crescente ou decrescente. Marcar ou desmarcar vale na hora; "Concluído" só fecha.
+ * crescente ou decrescente. Marcar ou desmarcar vale na hora; "Concluído" só fecha. O "+" flutuante cria uma categoria que não existe
+ * e já a marca.
  */
 export function SeletorDeCategorias({
   visivel,
@@ -29,10 +36,12 @@ export function SeletorDeCategorias({
   selecionadas,
   aoAlternar,
   aoFechar,
+  aoCriar,
 }: Props) {
   const p = usePaleta();
   const [busca, setBusca] = useState('');
   const [crescente, setCrescente] = useState(true);
+  const [criando, setCriando] = useState(false);
   // O voltar do celular/navegador fecha a lista em vez de sair do editor por baixo dela.
   useVoltarFecha(visivel, aoFechar);
 
@@ -117,6 +126,29 @@ export function SeletorDeCategorias({
         <View style={{ padding: espaco.lg }}>
           <Botao titulo="Concluído" aoPressionar={aoFechar} />
         </View>
+        {aoCriar && (
+          <>
+            <BotaoFlutuante
+              rotulo="Nova categoria"
+              acimaDe={ALTURA_DA_BARRA_DE_ACAO}
+              aoPressionar={() => setCriando(true)}
+            />
+            <FolhaDeTexto
+              visivel={criando}
+              titulo="Nova categoria"
+              rotulo="Nome da categoria"
+              rotuloDoBotao="Criar e marcar"
+              aoSalvar={async (texto) => {
+                const criada = await aoCriar(texto);
+                // Já vem marcada: quem cria é porque não achou e quer usar nesta seção.
+                aoAlternar(criada.id);
+                setBusca('');
+                setCriando(false);
+              }}
+              aoFechar={() => setCriando(false)}
+            />
+          </>
+        )}
       </Pagina>
     </Modal>
   );
