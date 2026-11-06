@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Botao, Cartao } from '../components/base';
 import { CartaoDeAvisos } from '../components/CartaoDeAvisos';
 import { Icone, type NomeDoIcone } from '../components/Icone';
+import { FolhaDeEncerrarConta } from '../components/FolhaDeEncerrarConta';
 import { FolhaDeTexto } from '../components/Folhas';
 import { Cabecalho, Pagina, Pilula } from '../components/ui';
 import { useContainer, useSessao } from '../hooks/AppProviders';
@@ -37,8 +38,9 @@ function Linha({
 
 export function MaisScreen() {
   const p = usePaleta();
-  const { sairDaConta, alterarNomeDoUsuario } = useContainer();
+  const { sairDaConta, alterarNomeDoUsuario, encerrarConta } = useContainer();
   const [editandoNome, setEditandoNome] = useState(false);
+  const [encerrando, setEncerrando] = useState(false);
   const { sessao, definirSessao } = useSessao();
   const navegacao = useNavegacao();
 
@@ -135,6 +137,24 @@ export function MaisScreen() {
             await sairDaConta.executar();
             definirSessao(null);
           }}
+        />
+        {/* O administrador não encerra a própria conta por aqui (a API também recusa). */}
+        {!sessao?.ehAdmin && (
+          <Botao
+            titulo="Encerrar conta"
+            variante="perigoTexto"
+            aoPressionar={() => setEncerrando(true)}
+          />
+        )}
+        <FolhaDeEncerrarConta
+          visivel={encerrando}
+          emailDaConta={sessao?.usuario.email ?? ''}
+          aoConfirmar={async (dados) => {
+            await encerrarConta.executar(dados);
+            setEncerrando(false);
+            definirSessao(null);
+          }}
+          aoFechar={() => setEncerrando(false)}
         />
       </ScrollView>
     </Pagina>

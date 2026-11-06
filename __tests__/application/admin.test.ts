@@ -2,7 +2,11 @@ import { ErroDeApi } from '../../src/application/errors';
 import type { AdminGateway } from '../../src/application/ports/admin';
 import {
   DefinirBloqueioDeConta,
+  ExcluirContaDoPainel,
+  ExcluirMapaDoPainel,
+  ListarMapasDoPainel,
   ListarUsuariosDoPainel,
+  ObterMapaDoPainel,
   ObterInsightsDoPainel,
   ObterResumoDoPainel,
   ObterSeriesDoPainel,
@@ -15,6 +19,10 @@ function gateway(parcial: Partial<AdminGateway> = {}): AdminGateway {
     insights: jest.fn().mockResolvedValue({}),
     usuarios: jest.fn().mockResolvedValue({ itens: [] }),
     definirBloqueio: jest.fn().mockResolvedValue(undefined),
+    excluirConta: jest.fn().mockResolvedValue(undefined),
+    mapas: jest.fn().mockResolvedValue({ total: 0, itens: [] }),
+    mapa: jest.fn(),
+    excluirMapa: jest.fn().mockResolvedValue(undefined),
     ...parcial,
   };
 }
@@ -89,5 +97,35 @@ describe('casos de uso do painel', () => {
     const g = gateway({ insights: jest.fn().mockRejectedValue(new ErroDeApi('x', 403)) });
 
     await expect(new ObterInsightsDoPainel(g).executar()).rejects.toMatchObject({ status: 403 });
+  });
+});
+
+describe('moderação de mapas e contas', () => {
+  it('repassa as chamadas ao servidor', async () => {
+    const g = gateway();
+
+    await new ListarMapasDoPainel(g).executar();
+    await new ObterMapaDoPainel(g).executar('m1');
+    await new ExcluirMapaDoPainel(g).executar('m1');
+    await new ExcluirContaDoPainel(g).executar('u1');
+
+    expect(g.mapas).toHaveBeenCalledTimes(1);
+    expect(g.mapa).toHaveBeenCalledWith('m1');
+    expect(g.excluirMapa).toHaveBeenCalledWith('m1');
+    expect(g.excluirConta).toHaveBeenCalledWith('u1');
+  });
+
+  it('403 do servidor vira o aviso de acesso negado também nas exclusões', async () => {
+    const g = gateway({
+      excluirConta: jest.fn().mockRejectedValue(new ErroDeApi('', 403)),
+      excluirMapa: jest.fn().mockRejectedValue(new ErroDeApi('', 403)),
+    });
+
+    await expect(new ExcluirContaDoPainel(g).executar('u1')).rejects.toThrow(
+      'Esta conta não tem acesso ao painel do administrador.',
+    );
+    await expect(new ExcluirMapaDoPainel(g).executar('m1')).rejects.toThrow(
+      'Esta conta não tem acesso ao painel do administrador.',
+    );
   });
 });

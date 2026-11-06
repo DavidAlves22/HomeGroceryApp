@@ -74,3 +74,15 @@ export function rotuloDoRecurso(recurso: RecursoDoApp): string {
 export function rotuloDeDias(dias: number): string {
   return dias === 1 ? '1 dia' : `${dias} dias`;
 }
+
+/** "06/11/2026 às 14:32" (horário de Brasília, UTC-3 fixo como no resto do painel); sem data válida, "sem registro". */
+export function dataEHoraDoDia(iso: string | null): string {
+  if (!iso) return 'sem registro';
+  const instante = new Date(iso).getTime();
+  if (Number.isNaN(instante)) return 'sem registro';
+
+  const data = new Date(instante - 3 * 3_600_000);
+  const hora = String(data.getUTCHours()).padStart(2, '0');
+  const minuto = String(data.getUTCMinutes()).padStart(2, '0');
+  return `${dataDoDia(iso)} às ${hora}:${minuto}`;
+}

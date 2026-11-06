@@ -1,49 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
-import type { MapaCompartilhado, MapaEmEdicao } from '../../domain/entities/mercados';
+import type { MapaCompartilhado } from '../../domain/entities/mercados';
 import { Botao, Cartao, MensagemDeErro, TextoSuave } from '../components/base';
-import { MapaSvg } from '../components/MapaSvg';
+import { PreviaDoMapa } from '../components/PreviaDoMapa';
 import { Cabecalho, CampoDeBusca, Carregando, EstadoVazio, Pagina } from '../components/ui';
 import { useContainer } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { useToast } from '../hooks/Toast';
 import { useNavegacao } from '../navigation/tipos';
 import { espaco, fonte, usePaleta } from '../theme';
-
-/** Prévia grande de um mapa do catálogo: só carrega quando a pessoa pede (cada mapa é uma consulta). */
-function PreviaDoMapa({ id }: { id: string }) {
-  const container = useContainer();
-  const [mapa, setMapa] = useState<MapaEmEdicao | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
-
-  useEffect(() => {
-    let ativo = true;
-    container.obterMapaCompartilhado
-      .executar(id)
-      .then((detalhe) => {
-        if (!ativo) return;
-        // Só desenha: as categorias do catálogo são nomes e a prévia não usa ids.
-        setMapa({
-          nome: detalhe.nome,
-          cidade: detalhe.cidade ?? '',
-          largura: detalhe.largura,
-          altura: detalhe.altura,
-          entrada: detalhe.entrada,
-          caixas: detalhe.caixas,
-          secoes: detalhe.secoes.map((s, i) => ({ ...s, id: `previa-${i}` })),
-        });
-      })
-      .catch((e) => ativo && setErro(mensagemParaUsuario(e)));
-    return () => {
-      ativo = false;
-    };
-  }, [container, id]);
-
-  if (erro) return <MensagemDeErro mensagem={erro} />;
-  if (!mapa) return <Carregando />;
-  return <MapaSvg mapa={mapa} modo="mini" />;
-}
 
 function CartaoDoMapa({
   mapa,
@@ -59,6 +25,7 @@ function CartaoDoMapa({
   aoCopiar: () => void;
 }) {
   const p = usePaleta();
+  const container = useContainer();
   return (
     <Cartao estilo={{ gap: espaco.md }}>
       <View style={{ gap: espaco.xs }}>
@@ -75,7 +42,9 @@ function CartaoDoMapa({
               : `copiado ${mapa.copias} vezes`}
         </Text>
       </View>
-      {aberto && <PreviaDoMapa id={mapa.id} />}
+      {aberto && (
+        <PreviaDoMapa carregar={() => container.obterMapaCompartilhado.executar(mapa.id)} />
+      )}
       <View style={estilos.acoes}>
         <Botao
           titulo={aberto ? 'Esconder mapa' : 'Ver mapa'}

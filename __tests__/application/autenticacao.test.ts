@@ -6,6 +6,7 @@ import type {
 } from '../../src/application/ports/portas';
 import {
   CadastrarUsuario,
+  EncerrarConta,
   EntrarNaConta,
   RestaurarSessao,
   VerificarServidor,
@@ -44,6 +45,7 @@ function gatewayFalso(sobrescritas: Partial<AutenticacaoGateway> = {}): Autentic
     pedirCodigoDeRecuperacao: jest.fn().mockResolvedValue(undefined),
     redefinirSenha: jest.fn().mockResolvedValue(undefined),
     alterarNome: jest.fn(),
+    encerrarConta: jest.fn().mockResolvedValue(undefined),
     googleClienteId: jest.fn().mockResolvedValue(null),
     entrarComGoogle: jest.fn().mockResolvedValue(sessaoExemplo),
     ...sobrescritas,
@@ -173,5 +175,60 @@ describe('mensagemParaUsuario', () => {
 
   it('junta os detalhes de validação enviados pela API', () => {
     expect(mensagemParaUsuario(new ErroDeApi('a', 400, ['Um.', 'Dois.']))).toBe('Um. Dois.');
+  });
+});
+
+describe('EncerrarConta', () => {
+  it('manda o e-mail e a senha ao servidor e só depois limpa a sessão do aparelho', async () => {
+    const gateway = gatewayFalso();
+    const arm = armazenamentoEmMemoria();
+    await arm.salvar(sessaoExemplo);
+
+    await new EncerrarConta(gateway, arm).executar({
+      confirmacaoEmail: ' maria@exemplo.com ',
+      senha: 'senha1234',
+    });
+
+    expect(gateway.encerrarConta).toHaveBeenCalledWith({
+      confirmacaoEmail: 'maria@exemplo.com',
+      senha: 'senha1234',
+    });
+    expect(arm.atual).toBeNull();
+  });
+
+  it('senha em branco (conta do Google sem senha própria) vai como ausente', async () => {
+    const gateway = gatewayFalso();
+
+    await new EncerrarConta(gateway, armazenamentoEmMemoria()).executar({
+      confirmacaoEmail: 'maria@exemplo.com',
+      senha: '',
+    });
+
+    expect(gateway.encerrarConta).toHaveBeenCalledWith({
+      confirmacaoEmail: 'maria@exemplo.com',
+      senha: undefined,
+    });
+  });
+
+  it('sem e-mail nem chama o servidor, e se o servidor recusar a sessão continua guardada', async () => {
+    const gateway = gatewayFalso();
+    const arm = armazenamentoEmMemoria();
+    await arm.salvar(sessaoExemplo);
+
+    await expect(
+      new EncerrarConta(gateway, arm).executar({ confirmacaoEmail: '  ' }),
+    ).rejects.toBeInstanceOf(ErroDeApi);
+    expect(gateway.encerrarConta).not.toHaveBeenCalled();
+
+    const recusa = gatewayFalso({
+      encerrarConta: jest.fn().mockRejectedValue(new ErroDeApi('Senha incorreta.', 400)),
+    });
+    await expect(
+      new EncerrarConta(recusa, arm).executar({
+        confirmacaoEmail: 'maria@exemplo.com',
+        senha: 'x',
+      }),
+    ).rejects.toThrow('Senha incorreta.');
+    expect(arm.atual).not.toBeNull();
   });
 });

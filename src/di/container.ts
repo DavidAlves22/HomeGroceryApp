@@ -42,6 +42,7 @@ import {
   SairDaConta,
   VerificarServidor,
   AlterarNomeDoUsuario,
+  EncerrarConta,
   ConsultarLoginComGoogle,
   EntrarComGoogle,
   ConsultarRecuperacaoDeSenha,
@@ -57,6 +58,10 @@ import {
 } from '../application/useCases/analises';
 import {
   DefinirBloqueioDeConta,
+  ExcluirContaDoPainel,
+  ExcluirMapaDoPainel,
+  ListarMapasDoPainel,
+  ObterMapaDoPainel,
   ListarUsuariosDoPainel,
   ObterInsightsDoPainel,
   ObterResumoDoPainel,
@@ -145,6 +150,7 @@ export function criarContainer(aoExpirarSessao: () => void) {
     alterarNomeDoUsuario: new AlterarNomeDoUsuario(autenticacao, armazenamento),
     restaurarSessao: new RestaurarSessao(autenticacao, armazenamento),
     sairDaConta: new SairDaConta(armazenamento),
+    encerrarConta: new EncerrarConta(autenticacao, armazenamento),
     verificarServidor: new VerificarServidor(servidor),
 
     // Categorias, produtos e lista padrão
@@ -226,6 +232,10 @@ export function criarContainer(aoExpirarSessao: () => void) {
     obterInsightsDoPainel: new ObterInsightsDoPainel(admin),
     listarUsuariosDoPainel: new ListarUsuariosDoPainel(admin),
     definirBloqueioDeConta: new DefinirBloqueioDeConta(admin),
+    excluirContaDoPainel: new ExcluirContaDoPainel(admin),
+    listarMapasDoPainel: new ListarMapasDoPainel(admin),
+    obterMapaDoPainel: new ObterMapaDoPainel(admin),
+    excluirMapaDoPainel: new ExcluirMapaDoPainel(admin),
   };
 }
 

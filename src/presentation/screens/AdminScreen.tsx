@@ -6,6 +6,7 @@ import type { AdminUsuario, PontoDoDia } from '../../domain/entities/admin';
 import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
 import {
   dataDoDia,
+  dataEHoraDoDia,
   melhorDia,
   rotuloDoDia,
   somarPontos,
@@ -17,7 +18,8 @@ import { ColunasPorDia } from '../components/graficos';
 import { InsightsDoPainel } from '../components/InsightsDoPainel';
 import { GradeDeMetricas, Metrica, TituloDoCartao } from '../components/painel';
 import { ListaComVerMais } from '../components/ListaComVerMais';
-import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina } from '../components/ui';
+import { MapasDoPainel } from '../components/MapasDoPainel';
+import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina, Pilula } from '../components/ui';
 import { useContainer } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { useToast } from '../hooks/Toast';
@@ -37,20 +39,27 @@ interface LinhaDeContaProps {
   agora: Date;
   /** Esta conta está esperando o segundo toque para ser bloqueada. */
   confirmando: boolean;
+  /** Esta conta está esperando o segundo toque para ser apagada de vez. */
+  confirmandoExclusao: boolean;
   ocupada: boolean;
   aoAlternarBloqueio: () => void;
+  aoExcluir: () => void;
 }
 
+/** Uma informação por linha, na ordem em que o administrador as procura: quem é, desde quando, último acesso, uso. */
 function LinhaDeConta({
   conta,
   agora,
   confirmando,
+  confirmandoExclusao,
   ocupada,
   aoAlternarBloqueio,
+  aoExcluir,
 }: LinhaDeContaProps) {
   const p = usePaleta();
   const bloqueada = conta.bloqueadoEm !== null;
   const rotuloDoBotao = bloqueada ? 'Desbloquear' : confirmando ? 'Confirmar bloqueio' : 'Bloquear';
+  const suave = { color: p.textoSuave, fontSize: fonte.pequena };
 
   return (
     <View style={[estilos.conta, { borderBottomColor: p.linha }]}>
@@ -61,64 +70,88 @@ function LinhaDeConta({
         >
           {conta.nome}
         </Text>
-        {bloqueada && (
-          <Text style={{ color: p.alerta, fontSize: fonte.pequena, fontWeight: '700' }}>
-            Bloqueada
-          </Text>
-        )}
-        <View style={{ alignItems: 'flex-end' }}>
-          <Text style={{ color: p.textoSuave, fontSize: 11, fontWeight: '700' }}>
-            ÚLTIMO ACESSO
-          </Text>
-          <Text style={{ color: p.texto, fontSize: fonte.pequena, fontWeight: '700' }}>
-            {vistoPorUltimo(conta.ultimoAcessoEm, agora)}
-          </Text>
-        </View>
+        {bloqueada && <Pilula texto="Bloqueada" tom="alerta" />}
       </View>
-      <Text numberOfLines={1} style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+      <Text numberOfLines={1} style={suave}>
         {conta.email}
       </Text>
-      <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-        Usuário desde {dataDoDia(conta.criadoEm)}
-        {conta.ultimoAcessoEm ? ` · acesso em ${dataDoDia(conta.ultimoAcessoEm)}` : ''}
-        {bloqueada ? ` · bloqueada em ${dataDoDia(conta.bloqueadoEm)}` : ''}
+      <Text style={suave}>Usuário desde {dataDoDia(conta.criadoEm)}</Text>
+      <Text style={suave}>
+        {conta.ultimoAcessoEm
+          ? `Último acesso em ${dataEHoraDoDia(conta.ultimoAcessoEm)} (${vistoPorUltimo(conta.ultimoAcessoEm, agora)})`
+          : 'Último acesso: sem registro'}
       </Text>
-      <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-        {conta.membrosDoGrupo > 1 ? `Família de ${conta.membrosDoGrupo}` : 'Sozinho(a)'} ·{' '}
-        {conta.listasCriadas} {conta.listasCriadas === 1 ? 'lista' : 'listas'} ·{' '}
+      {bloqueada && <Text style={suave}>Bloqueada em {dataDoDia(conta.bloqueadoEm)}</Text>}
+      <Text style={suave}>
+        {conta.membrosDoGrupo > 1 ? `Família de ${conta.membrosDoGrupo}` : 'Sozinho(a)'}
+      </Text>
+      <Text style={suave}>
+        {conta.listasCriadas} {conta.listasCriadas === 1 ? 'lista' : 'listas'}
+      </Text>
+      <Text style={suave}>
         {conta.itensComprados} {conta.itensComprados === 1 ? 'item comprado' : 'itens comprados'}
       </Text>
       {conta.ehAdmin ? (
-        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-          Administrador (não pode ser bloqueado)
-        </Text>
+        <Text style={suave}>Administrador (não pode ser bloqueado nem excluído)</Text>
       ) : (
-        <View style={estilos.acoes}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${bloqueada ? 'Desbloquear' : 'Bloquear'} ${conta.nome}`}
-            disabled={ocupada}
-            onPress={aoAlternarBloqueio}
-            style={[
-              estilos.botaoDaConta,
-              {
-                borderColor: bloqueada ? p.destaque : p.alerta,
-                backgroundColor: confirmando ? p.alerta : 'transparent',
-                opacity: ocupada ? 0.5 : 1,
-              },
-            ]}
-          >
-            <Text
-              style={{
-                color: confirmando ? p.textoSobreDestaque : bloqueada ? p.destaque : p.alerta,
-                fontWeight: '700',
-                fontSize: fonte.pequena,
-              }}
-            >
-              {rotuloDoBotao}
+        <>
+          {confirmandoExclusao && (
+            <Text style={{ color: p.alerta, fontSize: fonte.pequena }}>
+              Apaga a conta e todos os dados dela do banco, sem volta. Se ela está numa família, só
+              sai dela.
             </Text>
-          </Pressable>
-        </View>
+          )}
+          <View style={estilos.acoes}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${bloqueada ? 'Desbloquear' : 'Bloquear'} ${conta.nome}`}
+              disabled={ocupada}
+              onPress={aoAlternarBloqueio}
+              style={[
+                estilos.botaoDaConta,
+                {
+                  borderColor: bloqueada ? p.destaque : p.alerta,
+                  backgroundColor: confirmando ? p.alerta : 'transparent',
+                  opacity: ocupada ? 0.5 : 1,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: confirmando ? p.textoSobreDestaque : bloqueada ? p.destaque : p.alerta,
+                  fontWeight: '700',
+                  fontSize: fonte.pequena,
+                }}
+              >
+                {rotuloDoBotao}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Excluir conta ${conta.nome}`}
+              disabled={ocupada}
+              onPress={aoExcluir}
+              style={[
+                estilos.botaoDaConta,
+                {
+                  borderColor: p.alerta,
+                  backgroundColor: confirmandoExclusao ? p.alerta : 'transparent',
+                  opacity: ocupada ? 0.5 : 1,
+                },
+              ]}
+            >
+              <Text
+                style={{
+                  color: confirmandoExclusao ? p.textoSobreDestaque : p.alerta,
+                  fontWeight: '700',
+                  fontSize: fonte.pequena,
+                }}
+              >
+                {confirmandoExclusao ? 'Apagar tudo da conta' : 'Excluir conta'}
+              </Text>
+            </Pressable>
+          </View>
+        </>
       )}
     </View>
   );
@@ -141,6 +174,7 @@ export function AdminScreen() {
   const [pagina, setPagina] = useState(1);
   const toast = useToast();
   const [confirmando, setConfirmando] = useState<string | null>(null);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState<string | null>(null);
   const [ocupada, setOcupada] = useState<string | null>(null);
 
   const resumo = useCarregar(() => container.obterResumoDoPainel.executar(), 'admin-resumo');
@@ -176,6 +210,27 @@ export function AdminScreen() {
       toast(mensagemParaUsuario(e));
     } finally {
       setConfirmando(null);
+      setOcupada(null);
+    }
+  }
+
+  /** Excluir apaga a conta e os dados dela do banco: sempre pede um segundo toque. */
+  async function excluirConta(conta: AdminUsuario) {
+    if (confirmandoExclusao !== conta.id) {
+      setConfirmandoExclusao(conta.id);
+      setConfirmando(null);
+      return;
+    }
+
+    setOcupada(conta.id);
+    try {
+      await container.excluirContaDoPainel.executar(conta.id);
+      toast(`A conta de ${conta.nome} foi excluída.`);
+      await Promise.all([contas.recarregar(), resumo.recarregar(), insights.recarregar()]);
+    } catch (e) {
+      toast(mensagemParaUsuario(e));
+    } finally {
+      setConfirmandoExclusao(null);
       setOcupada(null);
     }
   }
@@ -312,6 +367,8 @@ export function AdminScreen() {
           </Cartao>
         )}
 
+        <MapasDoPainel />
+
         <Cartao estilo={{ gap: espaco.sm }}>
           <View style={estilos.entre}>
             <TituloDoCartao>Contas</TituloDoCartao>
@@ -333,8 +390,10 @@ export function AdminScreen() {
                       conta={conta}
                       agora={agora}
                       confirmando={confirmando === conta.id}
+                      confirmandoExclusao={confirmandoExclusao === conta.id}
                       ocupada={ocupada === conta.id}
                       aoAlternarBloqueio={() => void alternarBloqueio(conta)}
+                      aoExcluir={() => void excluirConta(conta)}
                     />
                   ))
                 }

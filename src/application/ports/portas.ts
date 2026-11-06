@@ -22,6 +22,8 @@ export interface AutenticacaoGateway {
   entrarComGoogle(idToken: string): Promise<Sessao>;
   /** Troca o nome de quem está logado. */
   alterarNome(nome: string): Promise<Usuario>;
+  /** Apaga a conta e os dados dela no servidor. `senha` vazia vale só para conta do Google sem senha própria. */
+  encerrarConta(dados: { confirmacaoEmail: string; senha?: string }): Promise<void>;
 }
 
 /** Pergunta ao servidor se ele está de pé (health check feito ao abrir o app). */

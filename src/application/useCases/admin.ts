@@ -53,3 +53,34 @@ export class ListarUsuariosDoPainel {
     return comAvisoDeAcessoNegado(() => this.gateway.usuarios(Math.max(1, Math.floor(pagina))));
   }
 }
+
+/** Apaga a conta de outra pessoa e os dados dela, de vez. O servidor recusa contas de administrador. */
+export class ExcluirContaDoPainel {
+  constructor(private readonly gateway: AdminGateway) {}
+  executar(usuarioId: string) {
+    return comAvisoDeAcessoNegado(() => this.gateway.excluirConta(usuarioId));
+  }
+}
+
+export class ListarMapasDoPainel {
+  constructor(private readonly gateway: AdminGateway) {}
+  executar() {
+    return comAvisoDeAcessoNegado(() => this.gateway.mapas());
+  }
+}
+
+/** O desenho de um mapa de qualquer grupo, para o administrador decidir se aprova. */
+export class ObterMapaDoPainel {
+  constructor(private readonly gateway: AdminGateway) {}
+  executar(id: string) {
+    return comAvisoDeAcessoNegado(() => this.gateway.mapa(id));
+  }
+}
+
+/** Apaga o mapa de vez (sai do catálogo e do grupo do dono). Cópias que outros já fizeram ficam. */
+export class ExcluirMapaDoPainel {
+  constructor(private readonly gateway: AdminGateway) {}
+  executar(id: string) {
+    return comAvisoDeAcessoNegado(() => this.gateway.excluirMapa(id));
+  }
+}

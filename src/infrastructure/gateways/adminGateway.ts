@@ -1,6 +1,8 @@
 import type { AdminGateway } from '../../application/ports/admin';
+import type { MapaCompartilhadoDetalhe } from '../../domain/entities/mercados';
 import type {
   AdminInsights,
+  AdminMapas,
   AdminResumo,
   AdminSeries,
   AdminUsuarios,
@@ -25,6 +27,22 @@ export class AdminApiGateway implements AdminGateway {
 
   usuarios(pagina: number) {
     return this.http.get<AdminUsuarios>(`/admin/usuarios?pagina=${pagina}`);
+  }
+
+  async excluirConta(usuarioId: string) {
+    await this.http.delete<void>(`/admin/usuarios/${usuarioId}`);
+  }
+
+  mapas() {
+    return this.http.get<AdminMapas>('/admin/mapas');
+  }
+
+  mapa(id: string) {
+    return this.http.get<MapaCompartilhadoDetalhe>(`/admin/mapas/${id}`);
+  }
+
+  async excluirMapa(id: string) {
+    await this.http.delete<void>(`/admin/mapas/${id}`);
   }
 
   async definirBloqueio(usuarioId: string, bloqueado: boolean) {

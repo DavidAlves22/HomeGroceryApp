@@ -204,3 +204,22 @@ export class EntrarComGoogle {
     return sessao;
   }
 }
+
+/**
+ * Encerra a conta: o servidor apaga a conta e os dados, e só depois a sessão guardada no aparelho é limpa (se o
+ * servidor recusar, por senha errada por exemplo, a pessoa continua logada e vê o motivo).
+ */
+export class EncerrarConta {
+  constructor(
+    private readonly gateway: AutenticacaoGateway,
+    private readonly armazenamento: ArmazenamentoDeSessao,
+  ) {}
+
+  async executar(dados: { confirmacaoEmail: string; senha?: string }): Promise<void> {
+    const confirmacaoEmail = dados.confirmacaoEmail.trim();
+    if (!confirmacaoEmail) throw new ErroDeApi('Digite o e-mail da conta para confirmar.', 400);
+
+    await this.gateway.encerrarConta({ confirmacaoEmail, senha: dados.senha || undefined });
+    await this.armazenamento.limpar();
+  }
+}

@@ -67,6 +67,32 @@ async function sessaoDe(nome, email) {
     corpo: { comprado: true },
   });
 
+  const nomeDoMapa = `Aa e2e ${sufixo}`;
+  const loja = await api('/lojas', { metodo: 'POST', token: ana.tokenDeAcesso, corpo: { nome: nomeDoMapa, cidade: 'Araras' } });
+  await api(`/lojas/${loja.id}/mapa`, {
+    metodo: 'PUT',
+    token: ana.tokenDeAcesso,
+    corpo: {
+      nome: nomeDoMapa,
+      largura: 40,
+      altura: 20,
+      entrada: { x: 2, y: 18 },
+      caixas: { x: 30, y: 17, largura: 5, altura: 2 },
+      secoes: Array.from({ length: 8 }, (_, i) => ({
+        nome: `Corredor ${i + 1}`,
+        nomeLadoB: null,
+        dividida: false,
+        area: { x: 1 + 3 * i, y: 8, largura: 2, altura: 6 },
+        categoriasLadoA: [categorias[0].id],
+        categoriasLadoB: [],
+      })),
+      versao: loja.versao,
+    },
+  });
+  const nomeParaApagar = `Apagar ${sufixo}`;
+  const emailParaApagar = `apagar_${sufixo}@teste.com`;
+  await sessaoDe(nomeParaApagar, emailParaApagar);
+
   if (!admin.ehAdmin) throw new Error('A sessão do admin não veio com ehAdmin=true');
   if (ana.ehAdmin) throw new Error('Conta comum veio como admin');
 
@@ -149,7 +175,8 @@ async function sessaoDe(nome, email) {
     'Ana',
     'Dono do App',
     'Sozinho(a)',
-    'ÚLTIMO ACESSO',
+    'Último acesso em',
+    'Mapas dos usuários',
     'Retenção',
     'Funil de uso',
     'Criaram uma lista',
@@ -186,8 +213,11 @@ async function sessaoDe(nome, email) {
   const apos2b = await texto(pagAdmin);
   if (!apos2b.includes(`Usuário desde ${dataDeHoje}`))
     throw new Error(`Faltou "Usuário desde ${dataDeHoje}":\n${apos2b.slice(0, 1500)}`);
-  if (!apos2b.includes('Administrador (não pode ser bloqueado)'))
-    throw new Error('A conta do administrador deveria avisar que não pode ser bloqueada');
+  if (!apos2b.includes('Administrador (não pode ser bloqueado nem excluído)'))
+    throw new Error('A conta do administrador deveria avisar que não pode ser bloqueada nem excluída');
+  // O último acesso mostra data E hora (às HH:mm), em linha própria.
+  if (!/Último acesso em \d{2}\/\d{2}\/\d{4} às \d{2}:\d{2} \(/.test(apos2b))
+    throw new Error('Faltou "Último acesso em dd/mm/aaaa às hh:mm":\n' + apos2b.slice(0, 1500));
   await fecharFolha(pagAdmin);
 
   // 2c) Bloquear Bruno: primeiro toque pede confirmação, segundo bloqueia na hora.
@@ -201,7 +231,7 @@ async function sessaoDe(nome, email) {
         );
         for (const botao of botoes) {
           let no = botao.parentElement;
-          for (let i = 0; i < 5 && no; i++, no = no.parentElement) {
+          for (let i = 0; i < 2 && no; i++, no = no.parentElement) {
             if (no.innerText && no.innerText.includes(mail)) {
               botao.setAttribute('data-alvo', '1');
               return true;
@@ -237,7 +267,7 @@ async function sessaoDe(nome, email) {
     throw new Error('O primeiro toque não pode bloquear (só pede confirmação)');
   await clicarNoBotaoDaConta(pagAdmin, emailDeBruno, 'Bloquear ');
   await esperar(pagAdmin, 'foi bloqueada');
-  await esperar(pagAdmin, 'bloqueada em');
+  await esperar(pagAdmin, 'Bloqueada em');
   await pagAdmin.screenshot({
     path: path.join(PASTA, `${prefixo}admin-03c-bloqueada.png`),
     fullPage: true,
@@ -270,6 +300,46 @@ async function sessaoDe(nome, email) {
     body: JSON.stringify({ email: emailDeBruno, senha: 'senha1234' }),
   });
   if (loginLiberado.status !== 200) throw new Error(`Login liberado deu ${loginLiberado.status}`);
+
+  // 2d) Moderação de mapas: aparece com o dono, mostra o desenho e a exclusão pede segundo toque.
+  const ultimo = async (seletor) => {
+    const achados = await pagAdmin.$$(seletor);
+    if (achados.length === 0) throw new Error(`Sem elemento ${seletor}`);
+    return achados[achados.length - 1];
+  };
+  await esperar(pagAdmin, nomeDoMapa);
+  if (!(await texto(pagAdmin)).includes('No catálogo')) throw new Error('O mapa com 8 seções deveria estar no catálogo');
+  await (await ultimo(`[aria-label="Ver mapa ${nomeDoMapa}"]`)).click();
+  await pagAdmin.waitForSelector('svg', { timeout: 15000 });
+  await pagAdmin.screenshot({ path: path.join(PASTA, `${prefixo}admin-03d-mapas.png`), fullPage: true });
+  await (await ultimo(`[aria-label="Excluir mapa ${nomeDoMapa}"]`)).click();
+  await esperar(pagAdmin, 'Confirmar exclusão');
+  const antesDoSegundoToque = await api("/lojas", { token: ana.tokenDeAcesso });
+  if (!antesDoSegundoToque.some((m) => m.id === loja.id)) throw new Error('O primeiro toque não pode apagar o mapa');
+  await (await ultimo(`[aria-label="Excluir mapa ${nomeDoMapa}"]`)).click();
+  await esperar(pagAdmin, 'foi excluído');
+  const depoisDeExcluir = await api("/lojas", { token: ana.tokenDeAcesso });
+  if (depoisDeExcluir.some((m) => m.id === loja.id)) throw new Error('O mapa deveria ter sumido do grupo da Ana');
+
+  // 2e) Excluir conta: primeiro toque só pede confirmação, o segundo apaga a conta (e o login deixa de existir).
+  await esperar(pagAdmin, nomeParaApagar);
+  await clicarNoBotaoDaConta(pagAdmin, emailParaApagar, `Excluir conta ${nomeParaApagar}`);
+  await esperar(pagAdmin, 'Apagar tudo da conta');
+  const loginAntes = await fetch(API + "/autenticacao/login", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: emailParaApagar, senha: 'senha1234' }),
+  });
+  if (loginAntes.status !== 200) throw new Error(`O primeiro toque não pode apagar a conta (login deu ${loginAntes.status})`);
+  await clicarNoBotaoDaConta(pagAdmin, emailParaApagar, `Excluir conta ${nomeParaApagar}`);
+  await esperar(pagAdmin, 'foi excluída');
+  const loginDepois = await fetch(API + "/autenticacao/login", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: emailParaApagar, senha: 'senha1234' }),
+  });
+  if (loginDepois.status !== 401) throw new Error(`A conta apagada não pode mais entrar (login deu ${loginDepois.status})`);
+  await pagAdmin.screenshot({ path: path.join(PASTA, `${prefixo}admin-03e-conta-excluida.png`), fullPage: true });
 
   // 3) Conta comum: sem atalho; /admin mostra acesso negado.
   const pagAna = await abrirComo(ana, '/mais', 390, 900);

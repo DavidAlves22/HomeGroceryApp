@@ -64,6 +64,10 @@ export class AutenticacaoApiGateway implements AutenticacaoGateway {
   alterarNome(nome: string) {
     return this.http.put<Usuario>('/conta/nome', { corpo: { nome } });
   }
+
+  async encerrarConta(dados: { confirmacaoEmail: string; senha?: string }) {
+    await this.http.post<void>('/conta/encerrar', { corpo: dados });
+  }
 }
 
 export class ServidorApiGateway implements ServidorGateway {

@@ -1,5 +1,7 @@
+import type { MapaCompartilhadoDetalhe } from '../../domain/entities/mercados';
 import type {
   AdminInsights,
+  AdminMapas,
   AdminResumo,
   AdminSeries,
   AdminUsuarios,
@@ -11,4 +13,8 @@ export interface AdminGateway {
   insights(): Promise<AdminInsights>;
   usuarios(pagina: number): Promise<AdminUsuarios>;
   definirBloqueio(usuarioId: string, bloqueado: boolean): Promise<void>;
+  excluirConta(usuarioId: string): Promise<void>;
+  mapas(): Promise<AdminMapas>;
+  mapa(id: string): Promise<MapaCompartilhadoDetalhe>;
+  excluirMapa(id: string): Promise<void>;
 }

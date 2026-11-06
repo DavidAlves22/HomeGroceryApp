@@ -8,6 +8,7 @@ import {
   somarPontos,
   totalDePaginas,
   vistoPorUltimo,
+  dataEHoraDoDia,
 } from '../../src/domain/services/painelAdmin';
 
 const agora = new Date('2026-11-04T15:00:00Z');
@@ -87,5 +88,20 @@ describe('painelAdmin', () => {
     expect(rotuloDeDias(1)).toBe('1 dia');
     expect(rotuloDeDias(30)).toBe('30 dias');
     expect(rotuloDoRecurso('divisao')).toBe('Já dividiram uma compra');
+  });
+});
+
+describe('dataEHoraDoDia', () => {
+  it('mostra data e hora em horário de Brasília', () => {
+    expect(dataEHoraDoDia('2026-11-05T17:32:00Z')).toBe('05/11/2026 às 14:32');
+  });
+
+  it('virada de dia: 01h UTC ainda é a noite anterior em Brasília', () => {
+    expect(dataEHoraDoDia('2026-11-06T01:05:00Z')).toBe('05/11/2026 às 22:05');
+  });
+
+  it('sem data válida diz que não há registro', () => {
+    expect(dataEHoraDoDia(null)).toBe('sem registro');
+    expect(dataEHoraDoDia('ontem')).toBe('sem registro');
   });
 });

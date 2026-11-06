@@ -100,3 +100,27 @@ export interface AdminInsights {
   mapasMaisCopiados: AdminItemDeRanking[];
   adocao: AdminAdocao[];
 }
+
+/** Mapa de mercado criado por um usuário, como o administrador o vê (GET /admin/mapas). */
+export interface AdminMapa {
+  id: string;
+  nome: string;
+  cidade: string | null;
+  /** Seções com nome próprio: são as que contam para o catálogo. */
+  secoesComNome: number;
+  secoes: number;
+  /** Quantos mercados de outros grupos nasceram deste mapa. */
+  copias: number;
+  /** Este mapa nasceu da cópia de outro. */
+  copia: boolean;
+  /** Outros grupos conseguem ver e copiar este mapa. */
+  noCatalogo: boolean;
+  grupo: string;
+  donoNome: string | null;
+  donoEmail: string | null;
+}
+
+export interface AdminMapas {
+  total: number;
+  itens: AdminMapa[];
+}
