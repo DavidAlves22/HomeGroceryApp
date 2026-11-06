@@ -142,7 +142,30 @@ export interface DadosDoItem {
   precoUnitario?: number | null;
 }
 
-export type OrigemDaLista = 'Padrao' | 'Zero' | 'Copiar';
+export type OrigemDaLista = 'Padrao' | 'Zero' | 'Copiar' | 'Sugestao';
+
+/** Produto que o histórico de compras indica para a lista do mês (GET /listas/sugestao). */
+export interface ItemSugerido {
+  chave: string;
+  nome: string;
+  categoriaNome: string;
+  unidade: Unidade;
+  quantidade: number;
+  cicloEmDias: number;
+  compras: number;
+  ultimaCompra: string;
+  proximaPrevista: string;
+  motivo: 'NoCiclo' | 'Atrasado';
+  /** Frase pronta da API explicando a sugestão. */
+  descricao: string;
+  precoReferencia: number | null;
+  categoriaId: string | null;
+}
+
+export interface SugestaoDeLista {
+  competencia: string;
+  itens: ItemSugerido[];
+}
 
 export interface DadosDeNovaLista {
   competencia: string;
@@ -153,5 +176,7 @@ export interface DadosDeNovaLista {
   /** Só para origem "Copiar": a lista que será copiada e (opcional) quais itens dela. */
   listaDeOrigemId?: string;
   itensDeOrigemIds?: string[];
+  /** Só para origem "Sugestao": chaves escolhidas (quantidade ausente = a sugerida). */
+  itensSugeridos?: { chave: string; quantidade?: number }[];
   permitirDuplicada?: boolean;
 }

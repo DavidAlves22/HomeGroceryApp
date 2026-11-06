@@ -6,6 +6,7 @@ import {
   rotuloDaUnidade,
   type ItemDaLista,
   type ItemDoModelo,
+  type ItemSugerido,
   type ListaResumo,
   type OrigemDaLista,
 } from '../../domain/entities/tipos';
@@ -36,6 +37,12 @@ const OPCOES: { origem: OrigemDaLista; titulo: string; texto: string }[] = [
     titulo: 'Criar do zero',
     texto: 'Começa vazia e você adiciona os produtos que precisar.',
   },
+  {
+    origem: 'Sugestao',
+    titulo: 'Sugestão inteligente',
+    texto:
+      'Sugere o que está na hora de comprar, pelo ritmo das suas compras: o que você repõe a cada tantos dias ou meses e o que está atrasado.',
+  },
 ];
 
 type Etapa = 'inicio' | 'origem' | 'itens';
@@ -55,6 +62,12 @@ const daLista = (i: ItemDaLista): Selecionavel => ({
   }`,
 });
 
+const daSugestao = (i: ItemSugerido): Selecionavel => ({
+  id: i.chave,
+  nome: i.motivo === 'Atrasado' ? `${i.nome} · atrasado` : i.nome,
+  detalhe: `${formatarQuantidade(i.quantidade)} ${rotuloDaUnidade(i.unidade)} · ${i.descricao}`,
+});
+
 const doModelo = (i: ItemDoModelo): Selecionavel => ({
   id: i.id,
   nome: i.nome,
@@ -62,8 +75,8 @@ const doModelo = (i: ItemDoModelo): Selecionavel => ({
 });
 
 /**
- * Criação da lista do mês. Três caminhos: lista padrão, cópia de qualquer mês anterior ou do zero.
- * Nos dois primeiros o usuário escolhe quais produtos entram. Os produtos são COPIADOS: a nova lista
+ * Criação da lista do mês. Quatro caminhos: lista padrão, cópia de qualquer mês anterior, sugestão pelo
+ * histórico de compras ou do zero. Nos três primeiros o usuário escolhe quais produtos entram. Os produtos são COPIADOS: a nova lista
  * nasce independente da origem, tudo pendente, e preços antigos servem só de referência.
  */
 export function NovaListaScreen() {
@@ -108,6 +121,9 @@ export function NovaListaScreen() {
       if (origem === 'Padrao') {
         const itens = await container.listarItensDoModelo.executar();
         mostrarSelecao(itens.map(doModelo));
+      } else if (origem === 'Sugestao') {
+        const sugestao = await container.obterSugestaoDeLista.executar(competencia.chave);
+        mostrarSelecao(sugestao.itens.map(daSugestao));
       } else {
         setListasAnteriores(await container.listarListas.executar());
         setEtapa('origem');
@@ -129,12 +145,18 @@ export function NovaListaScreen() {
     setCriando(true);
     try {
       const selecionados = opcoes.filter((i) => escolhidos.has(i.id)).map((i) => i.id);
+      // Sem nada a sugerir a lista nasce vazia, como "Criar do zero".
+      const semSugestao = origem === 'Sugestao' && opcoes.length === 0;
       const lista = await container.criarLista.executar({
         competencia: competencia.chave,
-        origem,
+        origem: semSugestao ? 'Zero' : origem,
         itensDoModeloIds: origem === 'Padrao' ? selecionados : undefined,
         listaDeOrigemId: origem === 'Copiar' ? listaDeOrigem?.id : undefined,
         itensDeOrigemIds: origem === 'Copiar' ? selecionados : undefined,
+        itensSugeridos:
+          origem === 'Sugestao' && !semSugestao
+            ? selecionados.map((chave) => ({ chave }))
+            : undefined,
         permitirDuplicada,
       });
       // A lista do mês atual é a da aba Lista (com a barra de navegação): vai para lá, sem tela à parte.
@@ -238,6 +260,7 @@ export function NovaListaScreen() {
   if (etapa === 'itens') {
     const selecionados = opcoes.filter((i) => escolhidos.has(i.id)).length;
     const vazioDoModelo = origem === 'Padrao' && opcoes.length === 0;
+    const semSugestao = origem === 'Sugestao' && opcoes.length === 0;
     return (
       <Pagina>
         <Cabecalho
@@ -252,9 +275,22 @@ export function NovaListaScreen() {
           <TextoSuave>
             {origem === 'Copiar'
               ? `Itens de ${listaDeOrigem?.competenciaNome}. Tudo começa pendente; os preços pagos lá ficam só de referência.`
-              : `Desmarque o que não precisa em ${competencia.nome}. Alterar aqui não muda a sua lista padrão.`}
+              : origem === 'Sugestao'
+                ? `Pelo ritmo das suas compras, estes produtos combinam com ${competencia.nome}. Desmarque o que não quiser; o último preço pago fica só de referência.`
+                : `Desmarque o que não precisa em ${competencia.nome}. Alterar aqui não muda a sua lista padrão.`}
           </TextoSuave>
-          {vazioDoModelo ? (
+          {semSugestao ? (
+            <Cartao estilo={{ gap: espaco.sm }}>
+              <Text style={{ color: p.texto, fontWeight: '700' }}>
+                Ainda não há o que sugerir para {competencia.nome}
+              </Text>
+              <TextoSuave>
+                A sugestão aparece quando um produto foi comprado em pelo menos dois dias
+                diferentes, para descobrir de quanto em quanto tempo você repõe. Continue marcando
+                as compras na lista.
+              </TextoSuave>
+            </Cartao>
+          ) : vazioDoModelo ? (
             <Cartao estilo={{ gap: espaco.md }}>
               <Text style={{ color: p.texto, fontWeight: '700' }}>Sua lista padrão está vazia</Text>
               <TextoSuave>
@@ -330,12 +366,12 @@ export function NovaListaScreen() {
           <MensagemDeErro mensagem={erro} />
           <Botao
             titulo={
-              vazioDoModelo
+              vazioDoModelo || semSugestao
                 ? 'Criar lista vazia'
                 : `Criar lista com ${selecionados} ${selecionados === 1 ? 'produto' : 'produtos'}`
             }
             carregando={criando}
-            desabilitado={!vazioDoModelo && selecionados === 0}
+            desabilitado={!vazioDoModelo && !semSugestao && selecionados === 0}
             aoPressionar={() => void criar(false)}
           />
         </ScrollView>

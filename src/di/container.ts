@@ -21,6 +21,7 @@ import {
   CriarLista,
   EditarItemDaLista,
   CancelarLista,
+  ObterSugestaoDeLista,
   ConsultarNotaImportada,
   DividirCompra,
   ImportarNota,
@@ -47,7 +48,13 @@ import {
   PedirCodigoDeRecuperacao,
   RedefinirSenha,
 } from '../application/useCases/autenticacao';
-import { ObterAnaliseDeGastos, ObterAnaliseDePrecos } from '../application/useCases/analises';
+import {
+  ObterAnaliseDeGastos,
+  ObterAnaliseDePrecos,
+  ObterAvisosDeRitmo,
+  ObterHabitosDeCompra,
+  ObterPadroesDeCompra,
+} from '../application/useCases/analises';
 import {
   DefinirBloqueioDeConta,
   ListarUsuariosDoPainel,
@@ -163,6 +170,7 @@ export function criarContainer(aoExpirarSessao: () => void) {
     obterLista: new ObterLista(listas),
     obterListaAtual: new ObterListaAtual(listas),
     criarLista: new CriarLista(listas),
+    obterSugestaoDeLista: new ObterSugestaoDeLista(listas),
     adicionarItemNaLista: new AdicionarItemNaLista(listas),
     editarItemDaLista: new EditarItemDaLista(listas),
     removerItemDaLista: new RemoverItemDaLista(listas),
@@ -208,6 +216,9 @@ export function criarContainer(aoExpirarSessao: () => void) {
     // Análises
     obterAnaliseDeGastos: new ObterAnaliseDeGastos(analises),
     obterAnaliseDePrecos: new ObterAnaliseDePrecos(analises),
+    obterAvisosDeRitmo: new ObterAvisosDeRitmo(analises),
+    obterPadroesDeCompra: new ObterPadroesDeCompra(analises),
+    obterHabitosDeCompra: new ObterHabitosDeCompra(analises),
 
     // Painel de administração (a API só responde a quem é admin)
     obterResumoDoPainel: new ObterResumoDoPainel(admin),

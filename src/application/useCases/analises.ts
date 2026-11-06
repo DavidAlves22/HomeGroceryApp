@@ -15,3 +15,27 @@ export class ObterAnaliseDePrecos {
     return this.gateway.precos();
   }
 }
+
+/** O que repor agora e quais itens da lista padrão estão parados (a conta é toda no servidor). */
+export class ObterAvisosDeRitmo {
+  constructor(private readonly gateway: AnalisesGateway) {}
+  executar() {
+    return this.gateway.avisos();
+  }
+}
+
+/** Preço bom na última compra, produtos de época e pares que costumam ir juntos (conta feita no servidor). */
+export class ObterPadroesDeCompra {
+  constructor(private readonly gateway: AnalisesGateway) {}
+  executar() {
+    return this.gateway.padroes();
+  }
+}
+
+/** Mercado habitual de cada produto e responsável habitual de cada categoria (conta feita no servidor). */
+export class ObterHabitosDeCompra {
+  constructor(private readonly gateway: AnalisesGateway) {}
+  executar() {
+    return this.gateway.habitos();
+  }
+}

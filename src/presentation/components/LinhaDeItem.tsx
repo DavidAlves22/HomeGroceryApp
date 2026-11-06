@@ -16,6 +16,8 @@ interface Props {
   nomeDeQuemMarcou?: string;
   /** Mercado onde foi comprado (a compra do mês pode ser dividida entre vários). */
   nomeDoMercado?: string;
+  /** Mercado onde o produto costuma ser comprado, quando é outro que o de hoje (só para item pendente). */
+  mercadoHabitual?: string;
   /** Na compra dividida: quem vai pegar este item quando não sou eu. O fundo muda para ficar claro que não é meu. */
   comOutraPessoa?: string;
   /** Item que outra pessoa acabou de pedir (aviso em tempo real): ganha o selo "Novo" até ser marcado ou editado. */
@@ -49,6 +51,7 @@ export function LinhaDeItem({
   marcadoPorOutro,
   nomeDeQuemMarcou,
   nomeDoMercado,
+  mercadoHabitual,
   comOutraPessoa,
   pedidoPor,
   somenteLeitura,
@@ -106,6 +109,7 @@ export function LinhaDeItem({
           {formatarQuantidade(item.quantidade)} {rotuloDaUnidade(item.unidade)}
           {textoDeValor(item)}
           {!feito && comOutraPessoa ? ` · Com ${comOutraPessoa}` : ''}
+          {!feito && mercadoHabitual ? ` · Costuma ser no ${mercadoHabitual}` : ''}
           {feito && nomeDoMercado ? ` · ${nomeDoMercado}` : ''}
           {feito && marcadoPorOutro ? ` · ${nomeDeQuemMarcou ?? 'outra pessoa'} marcou` : ''}
         </Text>

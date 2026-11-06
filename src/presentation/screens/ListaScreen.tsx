@@ -18,6 +18,7 @@ import {
 import { calcularTotais } from '../../domain/services/financeiro';
 import {
   existeNaListaPadrao,
+  normalizar,
   organizarItens,
   resumirItens,
   type FiltroDeStatus,
@@ -105,6 +106,18 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
   const mercadoDeHoje = mercadoEmUso(mercados, mercadoId);
   const nomeDoMercado = (id: string | null) =>
     id ? (mercados?.find((m) => m.id === id)?.nome ?? 'outro mercado') : undefined;
+
+  // Hábitos do grupo: onde cada produto costuma ser comprado e quem costuma comprar cada categoria.
+  const { dados: habitos } = useCarregar(
+    () => container.obterHabitosDeCompra.executar(),
+    'habitos',
+  );
+  const mercadoHabitualDe = (item: ItemDaLista) => {
+    if (item.comprado || !mercados || mercados.length < 2) return undefined;
+    const habito = habitos?.mercados.find((m) => m.chave === normalizar(item.nome));
+    if (!habito || habito.lojaId === mercadoDeHoje?.id) return undefined;
+    return mercados.find((m) => m.id === habito.lojaId)?.nome;
+  };
 
   // Favoritos e recorrentes: sugeridos no formulário de novo produto, mesmo fora da lista padrão.
   const { dados: sugestoes } = useCarregar(
@@ -620,6 +633,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
                   }
                   nomeDeQuemMarcou={nomes.get(item.compradoPorUsuarioId ?? '')}
                   nomeDoMercado={item.comprado ? nomeDoMercado(item.compradoNaLojaId) : undefined}
+                  mercadoHabitual={mercadoHabitualDe(item)}
                   comOutraPessoa={comQuemEsta(item)}
                   pedidoPor={pedidosDeOutros.get(item.id)}
                   aoMarcar={(i) => void marcar(i)}
@@ -705,6 +719,10 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
           categorias={categoriasComId}
           membros={grupo.membros}
           inicial={divisaoDaCompra}
+          habitual={(habitos?.responsaveis ?? []).map((r) => ({
+            categoriaId: r.categoriaId,
+            usuarioId: r.usuarioId,
+          }))}
           aoSalvar={salvarDivisao}
           aoFechar={() => setDividindo(false)}
         />

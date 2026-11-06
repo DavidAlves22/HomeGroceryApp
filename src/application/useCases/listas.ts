@@ -42,6 +42,15 @@ export class ObterListaAtual {
   }
 }
 
+/** Produtos que o ritmo de compra de cada um indica para o mês (a conta é toda no servidor). */
+export class ObterSugestaoDeLista {
+  constructor(private readonly gateway: ListasGateway) {}
+  async executar(competencia: string) {
+    Competencia.deChave(competencia);
+    return this.gateway.sugerir(competencia);
+  }
+}
+
 export class CriarLista {
   constructor(private readonly gateway: ListasGateway) {}
 
@@ -61,6 +70,9 @@ export class CriarLista {
       throw new ErroDeApi('Selecione ao menos um produto para copiar.', 400);
     }
     if (dados.origem === 'Padrao' && dados.itensDoModeloIds?.length === 0) {
+      throw new ErroDeApi('Selecione ao menos um produto, ou crie a lista do zero.', 400);
+    }
+    if (dados.origem === 'Sugestao' && dados.itensSugeridos?.length === 0) {
       throw new ErroDeApi('Selecione ao menos um produto, ou crie a lista do zero.', 400);
     }
     return this.gateway.criar(dados);

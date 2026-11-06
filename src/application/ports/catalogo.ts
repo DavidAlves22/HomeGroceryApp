@@ -8,6 +8,7 @@ import type {
   ItemDoModelo,
   Lista,
   ListaResumo,
+  SugestaoDeLista,
   Produto,
   VinculoDaNota,
 } from '../../domain/entities/tipos';
@@ -35,6 +36,7 @@ export interface ListasGateway {
   listar(): Promise<ListaResumo[]>;
   obter(id: string): Promise<Lista>;
   criar(dados: DadosDeNovaLista): Promise<Lista>;
+  sugerir(competencia: string): Promise<SugestaoDeLista>;
   adicionarItem(listaId: string, dados: DadosDoItem): Promise<ItemDaLista>;
   editarItem(
     listaId: string,

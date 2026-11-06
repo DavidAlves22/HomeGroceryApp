@@ -3,7 +3,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
 import { rotuloDaUnidade, type DadosDoItem, type ItemDoModelo } from '../../domain/entities/tipos';
 import { formatarQuantidade, normalizar } from '../../domain/services/organizacao';
-import { Cartao, TextoSuave } from '../components/base';
+import { Botao, Cartao, TextoSuave } from '../components/base';
+import { CartaoDeLista } from '../components/CartaoDeLista';
 import { FolhaDeItem } from '../components/Folhas';
 import {
   BotaoDeIcone,
@@ -44,6 +45,12 @@ export function ListaPadraoScreen() {
     'categorias',
   );
   const criarCategoria = useCriarCategoria(definirCategorias);
+  const { dados: avisos, recarregar: recarregarAvisos } = useCarregar(
+    () => container.obterAvisosDeRitmo.executar(),
+    'avisos-ritmo',
+  );
+  // Tirar um parado pede segundo toque, como as outras exclusões.
+  const [confirmandoParado, setConfirmandoParado] = useState<string | null>(null);
   const [busca, setBusca] = useState('');
   const [folha, setFolha] = useState<Folha>(null);
 
@@ -92,6 +99,20 @@ export function ListaPadraoScreen() {
     toast('Removido da lista padrão. Listas já criadas não mudam.');
   }
 
+  async function tirarParado(itemId: string) {
+    if (confirmandoParado !== itemId) return setConfirmandoParado(itemId);
+    try {
+      await container.removerItemDoModelo.executar(itemId);
+      definirDados((atual) => (atual ?? []).filter((i) => i.id !== itemId));
+      setConfirmandoParado(null);
+      toast('Removido da lista padrão. Listas já criadas não mudam.');
+      await recarregarAvisos();
+    } catch (e) {
+      setConfirmandoParado(null);
+      toast(mensagemParaUsuario(e));
+    }
+  }
+
   async function mover(indice: number, direcao: -1 | 1) {
     const anterior = todos;
     const novo = [...todos];
@@ -113,6 +134,29 @@ export function ListaPadraoScreen() {
           Seus produtos recorrentes. Servem de ponto de partida para cada mês, e mudar aqui não
           altera listas que você já criou.
         </TextoSuave>
+        <CartaoDeLista
+          titulo="Parados há muito tempo"
+          texto="Estes itens da lista padrão não aparecem nas suas compras há bastante tempo. Ainda fazem sentido?"
+          itens={avisos?.listaPadraoParada ?? []}
+          chave={(parado) => parado.itemId}
+          renderizar={(parado) => (
+            <View style={estilos.linhaDoAviso}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ color: p.texto, fontWeight: '700', fontSize: fonte.corpo }}>
+                  {parado.nome}
+                </Text>
+                <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                  {parado.descricao}
+                </Text>
+              </View>
+              <Botao
+                titulo={confirmandoParado === parado.itemId ? 'Confirmar' : 'Tirar'}
+                variante={confirmandoParado === parado.itemId ? 'perigoCheio' : 'perigo'}
+                aoPressionar={() => void tirarParado(parado.itemId)}
+              />
+            </View>
+          )}
+        />
         {todos.length > 0 && (
           <CampoDeBusca valor={busca} aoMudar={setBusca} placeholder="Buscar na lista padrão" />
         )}
@@ -208,6 +252,7 @@ export function ListaPadraoScreen() {
 
 const estilos = StyleSheet.create({
   conteudo: { padding: espaco.lg, gap: espaco.md, paddingBottom: 120 },
+  linhaDoAviso: { flexDirection: 'row', alignItems: 'center', gap: espaco.md },
   linha: {
     flexDirection: 'row',
     alignItems: 'center',

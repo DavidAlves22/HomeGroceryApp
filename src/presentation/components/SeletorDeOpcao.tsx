@@ -9,6 +9,13 @@ import { BotaoFlutuante, Cabecalho, CampoDeBusca, Chip, Pagina } from './ui';
 export interface OpcaoUnica {
   chave: string;
   rotulo: string;
+  /** Texto curto alinhado à direita (ex.: a variação de preço). */
+  detalhe?: string;
+}
+
+export interface OrdemDeOpcoes {
+  chave: string;
+  rotulo: string;
 }
 
 interface Props {
@@ -20,6 +27,11 @@ interface Props {
   /** Mostra o campo de busca e a ordem A → Z / Z → A (a lista passa a ser ordenada por nome). */
   comBuscaEOrdem?: boolean;
   placeholderDaBusca?: string;
+  /**
+   * Ordens próprias (chips no lugar do A → Z). As `opcoes` chegam já ordenadas pela tela: aqui só filtra por texto.
+   * Exige `comBuscaEOrdem`.
+   */
+  ordens?: { opcoes: OrdemDeOpcoes[]; atual: string; aoMudar: (chave: string) => void };
   aoEscolher: (chave: string) => void;
   aoFechar: () => void;
   /** Botão "+" flutuante no canto (ex.: criar a categoria que não está na lista). */
@@ -40,6 +52,7 @@ export function SeletorDeOpcao({
   escolhida,
   comBuscaEOrdem = false,
   placeholderDaBusca = 'Buscar',
+  ordens,
   aoEscolher,
   aoFechar,
   acaoDeAdicionar,
@@ -56,10 +69,11 @@ export function SeletorDeOpcao({
     const filtradas = termo
       ? opcoes.filter((o) => o.rotulo.toLocaleLowerCase('pt-BR').includes(termo))
       : [...opcoes];
+    if (ordens) return filtradas;
     return filtradas.sort((a, b) =>
       crescente ? comparar(a.rotulo, b.rotulo) : comparar(b.rotulo, a.rotulo),
     );
-  }, [opcoes, busca, crescente, comBuscaEOrdem]);
+  }, [opcoes, busca, crescente, comBuscaEOrdem, ordens]);
 
   return (
     <Modal visible={visivel} animationType="slide" onRequestClose={aoFechar}>
@@ -70,11 +84,25 @@ export function SeletorDeOpcao({
             <View style={{ flex: 1 }}>
               <CampoDeBusca valor={busca} aoMudar={setBusca} placeholder={placeholderDaBusca} />
             </View>
-            <Chip
-              rotulo={crescente ? 'A → Z' : 'Z → A'}
-              ativo={false}
-              aoPressionar={() => setCrescente(!crescente)}
-            />
+            {!ordens && (
+              <Chip
+                rotulo={crescente ? 'A → Z' : 'Z → A'}
+                ativo={false}
+                aoPressionar={() => setCrescente(!crescente)}
+              />
+            )}
+          </View>
+        )}
+        {comBuscaEOrdem && ordens && (
+          <View style={estilos.ordens}>
+            {ordens.opcoes.map((o) => (
+              <Chip
+                key={o.chave}
+                rotulo={o.rotulo}
+                ativo={ordens.atual === o.chave}
+                aoPressionar={() => ordens.aoMudar(o.chave)}
+              />
+            ))}
           </View>
         )}
         <ScrollView
@@ -106,6 +134,11 @@ export function SeletorDeOpcao({
                   >
                     {o.rotulo}
                   </Text>
+                  {o.detalhe && (
+                    <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                      {o.detalhe}
+                    </Text>
+                  )}
                   {marcada && <Icone nome="check" cor={p.destaque} tamanho={20} />}
                 </Pressable>
               );
@@ -127,6 +160,13 @@ const estilos = StyleSheet.create({
   barra: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: espaco.sm,
+    paddingHorizontal: espaco.lg,
+    paddingBottom: espaco.sm,
+  },
+  ordens: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: espaco.sm,
     paddingHorizontal: espaco.lg,
     paddingBottom: espaco.sm,

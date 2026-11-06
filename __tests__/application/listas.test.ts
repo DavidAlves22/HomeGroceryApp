@@ -10,6 +10,7 @@ import {
   CriarLista,
   ListaPrincipalJaExiste,
   ObterListaAtual,
+  ObterSugestaoDeLista,
 } from '../../src/application/useCases/listas';
 import type { ListaResumo } from '../../src/domain/entities/tipos';
 import { Competencia } from '../../src/domain/valueObjects/Competencia';
@@ -167,5 +168,44 @@ describe('CancelarLista', () => {
     } as unknown as ListasGateway;
     await new CancelarLista(gateway).executar('l1');
     expect(gateway.cancelar).toHaveBeenCalledWith('l1');
+  });
+});
+
+describe('sugestão inteligente', () => {
+  it('pede a sugestão do mês certo ao servidor e recusa mês inválido', async () => {
+    const sugerir = jest.fn().mockResolvedValue({ competencia: '2026-12', itens: [] });
+    const gateway = { sugerir } as unknown as ListasGateway;
+
+    await new ObterSugestaoDeLista(gateway).executar('2026-12');
+
+    expect(sugerir).toHaveBeenCalledWith('2026-12');
+    await expect(new ObterSugestaoDeLista(gateway).executar('dezembro')).rejects.toThrow();
+  });
+
+  it('cria a lista só com as chaves escolhidas', async () => {
+    const gateway = gatewayDeListas();
+
+    await new CriarLista(gateway).executar({
+      competencia: '2026-12',
+      origem: 'Sugestao',
+      itensSugeridos: [{ chave: 'arroz|Kg' }],
+    });
+
+    expect(gateway.criar).toHaveBeenCalledWith(
+      expect.objectContaining({ itensSugeridos: [{ chave: 'arroz|Kg' }] }),
+    );
+  });
+
+  it('não cria a partir de uma sugestão com nenhum produto marcado', async () => {
+    const gateway = gatewayDeListas();
+
+    await expect(
+      new CriarLista(gateway).executar({
+        competencia: '2026-12',
+        origem: 'Sugestao',
+        itensSugeridos: [],
+      }),
+    ).rejects.toBeInstanceOf(ErroDeApi);
+    expect(gateway.criar).not.toHaveBeenCalled();
   });
 });

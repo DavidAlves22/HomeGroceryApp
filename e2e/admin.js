@@ -43,6 +43,8 @@ async function sessaoDe(nome, email) {
 (async () => {
   const sufixo = Date.now();
   const admin = await sessaoDe('Dono do App', EMAIL_ADMIN);
+  // Contas a mais (as mais antigas desta rodada) para a lista de Contas passar de 4 e pedir "Ver todos".
+  for (const letra of ['A', 'B', 'C']) await sessaoDe(`Extra ${letra}`, `extra${letra}_${sufixo}@teste.com`);
   const ana = await sessaoDe('Ana', `ana_${sufixo}@teste.com`);
   const emailDeBruno = `bruno_${sufixo}@teste.com`;
   const bruno = await sessaoDe('Bruno', emailDeBruno);
@@ -108,6 +110,19 @@ async function sessaoDe(nome, email) {
     }
   };
 
+  // O cartão de Contas mostra 4 linhas; a lista inteira fica na folha "Ver todos". Contas é o último cartão.
+  const abrirContas = async (page) => {
+    const botoes = await page.$$('xpath/.//*[starts-with(normalize-space(text()),"Ver todos (")]');
+    if (botoes.length === 0) throw new Error('Faltou o "Ver todos" do cartão de Contas');
+    await botoes[botoes.length - 1].click();
+    await new Promise((r) => setTimeout(r, 500));
+  };
+  const fecharFolha = async (page) => {
+    const botoes = await page.$$('xpath/.//*[normalize-space(text())="Fechar"]');
+    await botoes[botoes.length - 1].click();
+    await new Promise((r) => setTimeout(r, 500));
+  };
+
   // 1) Admin: atalho em Mais, abre o painel.
   const pagAdmin = await abrirComo(admin, '/mais');
   await esperar(pagAdmin, 'Painel do administrador');
@@ -119,6 +134,11 @@ async function sessaoDe(nome, email) {
   await esperar(pagAdmin, 'Atividade por dia');
   await esperar(pagAdmin, 'Bruno');
   await esperar(pagAdmin, 'Uso dos recursos');
+  // Listas longas: a conta mais antiga (Extra A) fica fora das 4 linhas do cartão e só aparece na folha.
+  if ((await texto(pagAdmin)).includes('Extra A')) throw new Error('Extra A não deveria estar entre as 4 primeiras');
+  await abrirContas(pagAdmin);
+  await esperar(pagAdmin, 'Extra A');
+  await pagAdmin.screenshot({ path: path.join(PASTA, `${prefixo}admin-02a-folha-contas.png`) });
   const t = await texto(pagAdmin);
   for (const esperado of [
     'Usuários',
@@ -129,6 +149,7 @@ async function sessaoDe(nome, email) {
     'Ana',
     'Dono do App',
     'Sozinho(a)',
+    'ÚLTIMO ACESSO',
     'Retenção',
     'Funil de uso',
     'Criaram uma lista',
@@ -139,6 +160,7 @@ async function sessaoDe(nome, email) {
     'Mapearam um mercado',
   ])
     if (!t.includes(esperado)) throw new Error(`Painel sem "${esperado}":\n${t.slice(0, 1500)}`);
+  await fecharFolha(pagAdmin);
   await pagAdmin.screenshot({
     path: path.join(PASTA, `${prefixo}admin-02-painel.png`),
     fullPage: true,
@@ -160,11 +182,13 @@ async function sessaoDe(nome, email) {
     String(hoje.getUTCMonth() + 1).padStart(2, '0'),
     hoje.getUTCFullYear(),
   ].join('/');
+  await abrirContas(pagAdmin);
   const apos2b = await texto(pagAdmin);
   if (!apos2b.includes(`Usuário desde ${dataDeHoje}`))
     throw new Error(`Faltou "Usuário desde ${dataDeHoje}":\n${apos2b.slice(0, 1500)}`);
   if (!apos2b.includes('Administrador (não pode ser bloqueado)'))
     throw new Error('A conta do administrador deveria avisar que não pode ser bloqueada');
+  await fecharFolha(pagAdmin);
 
   // 2c) Bloquear Bruno: primeiro toque pede confirmação, segundo bloqueia na hora.
   // Acha o botão da linha cujo e-mail é o de Bruno e o marca para o clique de verdade do mouse.

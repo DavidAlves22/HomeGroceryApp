@@ -16,6 +16,7 @@ import { Botao, Cartao, TextoSuave } from '../components/base';
 import { ColunasPorDia } from '../components/graficos';
 import { InsightsDoPainel } from '../components/InsightsDoPainel';
 import { GradeDeMetricas, Metrica, TituloDoCartao } from '../components/painel';
+import { ListaComVerMais } from '../components/ListaComVerMais';
 import { Cabecalho, Carregando, Chip, EstadoVazio, Pagina } from '../components/ui';
 import { useContainer } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
@@ -65,15 +66,21 @@ function LinhaDeConta({
             Bloqueada
           </Text>
         )}
-        <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-          {vistoPorUltimo(conta.ultimoAcessoEm, agora)}
-        </Text>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Text style={{ color: p.textoSuave, fontSize: 11, fontWeight: '700' }}>
+            ÚLTIMO ACESSO
+          </Text>
+          <Text style={{ color: p.texto, fontSize: fonte.pequena, fontWeight: '700' }}>
+            {vistoPorUltimo(conta.ultimoAcessoEm, agora)}
+          </Text>
+        </View>
       </View>
       <Text numberOfLines={1} style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
         {conta.email}
       </Text>
       <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
         Usuário desde {dataDoDia(conta.criadoEm)}
+        {conta.ultimoAcessoEm ? ` · acesso em ${dataDoDia(conta.ultimoAcessoEm)}` : ''}
         {bloqueada ? ` · bloqueada em ${dataDoDia(conta.bloqueadoEm)}` : ''}
       </Text>
       <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
@@ -316,16 +323,22 @@ export function AdminScreen() {
           </View>
           {contas.dados ? (
             <>
-              {contas.dados.itens.map((conta) => (
-                <LinhaDeConta
-                  key={conta.id}
-                  conta={conta}
-                  agora={agora}
-                  confirmando={confirmando === conta.id}
-                  ocupada={ocupada === conta.id}
-                  aoAlternarBloqueio={() => void alternarBloqueio(conta)}
-                />
-              ))}
+              <ListaComVerMais
+                titulo="Contas"
+                itens={contas.dados.itens}
+                renderizar={(lista) =>
+                  lista.map((conta) => (
+                    <LinhaDeConta
+                      key={conta.id}
+                      conta={conta}
+                      agora={agora}
+                      confirmando={confirmando === conta.id}
+                      ocupada={ocupada === conta.id}
+                      aoAlternarBloqueio={() => void alternarBloqueio(conta)}
+                    />
+                  ))
+                }
+              />
               {paginas > 1 && (
                 <View style={estilos.paginacao}>
                   <View style={{ flex: 1 }}>

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { mensagemParaUsuario } from '../../application/errors';
 import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
 import { Botao, Cartao } from '../components/base';
 import {
@@ -10,8 +11,10 @@ import {
   Pagina,
   Pilula,
 } from '../components/ui';
+import { Icone } from '../components/Icone';
 import { useContainer } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
+import { useToast } from '../hooks/Toast';
 import { useNavegacao } from '../navigation/tipos';
 import { espaco, fonte, usePaleta } from '../theme';
 
@@ -20,12 +23,36 @@ export function HistoricoScreen() {
   const p = usePaleta();
   const container = useContainer();
   const navegacao = useNavegacao();
+  const toast = useToast();
+  // Exclusão pede segundo toque (como no resto do app); sem o segundo toque o botão volta ao normal.
+  const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
+  const [apagandoId, setApagandoId] = useState<string | null>(null);
   const {
     dados: listas,
     erro,
     carregando,
     recarregar,
   } = useCarregar(() => container.listarListas.executar(), 'historico');
+
+  useEffect(() => {
+    if (!confirmandoId) return;
+    const espera = setTimeout(() => setConfirmandoId(null), 4000);
+    return () => clearTimeout(espera);
+  }, [confirmandoId]);
+
+  async function apagar(listaId: string) {
+    setApagandoId(listaId);
+    try {
+      await container.cancelarLista.executar(listaId);
+      toast('Lista apagada.');
+      await recarregar();
+    } catch (e) {
+      toast(mensagemParaUsuario(e));
+    } finally {
+      setApagandoId(null);
+      setConfirmandoId(null);
+    }
+  }
 
   if (carregando && !listas)
     return (
@@ -85,6 +112,39 @@ export function HistoricoScreen() {
                     texto={lista.status === 'Finalizada' ? 'Finalizada' : 'Em andamento'}
                     tom={lista.status === 'Finalizada' ? 'neutro' : 'destaque'}
                   />
+                  {/* Só compra em andamento pode ser apagada: a finalizada é histórico (regra da API). */}
+                  {lista.status !== 'Finalizada' && (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        confirmandoId === lista.id
+                          ? `Toque de novo para apagar a lista de ${lista.competenciaNome}`
+                          : `Apagar a lista de ${lista.competenciaNome}`
+                      }
+                      disabled={apagandoId === lista.id}
+                      onPress={() =>
+                        confirmandoId === lista.id
+                          ? void apagar(lista.id)
+                          : setConfirmandoId(lista.id)
+                      }
+                      hitSlop={8}
+                      style={[
+                        estilos.lixeira,
+                        confirmandoId === lista.id && { backgroundColor: p.alerta },
+                      ]}
+                    >
+                      {confirmandoId === lista.id && (
+                        <Text style={{ color: p.textoSobreDestaque, fontWeight: '700' }}>
+                          Apagar?
+                        </Text>
+                      )}
+                      <Icone
+                        nome="lixeira"
+                        tamanho={20}
+                        cor={confirmandoId === lista.id ? p.textoSobreDestaque : p.alerta}
+                      />
+                    </Pressable>
+                  )}
                 </View>
                 <BarraDeProgresso percentual={lista.percentual} />
                 <View style={estilos.entre}>
@@ -132,6 +192,16 @@ export function HistoricoScreen() {
 }
 
 const estilos = StyleSheet.create({
+  lixeira: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espaco.xs,
+    minWidth: 36,
+    minHeight: 36,
+    justifyContent: 'center',
+    paddingHorizontal: espaco.sm,
+    borderRadius: 18,
+  },
   conteudo: { padding: espaco.lg, gap: espaco.md, paddingBottom: 40 },
   entre: {
     flexDirection: 'row',

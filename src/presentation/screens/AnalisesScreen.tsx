@@ -7,7 +7,6 @@ import type {
   SerieDePreco,
 } from '../../domain/entities/analises';
 import { formatarVariacao } from '../../domain/services/financeiro';
-import { normalizar } from '../../domain/services/organizacao';
 import {
   ORDENS_DE_PRODUTOS,
   ordenarProdutos,
@@ -18,16 +17,10 @@ import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
 import { Botao, Cartao, TextoSuave } from '../components/base';
 import { BarrasHorizontais, GraficoDeBarras, GraficoDeLinha } from '../components/graficos';
 import { Icone } from '../components/Icone';
-import {
-  CampoDeBusca,
-  Cabecalho,
-  Carregando,
-  Chip,
-  EstadoVazio,
-  GatilhoDeSeletor,
-  Pagina,
-  PainelDeOpcoes,
-} from '../components/ui';
+import { Cabecalho, Carregando, EstadoVazio, GatilhoDeSeletor, Pagina } from '../components/ui';
+import { SeletorDeOpcao } from '../components/SeletorDeOpcao';
+import { CartaoDeLista } from '../components/CartaoDeLista';
+import { ListaComVerMais } from '../components/ListaComVerMais';
 import { useContainer } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { espaco, fonte, usePaleta } from '../theme';
@@ -94,7 +87,6 @@ export function AnalisesScreen() {
   const [produtoEscolhido, setProdutoEscolhido] = useState<string | null>(null);
   // Lista suspensa de produtos (com busca): com dezenas de produtos, pílulas viram uma parede de botões.
   const [escolhendoProduto, setEscolhendoProduto] = useState(false);
-  const [buscaDeProduto, setBuscaDeProduto] = useState('');
   const [ordemDosProdutos, setOrdemDosProdutos] = useState<OrdemDeProdutos>('meses');
   const [erroDeCategorias, setErroDeCategorias] = useState<string | null>(null);
 
@@ -106,6 +98,9 @@ export function AnalisesScreen() {
     () => container.obterAnaliseDePrecos.executar(),
     'precos',
   );
+
+  // Padrões do histórico inteiro: não bloqueiam a tela e cada cartão só aparece se houver algo a dizer.
+  const padroes = useCarregar(() => container.obterPadroesDeCompra.executar(), 'padroes');
 
   // Produtos com mais meses de histórico primeiro: é onde o gráfico de evolução diz alguma coisa.
   const produtosOrdenados = useMemo(
@@ -122,15 +117,6 @@ export function AnalisesScreen() {
       null,
     [produtosOrdenados, produtoEscolhido],
   );
-
-  const produtosFiltrados = useMemo(() => {
-    const termo = normalizar(buscaDeProduto);
-    const filtrados =
-      termo === ''
-        ? produtosOrdenados
-        : produtosOrdenados.filter((s) => normalizar(s.nome).includes(termo));
-    return ordenarProdutos(filtrados, ordemDosProdutos);
-  }, [produtosOrdenados, buscaDeProduto, ordemDosProdutos]);
 
   if ((gastos.carregando && !gastos.dados) || (precos.carregando && !precos.dados)) {
     return (
@@ -153,6 +139,7 @@ export function AnalisesScreen() {
             aoPressionar: () => {
               void gastos.recarregar();
               void precos.recarregar();
+              void padroes.recarregar();
             },
           }}
         />
@@ -279,13 +266,15 @@ export function AnalisesScreen() {
           {analise.categorias.length === 0 ? (
             <TextoSuave>Sem gastos com preço informado neste mês.</TextoSuave>
           ) : (
-            <BarrasHorizontais
+            <ListaComVerMais
+              titulo={`Por categoria em ${mesSelecionado.competenciaNome}`}
               itens={analise.categorias.map((c) => ({
                 rotulo: c.categoria,
                 valor: c.total,
                 texto: reais(c.total),
                 detalhe: `${c.percentual.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% do gasto do mês`,
               }))}
+              renderizar={(itens) => <BarrasHorizontais itens={itens} />}
             />
           )}
           {erroDeCategorias && <TextoSuave>{erroDeCategorias}</TextoSuave>}
@@ -294,12 +283,14 @@ export function AnalisesScreen() {
         {analise.frequentes.length > 0 && (
           <Cartao estilo={{ gap: espaco.md }}>
             <Titulo2>Produtos mais comprados</Titulo2>
-            <BarrasHorizontais
+            <ListaComVerMais
+              titulo="Produtos mais comprados"
               itens={analise.frequentes.map((f) => ({
                 rotulo: f.nome,
                 valor: f.compras,
                 texto: `${f.compras} ${f.compras === 1 ? 'compra' : 'compras'}`,
               }))}
+              renderizar={(itens) => <BarrasHorizontais itens={itens} />}
             />
           </Cartao>
         )}
@@ -313,64 +304,49 @@ export function AnalisesScreen() {
                   rotulo="Produto"
                   valor={nomeNaLista(serieSelecionada, produtosOrdenados)}
                   aberto={escolhendoProduto}
-                  aoPressionar={() => {
-                    setEscolhendoProduto(!escolhendoProduto);
-                    setBuscaDeProduto('');
-                  }}
+                  aoPressionar={() => setEscolhendoProduto(true)}
                 />
-                {escolhendoProduto && (
-                  <>
-                    <CampoDeBusca
-                      valor={buscaDeProduto}
-                      aoMudar={setBuscaDeProduto}
-                      placeholder="Filtrar produtos"
-                    />
-                    <View style={estilos.chips}>
-                      {ORDENS_DE_PRODUTOS.map((o) => (
-                        <Chip
-                          key={o.valor}
-                          rotulo={o.rotulo}
-                          ativo={ordemDosProdutos === o.valor}
-                          aoPressionar={() => setOrdemDosProdutos(o.valor)}
-                        />
-                      ))}
-                    </View>
-                    {produtosFiltrados.length === 0 ? (
-                      <TextoSuave>Nenhum produto encontrado.</TextoSuave>
-                    ) : (
-                      <PainelDeOpcoes
-                        titulo="Escolher o produto"
-                        opcoes={produtosFiltrados.map((s) => ({
-                          chave: `${s.nome}|${s.unidadeBase}`,
-                          rotulo: `${nomeNaLista(s, produtosOrdenados)} · ${s.pontos.length} ${s.pontos.length === 1 ? 'mês' : 'meses'}`,
-                          detalhe:
-                            s.variacaoPercentual === null
-                              ? undefined
-                              : formatarVariacao(s.variacaoPercentual),
-                          marcada:
-                            `${s.nome}|${s.unidadeBase}` ===
-                            `${serieSelecionada.nome}|${serieSelecionada.unidadeBase}`,
-                          aoPressionar: () => {
-                            setProdutoEscolhido(`${s.nome}|${s.unidadeBase}`);
-                            setEscolhendoProduto(false);
-                            setBuscaDeProduto('');
-                          },
-                        }))}
-                      />
-                    )}
-                  </>
-                )}
+                <SeletorDeOpcao
+                  visivel={escolhendoProduto}
+                  titulo="Escolher o produto"
+                  comBuscaEOrdem
+                  placeholderDaBusca="Filtrar produtos"
+                  ordens={{
+                    opcoes: ORDENS_DE_PRODUTOS.map((o) => ({ chave: o.valor, rotulo: o.rotulo })),
+                    atual: ordemDosProdutos,
+                    aoMudar: (chave) => setOrdemDosProdutos(chave as OrdemDeProdutos),
+                  }}
+                  opcoes={ordenarProdutos(produtosOrdenados, ordemDosProdutos).map((s) => ({
+                    chave: `${s.nome}|${s.unidadeBase}`,
+                    rotulo: `${nomeNaLista(s, produtosOrdenados)} · ${s.pontos.length} ${s.pontos.length === 1 ? 'mês' : 'meses'}`,
+                    detalhe:
+                      s.variacaoPercentual === null
+                        ? undefined
+                        : formatarVariacao(s.variacaoPercentual),
+                  }))}
+                  escolhida={`${serieSelecionada.nome}|${serieSelecionada.unidadeBase}`}
+                  aoEscolher={(chave) => {
+                    setProdutoEscolhido(chave);
+                    setEscolhendoProduto(false);
+                  }}
+                  aoFechar={() => setEscolhendoProduto(false)}
+                />
               </>
             )}
             <View style={estilos.entre}>
-              <Text style={{ color: p.texto, fontSize: fonte.corpo, fontWeight: '700' }}>
-                {serieSelecionada.nome}
-              </Text>
+              {/* Com o seletor na tela o nome já aparece nele; só repete quando o produto é o único. */}
+              <View style={{ flex: 1 }}>
+                {produtosOrdenados.length <= 1 && (
+                  <Text style={{ color: p.texto, fontSize: fonte.corpo, fontWeight: '700' }}>
+                    {serieSelecionada.nome}
+                  </Text>
+                )}
+                <Text style={{ color: p.textoSuave, fontSize: 12 }}>
+                  Preço por {rotuloDaBase(serieSelecionada.unidadeBase)}
+                </Text>
+              </View>
               <Variacao percentual={serieSelecionada.variacaoPercentual} />
             </View>
-            <Text style={{ color: p.textoSuave, fontSize: 12 }}>
-              Preço por {rotuloDaBase(serieSelecionada.unidadeBase)}
-            </Text>
             <GraficoDeLinha
               pontos={serieSelecionada.pontos.map((pt) => ({
                 rotulo: Competencia.deChave(pt.competencia).abreviado,
@@ -430,24 +406,58 @@ export function AnalisesScreen() {
             <TextoSuave estilo={{ fontSize: fonte.pequena }}>
               Comparando o último mês comprado com o anterior.
             </TextoSuave>
-            {precos.dados!.maioresAumentos.map((s) => (
-              <View
-                key={`${s.nome}|${s.unidadeBase}`}
-                style={[estilos.linhaTabela, { borderBottomColor: p.linha }]}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: p.texto, fontWeight: '600', fontSize: fonte.corpo }}>
-                    {s.nome}
-                  </Text>
-                  <Text style={{ color: p.textoSuave, fontSize: 12 }}>
-                    {reais(s.pontos[s.pontos.length - 2].preco)} para {reais(s.ultimoPreco)}
-                  </Text>
+            <ListaComVerMais
+              titulo="Maiores aumentos de preço"
+              itens={precos.dados!.maioresAumentos}
+              renderizar={(itens) => (
+                <View>
+                  {itens.map((s) => (
+                    <View
+                      key={`${s.nome}|${s.unidadeBase}`}
+                      style={[estilos.linhaTabela, { borderBottomColor: p.linha }]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: p.texto, fontWeight: '600', fontSize: fonte.corpo }}>
+                          {s.nome}
+                        </Text>
+                        <Text style={{ color: p.textoSuave, fontSize: 12 }}>
+                          {reais(s.pontos[s.pontos.length - 2].preco)} para {reais(s.ultimoPreco)}
+                        </Text>
+                      </View>
+                      <Variacao percentual={s.variacaoPercentual} />
+                    </View>
+                  ))}
                 </View>
-                <Variacao percentual={s.variacaoPercentual} />
-              </View>
-            ))}
+              )}
+            />
           </Cartao>
         )}
+
+        <CartaoDeLista
+          titulo="Preço bom na última compra"
+          texto="Produtos que você pagou bem abaixo da média. Pode valer estocar quando o preço estiver assim."
+          itens={padroes.dados?.precosBons ?? []}
+          chave={(item) => `${item.nome}|${item.unidadeBase}`}
+          renderizar={(item) => <LinhaDePadrao titulo={item.nome} texto={item.descricao} />}
+        />
+
+        <CartaoDeLista
+          titulo="Costumam ir juntos"
+          texto="Produtos que aparecem no mesmo dia de compra mais do que o acaso explicaria."
+          itens={padroes.dados?.casados ?? []}
+          chave={(item) => `${item.primeiro}|${item.segundo}`}
+          renderizar={(item) => (
+            <LinhaDePadrao titulo={`${item.primeiro} + ${item.segundo}`} texto={item.descricao} />
+          )}
+        />
+
+        <CartaoDeLista
+          titulo="Deste mês, em outros anos"
+          texto="Produtos de época: você os comprou neste mesmo mês e não tem comprado agora."
+          itens={padroes.dados?.sazonais ?? []}
+          chave={(item) => item.chave}
+          renderizar={(item) => <LinhaDePadrao titulo={item.nome} texto={item.descricao} />}
+        />
 
         <Botao
           titulo="Atualizar"
@@ -460,6 +470,17 @@ export function AnalisesScreen() {
         />
       </ScrollView>
     </Pagina>
+  );
+}
+
+/** Linha simples dos cartões de padrões: nome em destaque e a frase que explica o achado. */
+function LinhaDePadrao({ titulo, texto }: { titulo: string; texto: string }) {
+  const p = usePaleta();
+  return (
+    <View style={{ gap: 2 }}>
+      <Text style={{ color: p.texto, fontWeight: '700', fontSize: fonte.corpo }}>{titulo}</Text>
+      <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>{texto}</Text>
+    </View>
   );
 }
 

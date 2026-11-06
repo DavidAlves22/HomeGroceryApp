@@ -1,6 +1,12 @@
 import type { AnalisesGateway } from '../../application/ports/analises';
 import type { CatalogoGateway, ListasGateway } from '../../application/ports/catalogo';
-import type { AnaliseDeGastos, AnaliseDePrecos } from '../../domain/entities/analises';
+import type {
+  AnaliseDeGastos,
+  AnaliseDePrecos,
+  AvisosDeRitmo,
+  HabitosDeCompra,
+  PadroesDeCompra,
+} from '../../domain/entities/analises';
 import type {
   Categoria,
   DadosDeNovaLista,
@@ -12,6 +18,7 @@ import type {
   Lista,
   ListaResumo,
   Produto,
+  SugestaoDeLista,
   VinculoDaNota,
 } from '../../domain/entities/tipos';
 import type { ClienteHttp } from '../http/ClienteHttp';
@@ -109,6 +116,10 @@ export class ListasApiGateway implements ListasGateway {
     return this.http.post<Lista>('/listas', { corpo: dados });
   }
 
+  sugerir(competencia: string) {
+    return this.http.get<SugestaoDeLista>(`/listas/sugestao?competencia=${competencia}`);
+  }
+
   adicionarItem(listaId: string, dados: DadosDoItem) {
     return this.http.post<ItemDaLista>(`/listas/${listaId}/itens`, { corpo: dados });
   }
@@ -184,5 +195,17 @@ export class AnalisesApiGateway implements AnalisesGateway {
 
   precos() {
     return this.http.get<AnaliseDePrecos>('/analises/precos');
+  }
+
+  avisos() {
+    return this.http.get<AvisosDeRitmo>('/analises/avisos');
+  }
+
+  padroes() {
+    return this.http.get<PadroesDeCompra>('/analises/padroes');
+  }
+
+  habitos() {
+    return this.http.get<HabitosDeCompra>('/analises/habitos');
   }
 }

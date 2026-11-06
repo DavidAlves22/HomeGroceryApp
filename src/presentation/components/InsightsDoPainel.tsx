@@ -6,28 +6,34 @@ import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
 import { espaco, fonte } from '../theme';
 import { Cartao, TextoSuave } from './base';
 import { BarrasHorizontais, GraficoDeBarras } from './graficos';
+import { ListaComVerMais } from './ListaComVerMais';
 import { GradeDeMetricas, Metrica, TituloDoCartao } from './painel';
 
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
 function Ranking({
+  titulo,
   itens,
   unidade,
   vazio,
 }: {
+  /** Título da folha com o ranking inteiro. */
+  titulo: string;
   itens: AdminItemDeRanking[];
   unidade: [string, string];
   vazio: string;
 }) {
   if (itens.length === 0) return <TextoSuave>{vazio}</TextoSuave>;
   return (
-    <BarrasHorizontais
+    <ListaComVerMais
+      titulo={titulo}
       itens={itens.map((i) => ({
         rotulo: i.nome,
         valor: i.quantidade,
         texto: plural(i.quantidade, unidade[0], unidade[1]),
         detalhe: i.detalhe === null ? undefined : `em ${plural(i.detalhe, 'casa', 'casas')}`,
       }))}
+      renderizar={(barras) => <BarrasHorizontais itens={barras} />}
     />
   );
 }
@@ -127,6 +133,7 @@ export function InsightsDoPainel({ dados }: { dados: AdminInsights }) {
       <Cartao estilo={{ gap: espaco.md }}>
         <TituloDoCartao>Mais comprados</TituloDoCartao>
         <Ranking
+          titulo="Produtos mais comprados"
           itens={dados.produtosMaisComprados}
           unidade={['compra', 'compras']}
           vazio="Ainda não há itens comprados."
@@ -135,6 +142,7 @@ export function InsightsDoPainel({ dados }: { dados: AdminInsights }) {
           <>
             <TituloDoCartao>Categorias</TituloDoCartao>
             <Ranking
+              titulo="Categorias mais compradas"
               itens={dados.categoriasMaisCompradas}
               unidade={['compra', 'compras']}
               vazio=""
@@ -146,6 +154,7 @@ export function InsightsDoPainel({ dados }: { dados: AdminInsights }) {
       <Cartao estilo={{ gap: espaco.md }}>
         <TituloDoCartao>Mercados</TituloDoCartao>
         <Ranking
+          titulo="Cidades com mercados"
           itens={dados.cidadesComMercados}
           unidade={['mercado', 'mercados']}
           vazio="Nenhum mercado com cidade cadastrada ainda."
@@ -153,7 +162,12 @@ export function InsightsDoPainel({ dados }: { dados: AdminInsights }) {
         {dados.mapasMaisCopiados.length > 0 && (
           <>
             <TituloDoCartao>Mapas mais copiados</TituloDoCartao>
-            <Ranking itens={dados.mapasMaisCopiados} unidade={['cópia', 'cópias']} vazio="" />
+            <Ranking
+              titulo="Mapas mais copiados"
+              itens={dados.mapasMaisCopiados}
+              unidade={['cópia', 'cópias']}
+              vazio=""
+            />
           </>
         )}
       </Cartao>

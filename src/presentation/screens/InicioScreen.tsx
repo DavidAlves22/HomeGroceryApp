@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
-import type { DadosDoItem, Produto } from '../../domain/entities/tipos';
+import type { DadosDoItem, ItemSugerido, Produto } from '../../domain/entities/tipos';
 import { calcularTotais } from '../../domain/services/financeiro';
 import { Competencia } from '../../domain/valueObjects/Competencia';
 import { Botao, Cartao, TextoSuave } from '../components/base';
+import { CartaoDeReposicao } from '../components/CartaoDeReposicao';
 import { FolhaDeItem } from '../components/Folhas';
 import { FolhaPedirItem } from '../components/FolhaPedirItem';
 import { ResumoFinanceiro } from '../components/ResumoFinanceiro';
@@ -39,6 +40,10 @@ export function InicioScreen() {
   const { dados: sugestoes } = useCarregar(
     () => container.obterSugestoesDeProdutos.executar(),
     'sugestoes',
+  );
+  const { dados: avisos, recarregar: recarregarAvisos } = useCarregar(
+    () => container.obterAvisosDeRitmo.executar(),
+    'avisos-ritmo',
   );
   // "Pedir item": pedido rápido de quem está em casa; produto que ainda não existe abre o formulário completo.
   const [pedindo, setPedindo] = useState(false);
@@ -92,6 +97,17 @@ export function InicioScreen() {
   const resumo = lista?.resumo;
   const comprados = lista?.itens.filter((i) => i.comprado).length ?? 0;
   const total = lista?.itens.length ?? 0;
+  async function reporItem(item: ItemSugerido) {
+    if (!lista || !item.categoriaId) return;
+    await container.adicionarItemNaLista.executar(lista.resumo.id, {
+      nome: item.nome,
+      categoriaId: item.categoriaId,
+      unidade: item.unidade,
+      quantidade: item.quantidade,
+    });
+    toast(`${item.nome} entrou na lista`);
+    await Promise.all([recarregar(), recarregarAvisos()]);
+  }
   const totais = lista ? calcularTotais(lista.itens) : null;
 
   return (
@@ -210,6 +226,12 @@ export function InicioScreen() {
             )}
           </View>
           <View style={largo ? estilos.colunaLateral : estilos.umaColuna}>
+            <CartaoDeReposicao
+              itens={avisos?.repor ?? []}
+              podeAdicionar={!!resumo && resumo.status !== 'Finalizada'}
+              aoAdicionar={reporItem}
+              aoFalhar={toast}
+            />
             {resumo && resumo.status !== 'Finalizada' && (
               <Botao
                 icone="mais_mais"
