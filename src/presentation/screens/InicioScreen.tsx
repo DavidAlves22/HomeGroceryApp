@@ -288,6 +288,7 @@ export function InicioScreen() {
             inicial={{ nome: novoPedido ?? '' }}
             rotuloDoBotao="Pedir"
             buscarSugestoes={(termo) => container.buscarProdutos.executar(termo)}
+            buscarNomesComuns={(termo) => container.buscarNomesComuns.executar(termo)}
             aoSalvar={pedirNovo}
             aoFechar={() => setNovoPedido(null)}
           />

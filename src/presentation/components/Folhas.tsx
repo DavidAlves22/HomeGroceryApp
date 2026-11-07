@@ -15,9 +15,11 @@ import {
   UNIDADES,
   type Categoria,
   type DadosDoItem,
+  type NomeComum,
   type Produto,
   type Unidade,
 } from '../../domain/entities/tipos';
+import { categoriaDoNomeComum, nomesComunsParaMostrar } from '../../domain/services/nomesComuns';
 import { useVoltarFecha } from '../hooks/useVoltarFecha';
 import { espaco, fonte, raio, usePaleta } from '../theme';
 import { Botao, Campo, MensagemDeErro } from './base';
@@ -103,6 +105,8 @@ interface FolhaDeItemProps {
   comPrecos?: boolean;
   rotuloDoBotao: string;
   buscarSugestoes: (termo: string) => Promise<Produto[]>;
+  /** Nomes que outras pessoas usam (atalho). Tocar cria um produto novo no grupo: nunca é o cadastro de outro grupo. */
+  buscarNomesComuns?: (termo: string) => Promise<NomeComum[]>;
   /** Favoritos e recorrentes, mostrados enquanto o nome está vazio (só ao adicionar). */
   sugestoesIniciais?: Produto[];
   /** Só para item já comprado: permite corrigir em qual mercado a compra foi feita. */
@@ -128,6 +132,7 @@ export function FolhaDeItem({
   comPrecos = false,
   rotuloDoBotao,
   buscarSugestoes,
+  buscarNomesComuns,
   sugestoesIniciais = [],
   compra,
   aoCriarCategoria,
@@ -147,6 +152,7 @@ export function FolhaDeItem({
   const [criandoCategoria, setCriandoCategoria] = useState(false);
   const [mercadoDaCompra, setMercadoDaCompra] = useState<string | null>(null);
   const [sugestoes, setSugestoes] = useState<Produto[]>([]);
+  const [comuns, setComuns] = useState<NomeComum[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const ultimaBusca = useRef(0);
@@ -169,6 +175,7 @@ export function FolhaDeItem({
     setMercadoDaCompra(compra?.mercadoId ?? null);
     setCriandoCategoria(false);
     setSugestoes([]);
+    setComuns([]);
     setErro(null);
     // Reinicia o formulário só quando a folha abre (não a cada render do pai).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,17 +185,27 @@ export function FolhaDeItem({
     setNome(texto);
     const busca = ++ultimaBusca.current;
     const limpo = texto.trim();
-    if (limpo.length < 2 || limpo === inicial?.nome) return setSugestoes([]);
+    if (limpo.length < 2 || limpo === inicial?.nome) {
+      setSugestoes([]);
+      setComuns([]);
+      return;
+    }
     setTimeout(async () => {
       if (busca !== ultimaBusca.current) return; // chegou outra tecla: descarta esta busca
       try {
-        const achados = await buscarSugestoes(limpo);
-        if (busca === ultimaBusca.current)
-          setSugestoes(
-            achados.filter((s) => s.nome.toLowerCase() !== limpo.toLowerCase()).slice(0, 5),
-          );
+        const [achados, deOutros] = await Promise.all([
+          buscarSugestoes(limpo),
+          buscarNomesComuns ? buscarNomesComuns(limpo) : Promise.resolve([] as NomeComum[]),
+        ]);
+        if (busca !== ultimaBusca.current) return;
+        setSugestoes(
+          achados.filter((s) => s.nome.toLowerCase() !== limpo.toLowerCase()).slice(0, 5),
+        );
+        // Os nomes de outras pessoas ficam sob os do próprio grupo e nunca repetem o que já aparece.
+        setComuns(nomesComunsParaMostrar(deOutros, limpo, achados));
       } catch {
         setSugestoes([]);
+        setComuns([]);
       }
     }, 250);
   }
@@ -199,6 +216,18 @@ export function FolhaDeItem({
     setCategoriaId(produto.categoriaId);
     setUnidade(produto.unidadePadrao);
     setSugestoes([]);
+    setComuns([]);
+  }
+
+  // Atalho de nome usado por outras pessoas: vale o nome e a unidade; a categoria é a do grupo com o mesmo nome (se houver).
+  function usarNomeComum(comum: NomeComum) {
+    ultimaBusca.current++;
+    setNome(comum.nome);
+    const categoria = categoriaDoNomeComum(comum, categorias);
+    if (categoria) setCategoriaId(categoria);
+    setUnidade(comum.unidadePadrao);
+    setSugestoes([]);
+    setComuns([]);
   }
 
   async function executar(acao: () => Promise<void>) {
@@ -258,6 +287,21 @@ export function FolhaDeItem({
             <Chip key={s.id} rotulo={s.nome} ativo={false} aoPressionar={() => usarSugestao(s)} />
           ))}
         </View>
+      )}
+      {comuns.length > 0 && (
+        <>
+          <RotuloDaFolha>Outras pessoas usam</RotuloDaFolha>
+          <View style={estilos.linha}>
+            {comuns.map((c) => (
+              <Chip
+                key={c.nome}
+                rotulo={c.nome}
+                ativo={false}
+                aoPressionar={() => usarNomeComum(c)}
+              />
+            ))}
+          </View>
+        </>
       )}
       <View style={estilos.duas}>
         <View style={{ flex: 1 }}>

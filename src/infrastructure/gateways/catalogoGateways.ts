@@ -17,6 +17,7 @@ import type {
   ItemDoModelo,
   Lista,
   ListaResumo,
+  NomeComum,
   Produto,
   SugestaoDeLista,
   VinculoDaNota,
@@ -49,6 +50,10 @@ export class CatalogoApiGateway implements CatalogoGateway {
 
   buscarProdutos(termo: string) {
     return this.http.get<Produto[]>(`/produtos?q=${encodeURIComponent(termo)}`);
+  }
+
+  buscarNomesComuns(termo: string) {
+    return this.http.get<NomeComum[]>(`/produtos/nomes-comuns?q=${encodeURIComponent(termo)}`);
   }
 
   listarProdutos() {

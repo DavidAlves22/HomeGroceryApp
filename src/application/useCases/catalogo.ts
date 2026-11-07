@@ -70,6 +70,21 @@ export class BuscarProdutos {
   }
 }
 
+/**
+ * Nomes que vários grupos usam, como atalho ao digitar ("leit" sugere "Leite caixinha"). Falha de rede nunca atrapalha a digitação: vira lista vazia.
+ */
+export class BuscarNomesComuns {
+  constructor(private readonly gateway: CatalogoGateway) {}
+  async executar(termo: string) {
+    if (termo.trim().length < 2) return [];
+    try {
+      return await this.gateway.buscarNomesComuns(termo.trim());
+    } catch {
+      return [];
+    }
+  }
+}
+
 export class ListarItensDoModelo {
   constructor(private readonly gateway: CatalogoGateway) {}
   executar(termo?: string) {

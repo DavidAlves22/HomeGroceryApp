@@ -1,5 +1,6 @@
 import {
   AdicionarItemAoModelo,
+  BuscarNomesComuns,
   BuscarProdutos,
   CriarCategoria,
   EditarItemDoModelo,
@@ -173,6 +174,7 @@ export function criarContainer(aoExpirarSessao: () => void) {
     excluirCategoria: new ExcluirCategoria(catalogo),
     reordenarCategorias: new ReordenarCategorias(catalogo),
     buscarProdutos: new BuscarProdutos(catalogo),
+    buscarNomesComuns: new BuscarNomesComuns(catalogo),
     listarProdutos: new ListarProdutos(catalogo),
     obterSugestoesDeProdutos: new ObterSugestoesDeProdutos(catalogo),
     alternarFavoritoDoProduto: new AlternarFavoritoDoProduto(catalogo),

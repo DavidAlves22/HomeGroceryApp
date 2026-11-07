@@ -8,6 +8,7 @@ import type {
   ItemDoModelo,
   Lista,
   ListaResumo,
+  NomeComum,
   SugestaoDeLista,
   Produto,
   VinculoDaNota,
@@ -20,6 +21,7 @@ export interface CatalogoGateway {
   excluirCategoria(id: string): Promise<void>;
   reordenarCategorias(ids: string[]): Promise<Categoria[]>;
   buscarProdutos(termo: string): Promise<Produto[]>;
+  buscarNomesComuns(termo: string): Promise<NomeComum[]>;
   listarProdutos(): Promise<Produto[]>;
   sugestoesDeProdutos(): Promise<Produto[]>;
   alternarFavorito(id: string, favorito: boolean): Promise<Produto>;

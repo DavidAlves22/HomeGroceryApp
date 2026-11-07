@@ -242,6 +242,7 @@ export function ListaPadraoScreen() {
         }
         rotuloDoBotao={folha?.tipo === 'editar' ? 'Salvar' : 'Adicionar'}
         buscarSugestoes={(termo) => container.buscarProdutos.executar(termo)}
+        buscarNomesComuns={(termo) => container.buscarNomesComuns.executar(termo)}
         aoSalvar={salvar}
         aoExcluir={folha?.tipo === 'editar' ? () => excluir(folha.item) : undefined}
         aoFechar={() => setFolha(null)}

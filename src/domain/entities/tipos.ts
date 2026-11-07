@@ -180,3 +180,14 @@ export interface DadosDeNovaLista {
   itensSugeridos?: { chave: string; quantidade?: number }[];
   permitirDuplicada?: boolean;
 }
+
+/**
+ * Nome de produto que vários grupos usam (atalho de digitação). Não é cadastro de ninguém: tocar cria um produto novo no
+ * grupo de quem tocou. A categoria vem pelo NOME (os ids são de cada grupo); `grupos` é só a contagem.
+ */
+export interface NomeComum {
+  nome: string;
+  categoria: string;
+  unidadePadrao: Unidade;
+  grupos: number;
+}

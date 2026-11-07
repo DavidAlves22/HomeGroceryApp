@@ -699,6 +699,7 @@ function ListaView({ buscar, chave, comVoltar }: ListaViewProps) {
         comPrecos
         rotuloDoBotao={folha?.tipo === 'editar' ? 'Salvar' : 'Adicionar'}
         buscarSugestoes={(termo) => container.buscarProdutos.executar(termo)}
+        buscarNomesComuns={(termo) => container.buscarNomesComuns.executar(termo)}
         sugestoesIniciais={sugestoes ?? []}
         aoCriarCategoria={criarCategoria}
         compra={
