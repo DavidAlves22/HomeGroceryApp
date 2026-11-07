@@ -1,6 +1,6 @@
 // Mercados, mapa e rota no navegador (Chrome headless) contra a API real e a PWA compilada.
 // Prepara a conta pela API (lista, itens e dois mercados) e depois usa só a tela: rota, compra dividida
-// entre dois mercados, "Não tem aqui" e o editor do mapa (arrastar a seção com o mouse).
+// entre dois mercados, "Não encontrei" e o editor do mapa (arrastar a seção com o mouse).
 const puppeteer = require('puppeteer-core');
 const path = require('path');
 
@@ -287,10 +287,10 @@ async function preparar() {
     );
     await foto('rota-a-marcado');
 
-    console.log('4) "Não tem aqui" tira o item da rota e ele continua pendente');
-    await clicar('Não tem aqui');
+    console.log('4) "Não encontrei" tira o item da rota e ele continua pendente');
+    await clicar('Não encontrei');
     await esperarTexto('Fora desta rota');
-    await esperarTexto('Você marcou que não tem aqui');
+    await esperarTexto('Você marcou que não encontrou');
     verificar((await texto()).includes('Falta 3'), 'o item continua pendente (Falta 3)');
     await foto('nao-tem-aqui');
 

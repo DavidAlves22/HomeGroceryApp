@@ -111,7 +111,7 @@ export interface ParadaDaRota {
   itens: ItemDaLista[];
 }
 
-/** SemSecao: o mercado não tem lugar para a categoria. NaoTemNaLoja: marcado como "Não tem aqui". */
+/** SemSecao: o mercado não tem lugar para a categoria. NaoTemNaLoja: marcado como "Não encontrei". */
 export type MotivoForaDaRota = 'SemSecao' | 'NaoTemNaLoja';
 
 export interface ItemForaDaRota {
@@ -130,6 +130,17 @@ export interface LocalDoItem {
   itemId: string;
   secaoId: string;
   lado: LadoDaSecao;
+}
+
+/**
+ * Onde OUTROS grupos acharam o produto de um item neste mercado (maioria de grupos diferentes, no mapa que veio do mesmo
+ * original). Só aparece enquanto o grupo ainda não marcou o produto; `grupos` é só a contagem.
+ */
+export interface LocalSugerido {
+  itemId: string;
+  secaoId: string;
+  lado: LadoDaSecao;
+  grupos: number;
 }
 
 /** Onde outra pessoa da divisão está e o trajeto que ainda falta para ela (aparece em cinza no mapa de quem acompanha). */
@@ -153,4 +164,6 @@ export interface Rota {
   locaisProprios: LocalDoItem[];
   comOutrasPessoas: ItemDeOutraPessoa[];
   rotasDeOutrasPessoas: RotaDeOutraPessoa[];
+  /** Servidor antigo (sem o recurso) não manda o campo: trate ausente como vazio. */
+  locaisSugeridos?: LocalSugerido[];
 }

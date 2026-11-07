@@ -2,11 +2,21 @@ import React, { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { mensagemParaUsuario } from '../../application/errors';
 import type { Membro } from '../../domain/entities/grupo';
-import type { ItemDeOutraPessoa, ParadaDaRota, Ponto } from '../../domain/entities/mercados';
+import type {
+  ItemDeOutraPessoa,
+  LocalSugerido,
+  ParadaDaRota,
+  Ponto,
+} from '../../domain/entities/mercados';
 import { rotuloDaUnidade, type ItemDaLista } from '../../domain/entities/tipos';
 import { mercadoEmUso } from '../../domain/services/compraDividida';
 import { divisaoValida, rotaInicial } from '../../domain/services/divisao';
 import { formatarQuantidade } from '../../domain/services/organizacao';
+import {
+  localDaSugestao,
+  sugestaoDoItem,
+  textoDaSugestao,
+} from '../../domain/services/sugestaoDeLocal';
 import { Botao, Cartao, TextoSuave } from '../components/base';
 import { DivisaoDaCompra } from '../components/DivisaoDaCompra';
 import { FolhaDeLocalDoItem, type LocalEscolhido } from '../components/FolhaDeLocalDoItem';
@@ -43,12 +53,16 @@ function LinhaDaRota({
   aoNaoTemAqui,
   aoMarcarLocal,
   localProprio,
+  sugestao,
+  aoAchei,
 }: {
   item: ItemDaLista;
   aoMarcar: () => void;
   aoNaoTemAqui?: () => void;
   aoMarcarLocal?: () => void;
   localProprio?: boolean;
+  sugestao?: LocalSugerido | null;
+  aoAchei?: () => void;
 }) {
   const p = usePaleta();
   return (
@@ -81,11 +95,30 @@ function LinhaDaRota({
             style={[estilos.botaoPequeno, { borderColor: p.linha, backgroundColor: p.superficie }]}
           >
             <Text style={{ color: p.textoSuave, fontSize: 12, fontWeight: '700' }}>
-              Não tem aqui
+              Não encontrei
             </Text>
           </Pressable>
         )}
       </View>
+      {!localProprio && !!sugestao && !!aoAchei && (
+        <View style={[estilos.rodapeDoItem, { borderTopColor: p.linha }]}>
+          <Icone nome="mapa" cor={p.textoSuave} tamanho={16} />
+          <Text style={{ flex: 1, color: p.texto, fontSize: fonte.pequena, fontWeight: '600' }}>
+            {textoDaSugestao(sugestao.grupos)}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Achei aqui: ${item.nome}`}
+            onPress={aoAchei}
+            style={[
+              estilos.botaoPequeno,
+              { borderColor: p.destaque, backgroundColor: p.superficie },
+            ]}
+          >
+            <Text style={{ color: p.destaque, fontSize: 12, fontWeight: '700' }}>Achei aqui</Text>
+          </Pressable>
+        </View>
+      )}
       {aoMarcarLocal && (
         <Pressable
           accessibilityRole="button"
@@ -122,6 +155,8 @@ function ParadasDaRota({
   aoNaoTemAqui,
   aoMarcarLocal,
   temLocalProprio,
+  sugestaoDe,
+  aoAchei,
 }: {
   paradas: ParadaDaRota[];
   abertaChave: string | null;
@@ -130,6 +165,8 @@ function ParadasDaRota({
   aoNaoTemAqui: (item: ItemDaLista) => void;
   aoMarcarLocal: (item: ItemDaLista) => void;
   temLocalProprio: (item: ItemDaLista) => boolean;
+  sugestaoDe: (item: ItemDaLista) => LocalSugerido | null;
+  aoAchei: (item: ItemDaLista, sugestao: LocalSugerido) => void;
 }) {
   const p = usePaleta();
   // Se a parada aberta sumiu (itens acabaram), volta para a próxima.
@@ -184,6 +221,11 @@ function ParadasDaRota({
                   aoNaoTemAqui={() => aoNaoTemAqui(item)}
                   aoMarcarLocal={() => aoMarcarLocal(item)}
                   localProprio={temLocalProprio(item)}
+                  sugestao={sugestaoDe(item)}
+                  aoAchei={() => {
+                    const s = sugestaoDe(item);
+                    if (s) aoAchei(item, s);
+                  }}
                 />
               ))}
             </Cartao>
@@ -350,6 +392,19 @@ export function RotaScreen() {
       toast(mensagemParaUsuario(e));
     } finally {
       setSalvandoLocal(false);
+    }
+  }
+
+  // "Achei aqui": o lugar sugerido por outras pessoas vira o local do proprio grupo (e conta como confirmacao).
+  async function acheiAqui(item: ItemDaLista, sugestao: LocalSugerido) {
+    try {
+      await container.definirLocalDoItem.executar(listaId!, item.id, atual!.id, [
+        localDaSugestao(sugestao),
+      ]);
+      toast('Obrigado! Local salvo para este mercado');
+      await recarregarRota();
+    } catch (e) {
+      toast(mensagemParaUsuario(e));
     }
   }
 
@@ -604,6 +659,10 @@ export function RotaScreen() {
                     aoNaoTemAqui={(item) => void semNoMercado(item, true)}
                     aoMarcarLocal={setItemDoLocal}
                     temLocalProprio={(item) => locaisDe(item.id).length > 0}
+                    sugestaoDe={(item) =>
+                      sugestaoDoItem(item.id, rotaAtual.locaisSugeridos, rotaAtual.locaisProprios)
+                    }
+                    aoAchei={(item, sugestao) => void acheiAqui(item, sugestao)}
                   />
                 </>
               )}
@@ -637,7 +696,7 @@ export function RotaScreen() {
                         <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
                           {motivo === 'SemSecao'
                             ? `Este mercado não tem seção para ${item.categoriaNome}`
-                            : 'Você marcou que não tem aqui'}
+                            : 'Você marcou que não encontrou'}
                         </Text>
                       </View>
                       {motivo === 'SemSecao' && (

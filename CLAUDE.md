@@ -66,10 +66,10 @@ Nomes em português; comentários explicam o porquê; Prettier (`.prettierrc.jso
 - **Duplicar seção** (`duplicarSecao`): copia só a medida e o formato (inclusive dois lados); nome e categorias começam vazios. Coloca ao lado da original ou no primeiro espaço livre.
 - **Gôndola de dois lados**: lado A (cima/esquerda) e B (baixo/direita) com nome e categorias próprios; a rota para no corredor do lado do item. **Categoria em vários lugares** do mesmo mercado: a rota vai ao mais próximo.
 - **Onde achei** (`FolhaDeLocalDoItem`, `DefinirLocalDoItem`): na Rota, "Estava em outro lugar?" (itens da próxima parada) ou "Marcar local" (itens sem seção) abre o mapa; o toque escolhe a seção e, em gôndola de dois lados, o lado pela metade tocada (`secaoNoPonto`/`ladoNoPonto`). O local vale por produto (nome) + mercado, para o grupo, e vence a categoria da seção. Ao salvar o mapa, o app manda `idAnterior` das seções que já existiam para a API manter os locais.
-- **Compra dividida**: marcar um item guarda o mercado de hoje (`compradoNaLojaId`); a barra `DivisaoDaCompra` mostra comprado por mercado e o que falta. "Não tem aqui" mantém o item pendente (`semNasLojas`) e o tira da rota daquele mercado.
+- **Compra dividida**: marcar um item guarda o mercado de hoje (`compradoNaLojaId`); a barra `DivisaoDaCompra` mostra comprado por mercado e o que falta. "Não encontrei" mantém o item pendente (`semNasLojas`) e o tira da rota daquele mercado.
 - **Rota** (`RotaScreen`, `POST /listas/{id}/rota`): só itens pendentes que o mercado tem; posição = parada do último item marcado (sem GPS) ou a entrada. O algoritmo vive na API; o app só desenha (`MapaSvg` com trilha, paradas numeradas e posição).
 - Tempo real: evento `lojas` recarrega mercados/mapas (`useCarregar` com chaves `mercados`, `mercado:{id}`, `rota:{lista}:{mercado}`). Salvar o próprio mapa atualiza o estado à mão (o aviso do próprio usuário é ignorado).
-- E2E: `e2e/mercados.js` (prepara conta e mercados pela API; testa rota, compra dividida entre 2 mercados, "Não tem aqui" e arrastar a seção com o mouse). Rode também com `DARK=1`.
+- E2E: `e2e/mercados.js` (prepara conta e mercados pela API; testa rota, compra dividida entre 2 mercados, "Não encontrei" e arrastar a seção com o mouse). Rode também com `DARK=1`.
 - `SVG`: a fonte do texto precisa ser definida (não herda); `MapaSvg` usa a fonte do sistema no navegador.
 
 ## Fase 6 (compra em família) — o que existe
@@ -103,3 +103,7 @@ Nomes em português; comentários explicam o porquê; Prettier (`.prettierrc.jso
 - **Painel → "Mapas dos usuários"** (`MapasDoPainel`): 4 mapas + "Ver todos"; cada linha mostra cidade, seções com nome, cópias, dono, "No catálogo"/"Fora do catálogo", "Ver mapa" (`PreviaDoMapa`, o mesmo desenho do catálogo) e "Excluir" com segundo toque.
 - **Painel → Contas**: uma informação por linha (e-mail, usuário desde, "Último acesso em dd/mm/aaaa às hh:mm (há X)", bloqueio, família, listas, itens), "Bloqueada" como pílula ao lado do nome, e "Excluir conta" ao lado de "Bloquear" (segundo toque "Apagar tudo da conta"; apaga conta e dados). `dataEHoraDoDia` usa Brasília (UTC-3 fixo).
 - Pegadinha de e2e: `clicarNoBotaoDaConta` só pode subir até a linha da conta (2 níveis); mais que isso casa com o cartão inteiro e clica na conta errada.
+
+## "Onde achou" da comunidade — o que existe
+- A Rota mostra, no item que ainda não tem local próprio, a linha **"Outra pessoa achou aqui" / "N pessoas acharam aqui"** com o botão **"Achei aqui"** (acima de "Estava em outro lugar?"). Vem de `Rota.locaisSugeridos` (API: outros grupos que copiaram o mesmo mapa, por maioria; só contagem, nunca quem). "Achei aqui" grava o lugar sugerido como o local do próprio grupo (`DefinirLocalDoItem`) e conta como confirmação; só marcar vota, seguir a rota não. Regras puras em `domain/services/sugestaoDeLocal.ts` (`textoDaSugestao`, `sugestaoDoItem`, `localDaSugestao`).
+- `Rota.locaisSugeridos` é opcional no tipo (servidor antigo não manda). E2E: `e2e/comunidade.js` (API com `Locais__LimiteDeGrupos=1000000` para bastar 1 grupo).

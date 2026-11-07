@@ -46,7 +46,7 @@ export function mercadoEmUso(
   return mercados.find((m) => m.id === escolhidoId) ?? mercados[0];
 }
 
-/** Itens que ainda faltam e que este mercado ainda não recusou ("Não tem aqui"). */
+/** Itens que ainda faltam e que este mercado ainda não recusou ("Não encontrei"). */
 export function pendentesNoMercado(itens: ItemDaLista[], mercadoId: string): ItemDaLista[] {
   return itens.filter((i) => !i.comprado && !i.semNasLojas.includes(mercadoId));
 }

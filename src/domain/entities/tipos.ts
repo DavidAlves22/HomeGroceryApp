@@ -73,7 +73,7 @@ export interface ItemDaLista {
   versao: number;
   /** Mercado onde foi comprado: a compra do mês pode ser dividida entre vários mercados. */
   compradoNaLojaId: string | null;
-  /** Mercados que não têm este item ("Não tem aqui"). Continua pendente para o próximo mercado. */
+  /** Mercados que não têm este item ("Não encontrei"). Continua pendente para o próximo mercado. */
   semNasLojas: string[];
 }
 

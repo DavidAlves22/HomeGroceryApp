@@ -71,7 +71,7 @@ describe('dividirCompra', () => {
 });
 
 describe('pendentesNoMercado', () => {
-  it('tira o que já foi comprado e o que foi marcado como "não tem aqui" neste mercado', () => {
+  it('tira o que já foi comprado e o que foi marcado como "não encontrei" neste mercado', () => {
     const itens = [
       item({ nome: 'Comprado', comprado: true, compradoNaLojaId: 'a' }),
       item({ nome: 'Falta' }),

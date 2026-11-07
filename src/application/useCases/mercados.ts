@@ -63,7 +63,7 @@ export class PlanejarRota {
   }
 }
 
-/** "Não tem aqui": o item continua pendente, mas sai da rota deste mercado e entra na do próximo. */
+/** "Não encontrei": o item continua pendente, mas sai da rota deste mercado e entra na do próximo. */
 export class MarcarItemSemNoMercado {
   constructor(private readonly gateway: RotasGateway) {}
   executar(listaId: string, itemId: string, mercadoId: string, sem: boolean) {

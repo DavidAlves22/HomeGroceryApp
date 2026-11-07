@@ -81,7 +81,7 @@ describe('SalvarMapaDoMercado', () => {
 });
 
 describe('MarcarItemSemNoMercado', () => {
-  it('repassa mercado e sentido ("não tem aqui" / desfazer)', async () => {
+  it('repassa mercado e sentido ("não encontrei" / desfazer)', async () => {
     const g = { marcarSemNoMercado: jest.fn().mockResolvedValue({}) } as unknown as RotasGateway & {
       marcarSemNoMercado: jest.Mock;
     };
