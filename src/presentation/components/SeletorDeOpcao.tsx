@@ -69,11 +69,17 @@ export function SeletorDeOpcao({
     const filtradas = termo
       ? opcoes.filter((o) => o.rotulo.toLocaleLowerCase('pt-BR').includes(termo))
       : [...opcoes];
-    if (ordens) return filtradas;
-    return filtradas.sort((a, b) =>
-      crescente ? comparar(a.rotulo, b.rotulo) : comparar(b.rotulo, a.rotulo),
-    );
-  }, [opcoes, busca, crescente, comBuscaEOrdem, ordens]);
+    const ordenadas = ordens
+      ? filtradas
+      : filtradas.sort((a, b) =>
+          crescente ? comparar(a.rotulo, b.rotulo) : comparar(b.rotulo, a.rotulo),
+        );
+    // A opção atual sobe para o topo; as demais mantêm a ordem escolhida.
+    return [
+      ...ordenadas.filter((o) => o.chave === escolhida),
+      ...ordenadas.filter((o) => o.chave !== escolhida),
+    ];
+  }, [opcoes, busca, crescente, comBuscaEOrdem, ordens, escolhida]);
 
   return (
     <Modal visible={visivel} animationType="slide" onRequestClose={aoFechar}>

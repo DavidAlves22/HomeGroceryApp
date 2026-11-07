@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Categoria } from '../../domain/entities/tipos';
 import { useVoltarFecha } from '../hooks/useVoltarFecha';
@@ -45,15 +45,26 @@ export function SeletorDeCategorias({
   // O voltar do celular/navegador fecha a lista em vez de sair do editor por baixo dela.
   useVoltarFecha(visivel, aoFechar);
 
+  // As marcadas ao abrir sobem para o topo; marcar com a lista aberta não embaralha a tela.
+  const [marcadasAoAbrir, setMarcadasAoAbrir] = useState<string[]>(selecionadas);
+  useEffect(() => {
+    if (visivel) setMarcadasAoAbrir(selecionadas);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visivel]);
+
   const lista = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase('pt-BR');
     const filtradas = termo
       ? categorias.filter((c) => c.nome.toLocaleLowerCase('pt-BR').includes(termo))
       : [...categorias];
-    return filtradas.sort((a, b) =>
+    const ordenadas = filtradas.sort((a, b) =>
       crescente ? comparar(a.nome, b.nome) : comparar(b.nome, a.nome),
     );
-  }, [categorias, busca, crescente]);
+    return [
+      ...ordenadas.filter((c) => marcadasAoAbrir.includes(c.id)),
+      ...ordenadas.filter((c) => !marcadasAoAbrir.includes(c.id)),
+    ];
+  }, [categorias, busca, crescente, marcadasAoAbrir]);
 
   return (
     <Modal visible={visivel} animationType="slide" onRequestClose={aoFechar}>

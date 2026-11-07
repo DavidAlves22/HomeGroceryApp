@@ -20,6 +20,7 @@ import { Dinheiro } from '../../domain/valueObjects/Dinheiro';
 import { Botao, Campo, Cartao, MensagemDeErro, TextoSuave } from '../components/base';
 import { CameraDoQr } from '../components/CameraDoQr';
 import { Moldura, TituloDaFolha } from '../components/Folhas';
+import { SeletorDeOpcao } from '../components/SeletorDeOpcao';
 import {
   BlocoDaFolha,
   Cabecalho,
@@ -30,7 +31,6 @@ import {
   EstadoVazio,
   GatilhoDeSeletor,
   Pagina,
-  PainelDeOpcoes,
   Pilula,
   TituloDeSecao,
 } from '../components/ui';
@@ -674,28 +674,27 @@ export function ImportarNotaScreen() {
                   'Escolha a categoria'
                 }
                 aberto={escolhendoCategoria}
-                aoPressionar={() => setEscolhendoCategoria(!escolhendoCategoria)}
+                aoPressionar={() => setEscolhendoCategoria(true)}
               />
-              {escolhendoCategoria && (
-                <PainelDeOpcoes
-                  titulo="Escolher a categoria"
-                  opcoes={categoriasEmOrdem.map((c) => ({
-                    chave: c.id,
-                    rotulo: c.nome,
-                    marcada:
-                      linhaEmEdicao.escolha.tipo === 'novo' &&
-                      linhaEmEdicao.escolha.categoriaId === c.id,
-                    aoPressionar: () => {
-                      escolher(editando, {
-                        tipo: 'novo',
-                        categoriaId: c.id,
-                        nome: nomeNovo.trim() || linhaEmEdicao.item.nome,
-                      });
-                      setEscolhendoCategoria(false);
-                    },
-                  }))}
-                />
-              )}
+              <SeletorDeOpcao
+                visivel={escolhendoCategoria}
+                titulo="Escolher a categoria"
+                opcoes={categoriasEmOrdem.map((c) => ({ chave: c.id, rotulo: c.nome }))}
+                escolhida={
+                  linhaEmEdicao.escolha.tipo === 'novo' ? linhaEmEdicao.escolha.categoriaId : ''
+                }
+                comBuscaEOrdem
+                placeholderDaBusca="Buscar categoria"
+                aoEscolher={(chave) => {
+                  escolher(editando, {
+                    tipo: 'novo',
+                    categoriaId: chave,
+                    nome: nomeNovo.trim() || linhaEmEdicao.item.nome,
+                  });
+                  setEscolhendoCategoria(false);
+                }}
+                aoFechar={() => setEscolhendoCategoria(false)}
+              />
             </BlocoDaFolha>
             <Botao
               titulo="Ignorar este item da nota"
