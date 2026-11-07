@@ -108,6 +108,139 @@ function LinhaDaRota({
 }
 
 const metros = (m: number) => `${m} m`;
+const chaveDaParada = (parada: ParadaDaRota) => `${parada.secaoId}-${parada.lado ?? ''}`;
+
+/**
+ * Paradas da rota na ordem. Uma fica aberta (cartão grande com os itens); as outras ficam em linha e abrem ao toque,
+ * assim dá para pegar um item de outra parada antes de chegar nela. Sem escolha, abre a próxima parada.
+ */
+function ParadasDaRota({
+  paradas,
+  abertaChave,
+  aoAbrir,
+  aoMarcar,
+  aoNaoTemAqui,
+  aoMarcarLocal,
+  temLocalProprio,
+}: {
+  paradas: ParadaDaRota[];
+  abertaChave: string | null;
+  aoAbrir: (chave: string) => void;
+  aoMarcar: (item: ItemDaLista, parada: ParadaDaRota) => void;
+  aoNaoTemAqui: (item: ItemDaLista) => void;
+  aoMarcarLocal: (item: ItemDaLista) => void;
+  temLocalProprio: (item: ItemDaLista) => boolean;
+}) {
+  const p = usePaleta();
+  // Se a parada aberta sumiu (itens acabaram), volta para a próxima.
+  const aberta =
+    abertaChave && paradas.some((x) => chaveDaParada(x) === abertaChave)
+      ? abertaChave
+      : chaveDaParada(paradas[0]);
+
+  const blocos: { aberta: boolean; indices: number[] }[] = [];
+  paradas.forEach((parada, i) => {
+    const ehAberta = chaveDaParada(parada) === aberta;
+    const ultimo = blocos[blocos.length - 1];
+    if (!ehAberta && ultimo && !ultimo.aberta) ultimo.indices.push(i);
+    else blocos.push({ aberta: ehAberta, indices: [i] });
+  });
+
+  return (
+    <>
+      {blocos.map((bloco) => {
+        if (bloco.aberta) {
+          const i = bloco.indices[0];
+          const parada = paradas[i];
+          return (
+            <Cartao key={chaveDaParada(parada)} heroi estilo={{ gap: espaco.md }}>
+              <View style={estilos.entre}>
+                {i === 0 ? <Pilula texto="Próxima parada" /> : <View />}
+                <Text
+                  style={{
+                    color: p.textoSuave,
+                    fontSize: fonte.pequena,
+                    fontVariant: ['tabular-nums'],
+                  }}
+                >
+                  a {metros(parada.distanciaEmMetros)}
+                </Text>
+              </View>
+              <Text
+                style={{ color: p.texto, fontSize: 24, fontWeight: '800', letterSpacing: -0.4 }}
+              >
+                {parada.nome}
+              </Text>
+              {parada.ladoTexto && (
+                <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                  Gôndola de dois lados · {parada.ladoTexto}
+                </Text>
+              )}
+              {parada.itens.map((item) => (
+                <LinhaDaRota
+                  key={item.id}
+                  item={item}
+                  aoMarcar={() => aoMarcar(item, parada)}
+                  aoNaoTemAqui={() => aoNaoTemAqui(item)}
+                  aoMarcarLocal={() => aoMarcarLocal(item)}
+                  localProprio={temLocalProprio(item)}
+                />
+              ))}
+            </Cartao>
+          );
+        }
+        return (
+          <Cartao
+            key={chaveDaParada(paradas[bloco.indices[0]])}
+            estilo={{ paddingVertical: espaco.xs }}
+          >
+            {bloco.indices.map((i, posicaoNoBloco) => {
+              const parada = paradas[i];
+              return (
+                <Pressable
+                  key={chaveDaParada(parada)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Abrir ${parada.nome}${parada.ladoTexto ? `, ${parada.ladoTexto}` : ''}`}
+                  onPress={() => aoAbrir(chaveDaParada(parada))}
+                  style={[
+                    estilos.parada,
+                    posicaoNoBloco > 0 && { borderTopWidth: 1, borderTopColor: p.linha },
+                  ]}
+                >
+                  <View style={[estilos.numero, { backgroundColor: p.destaqueSuave }]}>
+                    <Text style={{ color: p.destaque, fontWeight: '800' }}>{i + 1}</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ color: p.texto, fontWeight: '700' }}>
+                      {parada.nome}
+                      {parada.ladoTexto ? (
+                        <Text
+                          style={{
+                            color: p.textoSuave,
+                            fontWeight: '400',
+                            fontSize: fonte.pequena,
+                          }}
+                        >
+                          {' '}
+                          · {parada.ladoTexto}
+                        </Text>
+                      ) : null}
+                    </Text>
+                    <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
+                      {parada.itens.map((x) => x.nome).join(', ')}
+                    </Text>
+                  </View>
+                  {i === 0 && <Pilula texto="Próxima parada" />}
+                  <Pilula texto={String(parada.itens.length)} tom="neutro" />
+                </Pressable>
+              );
+            })}
+          </Cartao>
+        );
+      })}
+    </>
+  );
+}
 
 /**
  * Rota dentro do mercado escolhido, só com o que ainda falta: o que já foi comprado em outro mercado
@@ -182,6 +315,8 @@ export function RotaScreen() {
   const [salvandoLocal, setSalvandoLocal] = useState(false);
   // "Já comprados aqui" começa recolhido (só a contagem); toque para abrir a lista.
   const [compradosAbertos, setCompradosAbertos] = useState(false);
+  // Parada aberta na rota (chave); sem escolha vale a próxima parada.
+  const [paradaAberta, setParadaAberta] = useState<string | null>(null);
 
   const escolher = (id: string) => {
     posicao.current = null;
@@ -192,7 +327,10 @@ export function RotaScreen() {
     try {
       await container.marcarItemComprado.executar(listaId!, item.id, true, atual!.id);
       // Sem GPS: a posição passa a ser a parada onde o item foi marcado.
-      posicao.current = parada.posicao;
+      // Só vale se o item é da próxima parada: pegar algo de outra parada de passagem não muda onde você está.
+      const proxima = rota?.paradas[0];
+      if (proxima && chaveDaParada(proxima) === chaveDaParada(parada))
+        posicao.current = parada.posicao;
       await Promise.all([recarregarRota(), recarregarLista()]);
     } catch (e) {
       toast(mensagemParaUsuario(e));
@@ -458,84 +596,15 @@ export function RotaScreen() {
                     />
                   )}
 
-                  <Cartao heroi estilo={{ gap: espaco.md }}>
-                    <View style={estilos.entre}>
-                      <Pilula texto="Próxima parada" />
-                      <Text
-                        style={{
-                          color: p.textoSuave,
-                          fontSize: fonte.pequena,
-                          fontVariant: ['tabular-nums'],
-                        }}
-                      >
-                        a {metros(rotaAtual.paradas[0].distanciaEmMetros)}
-                      </Text>
-                    </View>
-                    <Text
-                      style={{
-                        color: p.texto,
-                        fontSize: 24,
-                        fontWeight: '800',
-                        letterSpacing: -0.4,
-                      }}
-                    >
-                      {rotaAtual.paradas[0].nome}
-                    </Text>
-                    {rotaAtual.paradas[0].ladoTexto && (
-                      <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                        Gôndola de dois lados · {rotaAtual.paradas[0].ladoTexto}
-                      </Text>
-                    )}
-                    {rotaAtual.paradas[0].itens.map((item) => (
-                      <LinhaDaRota
-                        key={item.id}
-                        item={item}
-                        aoMarcar={() => void marcar(item, rotaAtual.paradas[0])}
-                        aoNaoTemAqui={() => void semNoMercado(item, true)}
-                        aoMarcarLocal={() => setItemDoLocal(item)}
-                        localProprio={locaisDe(item.id).length > 0}
-                      />
-                    ))}
-                  </Cartao>
-
-                  {rotaAtual.paradas.length > 1 && (
-                    <Cartao estilo={{ paddingVertical: espaco.xs }}>
-                      {rotaAtual.paradas.slice(1).map((parada, i) => (
-                        <View
-                          key={`${parada.secaoId}-${parada.lado ?? ''}`}
-                          style={[
-                            estilos.parada,
-                            i > 0 && { borderTopWidth: 1, borderTopColor: p.linha },
-                          ]}
-                        >
-                          <View style={[estilos.numero, { backgroundColor: p.destaqueSuave }]}>
-                            <Text style={{ color: p.destaque, fontWeight: '800' }}>{i + 2}</Text>
-                          </View>
-                          <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text style={{ color: p.texto, fontWeight: '700' }}>
-                              {parada.nome}
-                              {parada.ladoTexto ? (
-                                <Text
-                                  style={{
-                                    color: p.textoSuave,
-                                    fontWeight: '400',
-                                    fontSize: fonte.pequena,
-                                  }}
-                                >
-                                  {' '}
-                                  · {parada.ladoTexto}
-                                </Text>
-                              ) : null}
-                            </Text>
-                            <Text style={{ color: p.textoSuave, fontSize: fonte.pequena }}>
-                              {parada.itens.map((x) => x.nome).join(', ')}
-                            </Text>
-                          </View>
-                          <Pilula texto={String(parada.itens.length)} tom="neutro" />
-                        </View>
-                      ))}
-                    </Cartao>
-                  )}
+                  <ParadasDaRota
+                    paradas={rotaAtual.paradas}
+                    abertaChave={paradaAberta}
+                    aoAbrir={setParadaAberta}
+                    aoMarcar={(item, parada) => void marcar(item, parada)}
+                    aoNaoTemAqui={(item) => void semNoMercado(item, true)}
+                    aoMarcarLocal={setItemDoLocal}
+                    temLocalProprio={(item) => locaisDe(item.id).length > 0}
+                  />
                 </>
               )}
 
