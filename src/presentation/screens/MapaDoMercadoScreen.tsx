@@ -1,4 +1,4 @@
-import { useRoute, type RouteProp } from '@react-navigation/native';
+import { useIsFocused, useRoute, type RouteProp } from '@react-navigation/native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   PanResponder,
@@ -60,6 +60,7 @@ import {
   Pagina,
   Pilula,
 } from '../components/ui';
+import { useSemZoomDaPagina } from '../hooks/useSemZoomDaPagina';
 import { useContainer, useMercadoAtual } from '../hooks/AppProviders';
 import { useCarregar } from '../hooks/dados';
 import { useCriarCategoria } from '../hooks/useCriarCategoria';
@@ -90,6 +91,8 @@ export function MapaDoMercadoScreen() {
   const largo = useLayoutLargo();
   const ajuste = useAjusteDoLayout();
   const { definirMercado } = useMercadoAtual();
+  // Com a tela em primeiro plano, a pinça só dá zoom no mapa (não na página).
+  useSemZoomDaPagina(useIsFocused());
   const { params } = useRoute<RouteProp<RootStackParamList, 'MapaDoMercado'>>();
   const {
     dados: mercado,

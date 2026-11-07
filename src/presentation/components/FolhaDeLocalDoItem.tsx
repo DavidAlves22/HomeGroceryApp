@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import type { LadoDaSecao, Mercado } from '../../domain/entities/mercados';
 import { ladoNoPonto, nomeDoLado, secaoNoPonto, textoDoLado } from '../../domain/services/mapa';
+import { useSemZoomDaPagina } from '../hooks/useSemZoomDaPagina';
 import {
   JANELA_INICIAL,
   celulaNoPonto,
@@ -60,6 +61,8 @@ export function FolhaDeLocalDoItem({
   const [janela, setJanela] = useState<Janela>(JANELA_INICIAL);
   const janelaRef = useRef<Janela>(JANELA_INICIAL);
   janelaRef.current = janela;
+
+  useSemZoomDaPagina(visivel);
 
   // Cada vez que a folha abre, parte do que já está salvo.
   useEffect(() => {
